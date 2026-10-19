@@ -140,7 +140,8 @@ function subname(item) {
 		store.practitionerById(item.practitionerId)?.name,
 		store.placeById(item.placeId)?.name,
 	].filter(Boolean)
-	return [formatDate(item.startsAt), ...parts].join(' · ')
+	// la date figure déjà dans la pastille ; sans praticien ni lieu on affiche tout de même la date complète
+	return parts.length > 0 ? parts.join(' · ') : formatDate(item.startsAt)
 }
 
 watch(() => props.filter, () => {
@@ -155,6 +156,9 @@ watch(() => props.focusId, (id) => {
 
 <style scoped lang="scss">
 .placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	height: 100%;
 }
 

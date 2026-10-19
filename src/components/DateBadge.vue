@@ -2,12 +2,13 @@
 	<div class="date-badge" :class="{ 'date-badge--muted': muted }" aria-hidden="true">
 		<span class="date-badge__month">{{ month }}</span>
 		<span class="date-badge__day">{{ day }}</span>
+		<span v-if="otherYear" class="date-badge__year">{{ year }}</span>
 	</div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { dayOf, monthOf } from '../format.js'
+import { dayOf, monthOf, yearOf } from '../format.js'
 
 const props = defineProps({
 	startsAt: { type: Number, required: true },
@@ -16,6 +17,8 @@ const props = defineProps({
 
 const day = computed(() => dayOf(props.startsAt))
 const month = computed(() => monthOf(props.startsAt))
+const year = computed(() => yearOf(props.startsAt))
+const otherYear = computed(() => year.value !== new Date().getFullYear())
 </script>
 
 <style scoped lang="scss">
@@ -44,6 +47,11 @@ const month = computed(() => monthOf(props.startsAt))
 	&__day {
 		font-size: 1.2em;
 		font-weight: bold;
+	}
+
+	&__year {
+		font-size: 0.65em;
+		line-height: 1;
 	}
 }
 </style>
