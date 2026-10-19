@@ -11,9 +11,9 @@
 				inputId="vitalog-calendar"
 				:inputLabel="t('vitalog', 'Calendar')"
 				:options="options"
-				:placeholder="t('vitalog', 'Sync disabled')"
+				:clearable="false"
 				label="label" />
-			<NcNoteCard v-if="options.length === 0" type="warning">
+			<NcNoteCard v-if="options.length === 1" type="warning">
 				{{ t('vitalog', 'No writable calendar found. Open the Calendar app once to create one.') }}
 			</NcNoteCard>
 		</div>
@@ -44,12 +44,15 @@ const emit = defineEmits(['close'])
 
 const store = useDataStore()
 const saving = ref(false)
-const options = computed(() => store.settings.calendars.map((c) => ({ id: c.uri, label: c.name })))
-const selected = ref(options.value.find((o) => o.id === store.settings.calendarUri) ?? null)
+const options = computed(() => [
+	{ id: null, label: t('vitalog', 'Sync disabled') },
+	...store.settings.calendars.map((c) => ({ id: c.uri, label: c.name })),
+])
+const selected = ref(options.value.find((o) => o.id === store.settings.calendarUri) ?? options.value[0])
 
 async function submit() {
 	saving.value = true
-	const saved = await store.saveCalendar(selected.value?.id ?? null)
+	const saved = await store.saveCalendar(selected.value.id)
 	saving.value = false
 	if (saved) {
 		emit('close')

@@ -253,7 +253,10 @@ async function pickFiles() {
 	&__when {
 		margin: 2px 0 0;
 		color: var(--color-text-maxcontrast);
-		text-transform: capitalize;
+
+		&::first-letter {
+			text-transform: uppercase;
+		}
 	}
 
 	&__followup,
