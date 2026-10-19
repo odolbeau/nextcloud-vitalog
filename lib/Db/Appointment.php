@@ -26,6 +26,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setStatus(string $status)
  * @method string|null getCalendarUid()
  * @method void setCalendarUid(?string $calendarUid)
+ * @method string|null getCalendarUri()
+ * @method void setCalendarUri(?string $calendarUri)
  */
 class Appointment extends Entity implements JsonSerializable {
 	public const STATUS_PLANNED = 'planned';
@@ -42,6 +44,7 @@ class Appointment extends Entity implements JsonSerializable {
 	protected ?string $notes = null;
 	protected ?string $status = null;
 	protected ?string $calendarUid = null;
+	protected ?string $calendarUri = null;
 
 	public function __construct() {
 		$this->addType('practitionerId', 'integer');
@@ -60,6 +63,7 @@ class Appointment extends Entity implements JsonSerializable {
 			'reason' => $this->reason,
 			'notes' => $this->notes,
 			'status' => $this->status,
+			'synced' => $this->calendarUri !== null,
 		];
 	}
 }

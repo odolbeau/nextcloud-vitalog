@@ -49,6 +49,7 @@ class Version0001Date20261019000000 extends SimpleMigrationStep {
 			$table->addColumn('notes', Types::TEXT, ['notnull' => false]);
 			$table->addColumn('status', Types::STRING, ['notnull' => true, 'length' => 16, 'default' => 'planned']);
 			$table->addColumn('calendar_uid', Types::STRING, ['notnull' => false, 'length' => 255]);
+			$table->addColumn('calendar_uri', Types::STRING, ['notnull' => false, 'length' => 255]);
 			$table->setPrimaryKey(['id']);
 			$table->addIndex(['user_id', 'starts_at'], 'vitalog_appt_user_start');
 		}
@@ -59,7 +60,7 @@ class Version0001Date20261019000000 extends SimpleMigrationStep {
 			$table->addColumn('appointment_id', Types::BIGINT, ['notnull' => true]);
 			$table->addColumn('file_id', Types::BIGINT, ['notnull' => true]);
 			$table->setPrimaryKey(['id']);
-			$table->addIndex(['appointment_id'], 'vitalog_attach_appt');
+			$table->addUniqueIndex(['appointment_id', 'file_id'], 'vitalog_attach_unique');
 		}
 
 		return $schema;

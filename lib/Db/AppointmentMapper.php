@@ -42,4 +42,33 @@ class AppointmentMapper extends QBMapper {
 			->orderBy('starts_at', 'DESC');
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * @return list<Appointment>
+	 * @throws Exception
+	 */
+	public function findByPractitioner(int $practitionerId, string $userId): array {
+		return $this->findByColumn('practitioner_id', $practitionerId, $userId);
+	}
+
+	/**
+	 * @return list<Appointment>
+	 * @throws Exception
+	 */
+	public function findByPlace(int $placeId, string $userId): array {
+		return $this->findByColumn('place_id', $placeId, $userId);
+	}
+
+	/**
+	 * @return list<Appointment>
+	 * @throws Exception
+	 */
+	private function findByColumn(string $column, int $value, string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq($column, $qb->createNamedParameter($value)))
+			->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		return $this->findEntities($qb);
+	}
 }

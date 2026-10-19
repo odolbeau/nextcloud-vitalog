@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Service\AppointmentService;
+use OCA\Vitalog\Service\AttachmentService;
 use OCA\Vitalog\Service\NotFoundException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -19,6 +20,7 @@ class AppointmentController extends OCSController {
 	public function __construct(
 		IRequest $request,
 		private AppointmentService $service,
+		private AttachmentService $attachments,
 		private ?string $userId,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -26,7 +28,7 @@ class AppointmentController extends OCSController {
 
 	#[NoAdminRequired]
 	public function index(): DataResponse {
-		return new DataResponse($this->service->findAll($this->userId));
+		return new DataResponse($this->present($this->service->findAll($this->userId)));
 	}
 
 	#[NoAdminRequired]
@@ -52,9 +54,22 @@ class AppointmentController extends OCSController {
 		return $this->handle(fn () => $this->service->delete($id, $this->userId));
 	}
 
+	/**
+	 * @param list<Appointment> $appointments
+	 * @return list<array<string, mixed>>
+	 */
+	private function present(array $appointments): array {
+		$attachments = $this->attachments->describeForAppointments(array_map(static fn (Appointment $a): int => $a->getId(), $appointments), $this->userId);
+
+		return array_map(
+			static fn (Appointment $a): array => $a->jsonSerialize() + ['attachments' => $attachments[$a->getId()]],
+			$appointments,
+		);
+	}
+
 	private function handle(callable $action, int $status = Http::STATUS_OK): DataResponse {
 		try {
-			return new DataResponse($action(), $status);
+			return new DataResponse($this->present([$action()])[0], $status);
 		} catch (NotFoundException) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);
 		} catch (InvalidArgumentException $e) {

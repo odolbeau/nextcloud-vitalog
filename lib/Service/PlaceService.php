@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Service;
 
+use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Place;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -11,6 +12,8 @@ use OCP\AppFramework\Db\DoesNotExistException;
 class PlaceService {
 	public function __construct(
 		private PlaceMapper $mapper,
+		private AppointmentMapper $appointments,
+		private CalendarSyncService $calendarSync,
 	) {
 	}
 
@@ -39,10 +42,31 @@ class PlaceService {
 		$place = $this->find($id, $userId);
 		$place->setName($name);
 		$place->setAddress($address);
-		return $this->mapper->update($place);
+		$place = $this->mapper->update($place);
+		$this->resync($id, $userId);
+
+		return $place;
 	}
 
 	public function delete(int $id, string $userId): Place {
-		return $this->mapper->delete($this->find($id, $userId));
+		$place = $this->find($id, $userId);
+		$affected = $this->appointments->findByPlace($id, $userId);
+		foreach ($affected as $appointment) {
+			$appointment->setPlaceId(null);
+			$this->appointments->update($appointment);
+		}
+		$place = $this->mapper->delete($place);
+		foreach ($affected as $appointment) {
+			$this->calendarSync->sync($appointment);
+		}
+
+		return $place;
+	}
+
+	/** Les événements du calendrier embarquent le nom du praticien / lieu : on les met à jour. */
+	private function resync(int $id, string $userId): void {
+		foreach ($this->appointments->findByPlace($id, $userId) as $appointment) {
+			$this->calendarSync->sync($appointment);
+		}
 	}
 }

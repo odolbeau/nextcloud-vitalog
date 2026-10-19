@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vitalog\Service;
+
+use OCA\Vitalog\AppInfo\Application;
+use OCA\Vitalog\Calendar\CalendarGateway;
+use OCA\Vitalog\Calendar\IcsBuilder;
+use OCA\Vitalog\Db\Appointment;
+use OCA\Vitalog\Db\AppointmentMapper;
+use OCA\Vitalog\Db\PlaceMapper;
+use OCA\Vitalog\Db\PractitionerMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IConfig;
+use OCP\IL10N;
+use Psr\Log\LoggerInterface;
+use Throwable;
+
+/**
+ * Reflète les rendez-vous dans le calendrier choisi par l'utilisateur.
+ * Un échec de synchronisation n'empêche jamais l'enregistrement du rendez-vous.
+ */
+class CalendarSyncService {
+	public const CONFIG_KEY = 'calendar_uri';
+
+	public function __construct(
+		private CalendarGateway $gateway,
+		private IcsBuilder $icsBuilder,
+		private AppointmentMapper $appointments,
+		private PractitionerMapper $practitioners,
+		private PlaceMapper $places,
+		private IConfig $config,
+		private IL10N $l,
+		private LoggerInterface $logger,
+	) {
+	}
+
+	public function getTargetCalendar(string $userId): ?string {
+		$uri = $this->config->getUserValue($userId, Application::APP_ID, self::CONFIG_KEY, '');
+
+		return $uri === '' ? null : $uri;
+	}
+
+	public function setTargetCalendar(string $userId, ?string $uri): void {
+		$this->config->setUserValue($userId, Application::APP_ID, self::CONFIG_KEY, $uri ?? '');
+		foreach ($this->appointments->findAll($userId) as $appointment) {
+			$this->sync($appointment);
+		}
+	}
+
+	/** Aligne le calendrier sur l'état du rendez-vous (création, déplacement, suppression de l'événement). */
+	public function sync(Appointment $appointment): void {
+		try {
+			$this->doSync($appointment);
+		} catch (Throwable $e) {
+			$this->logger->error('Vitalog calendar sync failed for appointment ' . $appointment->getId(), ['exception' => $e]);
+		}
+	}
+
+	/** À appeler avant de supprimer le rendez-vous. */
+	public function remove(Appointment $appointment): void {
+		try {
+			$this->removeEvent($appointment);
+		} catch (Throwable $e) {
+			$this->logger->error('Vitalog calendar cleanup failed for appointment ' . $appointment->getId(), ['exception' => $e]);
+		}
+	}
+
+	private function doSync(Appointment $appointment): void {
+		$userId = $appointment->getUserId();
+		$target = $this->getTargetCalendar($userId);
+		$wanted = $target !== null && $appointment->getStatus() !== Appointment::STATUS_CANCELLED;
+
+		if ($appointment->getCalendarUri() !== null && (!$wanted || $appointment->getCalendarUri() !== $target)) {
+			$this->removeEvent($appointment);
+			$this->appointments->update($appointment);
+		}
+		if (!$wanted) {
+			return;
+		}
+
+		$uid = $appointment->getCalendarUid() ?? bin2hex(random_bytes(16)) . '@vitalog';
+		$ics = $this->icsBuilder->build(
+			$uid,
+			$appointment->getStartsAt(),
+			$appointment->getDuration(),
+			$this->summary($appointment),
+			$this->location($appointment),
+			$appointment->getNotes(),
+		);
+		$this->gateway->put($userId, $target, $uid . '.ics', $ics);
+		$appointment->setCalendarUid($uid);
+		$appointment->setCalendarUri($target);
+		$this->appointments->update($appointment);
+	}
+
+	private function removeEvent(Appointment $appointment): void {
+		if ($appointment->getCalendarUri() === null || $appointment->getCalendarUid() === null) {
+			return;
+		}
+		$this->gateway->delete($appointment->getUserId(), $appointment->getCalendarUri(), $appointment->getCalendarUid() . '.ics');
+		$appointment->setCalendarUri(null);
+	}
+
+	private function summary(Appointment $appointment): string {
+		$parts = [];
+		$practitionerId = $appointment->getPractitionerId();
+		if ($practitionerId !== null) {
+			try {
+				$parts[] = $this->practitioners->find($practitionerId, $appointment->getUserId())->getName();
+			} catch (DoesNotExistException) {
+			}
+		}
+		if ($appointment->getReason() !== null && $appointment->getReason() !== '') {
+			$parts[] = $appointment->getReason();
+		}
+
+		return $parts === [] ? $this->l->t('Medical appointment') : implode(' – ', $parts);
+	}
+
+	private function location(Appointment $appointment): ?string {
+		$placeId = $appointment->getPlaceId();
+		if ($placeId === null) {
+			return null;
+		}
+		try {
+			$place = $this->places->find($placeId, $appointment->getUserId());
+		} catch (DoesNotExistException) {
+			return null;
+		}
+
+		return implode(', ', array_filter([$place->getName(), $place->getAddress()]));
+	}
+}
