@@ -7,10 +7,12 @@ export const APP_URL = '/index.php/apps/vitalog/'
 export async function setLanguage(language) {
 	const admin = await client(ADMIN)
 	for (const key of ['language', 'locale']) {
-		const response = await admin.context.put(`/ocs/v2.php/cloud/users/${ADMIN.user}`, {
-			data: { key, value: key === 'locale' ? (language === 'fr' ? 'fr_FR' : 'en_US') : language },
-		})
-		expect(response.ok()).toBeTruthy()
+		const value = key === 'locale' ? (language === 'fr' ? 'fr_FR' : 'en_US') : language
+		// l'API de provisioning répond parfois en erreur transitoire juste après un rechargement de l'app : on réessaie
+		await expect(async () => {
+			const response = await admin.context.put(`/ocs/v2.php/cloud/users/${ADMIN.user}`, { data: { key, value } })
+			expect(response.status(), await response.text()).toBe(200)
+		}).toPass({ timeout: 15_000 })
 	}
 	await admin.dispose()
 }
@@ -35,5 +37,18 @@ export async function choose(page, label, option) {
 }
 
 /** Valeur affichée d'un NcSelect (le combobox est l'<input> ; la valeur est dans le conteneur vue-select). */
-export const selected = (page, label) => dialog(page).last()
-	.locator('.v-select', { has: page.getByRole('combobox', { name: label }) })
+export function selected(page, label) {
+	return dialog(page).last()
+		.locator('.v-select', { has: page.getByRole('combobox', { name: label }) })
+}
+
+/**
+ * Remplit un champ et vérifie que la valeur est bien restée : dans de rares cas (~1 %) le champ se vide juste après la saisie
+ * le temps d'un rendu, avant de se stabiliser ; on réessaie jusqu'à ce que la valeur tienne.
+ */
+export function fill(locator, value) {
+	return expect(async () => {
+		await locator.fill(value)
+		await expect(locator).toHaveValue(value, { timeout: 500 })
+	}).toPass({ timeout: 10_000 })
+}

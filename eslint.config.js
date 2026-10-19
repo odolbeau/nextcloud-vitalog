@@ -14,4 +14,16 @@ export default [
 			'jsdoc/require-returns-description': 'off',
 		},
 	},
+	{
+		// code Node (tests e2e, scripts, configs)
+		files: ['e2e/**', 'scripts/**', '*.config.js'],
+		languageOptions: {
+			globals: { process: 'readonly', Buffer: 'readonly', console: 'readonly' },
+		},
+	},
+	{
+		// les scripts en ligne de commande écrivent sur la sortie standard
+		files: ['scripts/**'],
+		rules: { 'no-console': 'off' },
+	},
 ]

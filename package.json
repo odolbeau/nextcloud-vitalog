@@ -8,8 +8,8 @@
 	"scripts": {
 		"build": "vite --mode production build",
 		"dev": "vite --mode development build --watch",
-		"lint": "eslint src",
-		"lint:fix": "eslint src --fix",
+		"lint": "eslint src e2e scripts *.config.js",
+		"lint:fix": "eslint src e2e scripts *.config.js --fix",
 		"l10n:check": "node scripts/l10n.mjs check",
 		"l10n:build": "node scripts/l10n.mjs build",
 		"e2e": "playwright test",

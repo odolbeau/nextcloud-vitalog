@@ -61,10 +61,23 @@ test.describe('appointments', () => {
 		const startsAt = inDays(3)
 
 		const created = await admin.create('appointments', {
-			startsAt, duration: 45, practitionerId: practitioner.id, placeId: place.id, reason: 'Contrôle', notes: 'À jeun',
+			startsAt,
+			duration: 45,
+			practitionerId: practitioner.id,
+			placeId: place.id,
+			reason: 'Contrôle',
+			notes: 'À jeun',
 		})
 		expect(created).toMatchObject({
-			startsAt, duration: 45, practitionerId: practitioner.id, placeId: place.id, reason: 'Contrôle', notes: 'À jeun', status: 'planned', synced: false, attachments: [],
+			startsAt,
+			duration: 45,
+			practitionerId: practitioner.id,
+			placeId: place.id,
+			reason: 'Contrôle',
+			notes: 'À jeun',
+			status: 'planned',
+			synced: false,
+			attachments: [],
 		})
 
 		const updated = await admin.data(await admin.put(`appointments/${created.id}`, { startsAt: startsAt + 3600, duration: 30, status: 'done' }))

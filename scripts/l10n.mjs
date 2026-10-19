@@ -5,10 +5,12 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const walk = (dir) => readdirSync(dir).flatMap((name) => {
-	const path = join(dir, name)
-	return statSync(path).isDirectory() ? walk(path) : [path]
-})
+function walk(dir) {
+	return readdirSync(dir).flatMap((name) => {
+		const path = join(dir, name)
+		return statSync(path).isDirectory() ? walk(path) : [path]
+	})
+}
 
 // t('vitalog', 'texte', …) côté JS/Vue, $this->l->t('texte') côté PHP
 const JS = /\bt\(\s*'vitalog'\s*,\s*'((?:[^'\\]|\\.)*)'/g
@@ -39,8 +41,12 @@ if (command === 'extract') {
 	const { translations } = load('fr')
 	const missing = sources.filter((s) => !translations[s])
 	const stale = Object.keys(translations).filter((s) => !sources.includes(s))
-	for (const s of missing) console.error(`missing fr translation: ${s}`)
-	for (const s of stale) console.error(`stale fr translation: ${s}`)
+	for (const s of missing) {
+		console.error(`missing fr translation: ${s}`)
+	}
+	for (const s of stale) {
+		console.error(`stale fr translation: ${s}`)
+	}
 	if (missing.length || stale.length) {
 		process.exit(1)
 	}

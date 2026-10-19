@@ -78,7 +78,7 @@ const deleting = ref(null)
 
 const deleteButtons = [
 	{ label: t('vitalog', 'Cancel'), callback: () => {} },
-	{ label: t('vitalog', 'Delete'), variant: 'error', callback: () => store.deletePractitioner(deleting.value.id) },
+	{ label: t('vitalog', 'Delete'), variant: 'error', callback: () => store.deletePlace(deleting.value.id) },
 ]
 </script>
 

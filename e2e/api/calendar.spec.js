@@ -21,7 +21,7 @@ test.beforeEach(async () => {
 })
 
 const events = async (calendar = 'personal') => vitalogEvents(await exportCalendar(ADMIN, calendar))
-const setCalendar = async (calendarUri) => {
+async function setCalendar(calendarUri) {
 	const response = await admin.put('settings', { calendarUri })
 	expect(response.status(), `select calendar ${calendarUri}`).toBe(200)
 	return admin.data(response)
@@ -57,10 +57,15 @@ test('creating, editing, cancelling and deleting keeps the calendar in sync', as
 
 	// création
 	const appointment = await admin.create('appointments', {
-		startsAt, duration: 45, practitionerId: practitioner.id, placeId: place.id, reason: 'Détartrage; contrôle', notes: 'Prévoir la carte vitale',
+		startsAt,
+		duration: 45,
+		practitionerId: practitioner.id,
+		placeId: place.id,
+		reason: 'Détartrage; contrôle',
+		notes: 'Prévoir la carte vitale',
 	})
 	expect(appointment.synced).toBe(true)
-	let [event] = await events()
+	const [event] = await events()
 	expect(event).toContain('SUMMARY:Dr Martin – Détartrage\\; contrôle')
 	expect(event).toContain('LOCATION:Cabinet\\, 1 rue de la Paix\\, Paris')
 	expect(event).toContain('DESCRIPTION:Prévoir la carte vitale')
@@ -70,7 +75,11 @@ test('creating, editing, cancelling and deleting keeps the calendar in sync', as
 
 	// déplacement : même événement, nouvelle heure
 	await admin.put(`appointments/${appointment.id}`, {
-		startsAt: startsAt + 7200, duration: 45, practitionerId: practitioner.id, placeId: place.id, reason: 'Détartrage; contrôle',
+		startsAt: startsAt + 7200,
+		duration: 45,
+		practitionerId: practitioner.id,
+		placeId: place.id,
+		reason: 'Détartrage; contrôle',
 	})
 	const moved = await events()
 	expect(moved).toHaveLength(1)

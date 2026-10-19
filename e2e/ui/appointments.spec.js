@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { client, exportCalendar, inDays, vitalogEvents } from '../helpers.js'
-import { choose, dialog, items, nav, openApp, selected, setLanguage } from './pages.js'
+import { choose, dialog, fill, items, nav, openApp, selected, setLanguage } from './pages.js'
 
 let admin
 
@@ -25,27 +25,27 @@ test('first visit shows the empty state, then a full appointment can be created'
 	const form = dialog(page)
 	await expect(form.getByRole('heading', { name: 'New appointment' })).toBeVisible()
 
-	await form.getByLabel('Date and time').fill('2030-03-15T09:30')
+	await fill(form.getByLabel('Date and time'), '2030-03-15T09:30')
 	await choose(page, 'Duration', '45 min')
 
 	// praticien créé à la volée
 	await form.getByRole('button', { name: 'New practitioner' }).click()
 	const practitionerDialog = dialog(page).last()
-	await practitionerDialog.getByLabel('Name').fill('Dr Martin')
-	await practitionerDialog.getByLabel('Specialty').fill('Dentiste')
-	await practitionerDialog.getByLabel('Phone').fill('01 02 03 04 05')
+	await fill(practitionerDialog.getByLabel('Name'), 'Dr Martin')
+	await fill(practitionerDialog.getByLabel('Specialty'), 'Dentiste')
+	await fill(practitionerDialog.getByLabel('Phone'), '01 02 03 04 05')
 	await practitionerDialog.getByRole('button', { name: 'Save' }).click()
 	await expect(selected(page, 'Practitioner')).toContainText('Dr Martin')
 
 	// lieu créé à la volée
 	await form.getByRole('button', { name: 'New place' }).click()
-	await dialog(page).last().getByLabel('Name').fill('Cabinet du Port')
-	await dialog(page).last().getByLabel('Address').fill('12 quai du Port, Nantes')
+	await fill(dialog(page).last().getByLabel('Name'), 'Cabinet du Port')
+	await fill(dialog(page).last().getByLabel('Address'), '12 quai du Port, Nantes')
 	await dialog(page).last().getByRole('button', { name: 'Save' }).click()
 	await expect(selected(page, 'Place')).toContainText('Cabinet du Port')
 
-	await form.getByLabel('Reason').fill('Détartrage')
-	await form.getByLabel('Notes').fill('Apporter la carte vitale')
+	await fill(form.getByLabel('Reason'), 'Détartrage')
+	await fill(form.getByLabel('Notes'), 'Apporter la carte vitale')
 	await form.getByRole('button', { name: 'Save' }).click()
 	await expect(dialog(page)).toHaveCount(0)
 
@@ -74,7 +74,7 @@ test('the form cannot be saved without a date', async ({ page }) => {
 	await page.getByRole('button', { name: 'New appointment' }).first().click()
 	const form = dialog(page)
 
-	await form.getByLabel('Date and time').fill('')
+	await fill(form.getByLabel('Date and time'), '')
 
 	await expect(form.getByRole('button', { name: 'Save' })).toBeDisabled()
 })
@@ -91,7 +91,7 @@ test('editing an appointment updates the details', async ({ page }) => {
 	await expect(form.getByLabel('Reason')).toHaveValue('Contrôle')
 	await expect(selected(page, 'Practitioner')).toContainText('Dr Martin')
 
-	await form.getByLabel('Reason').fill('Suivi orthodontie')
+	await fill(form.getByLabel('Reason'), 'Suivi orthodontie')
 	await choose(page, 'Duration', '1 h')
 	await form.getByRole('button', { name: 'Save' }).click()
 
@@ -170,17 +170,17 @@ test('search narrows the list by reason, practitioner or place', async ({ page }
 	await expect(items(page)).toHaveCount(3)
 	const search = page.getByLabel('Search appointments')
 
-	await search.fill('martin')
+	await fill(search, 'martin')
 	await expect(items(page)).toHaveCount(1)
 	await expect(items(page).first()).toContainText('Détartrage')
 
-	await search.fill('laboratoire')
+	await fill(search, 'laboratoire')
 	await expect(items(page).first()).toContainText('Prise de sang')
 
-	await search.fill('migraines')
+	await fill(search, 'migraines')
 	await expect(items(page).first()).toContainText('Consultation')
 
-	await search.fill('zzz')
+	await fill(search, 'zzz')
 	await expect(page.getByText('No match')).toBeVisible()
 
 	await page.getByRole('button', { name: 'Clear search' }).click()

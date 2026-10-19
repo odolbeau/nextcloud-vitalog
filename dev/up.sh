@@ -22,6 +22,9 @@ for _ in $(seq 1 60); do
 done
 
 occ config:system:set debug --value=true --type=boolean >/dev/null
+# environnement de test : pas de limitation de débit ni d’anti brute-force (les suites e2e enchaînent des centaines d’appels)
+occ config:system:set ratelimit.protection.enabled --value=false --type=boolean >/dev/null
+occ config:system:set auth.bruteforce.protection.enabled --value=false --type=boolean >/dev/null
 occ app:disable firstrunwizard >/dev/null 2>&1 || true
 occ app:enable vitalog
 occ app:install calendar >/dev/null 2>&1 || occ app:enable calendar >/dev/null 2>&1 || true

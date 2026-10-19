@@ -6,7 +6,7 @@ export const ADMIN = { user: 'admin', password: 'admin' }
 export const BOB = { user: 'bob', password: 'Vitalog-e2e-pass-9271' }
 
 export const nowSeconds = () => Math.floor(Date.now() / 1000)
-export const inDays = (days, hour = 10) => {
+export function inDays(days, hour = 10) {
 	const date = new Date()
 	date.setDate(date.getDate() + days)
 	date.setHours(hour, 0, 0, 0)
@@ -107,8 +107,10 @@ export async function exportCalendar(account, calendarUri) {
 }
 
 /** Événements Vitalog (UID `…@vitalog`) d'un export ICS, dépliés. */
-export const vitalogEvents = (ics) => ics
-	.replace(/\r?\n[ \t]/g, '')
-	.split('BEGIN:VEVENT')
-	.slice(1)
-	.filter((event) => /UID:.*@vitalog/.test(event))
+export function vitalogEvents(ics) {
+	return ics
+		.replace(/\r?\n[ \t]/g, '')
+		.split('BEGIN:VEVENT')
+		.slice(1)
+		.filter((event) => /UID:.*@vitalog/.test(event))
+}
