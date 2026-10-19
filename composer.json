@@ -1,0 +1,37 @@
+{
+	"name": "odolbeau/vitalog",
+	"description": "Journal de rendez-vous médicaux pour Nextcloud",
+	"type": "project",
+	"license": "AGPL-3.0-or-later",
+	"require": {
+		"php": ">=8.2"
+	},
+	"require-dev": {
+		"nextcloud/ocp": "dev-stable34",
+		"phpunit/phpunit": "^11.5",
+		"friendsofphp/php-cs-fixer": "^3.64",
+		"vimeo/psalm": "^6.20"
+	},
+	"autoload": {
+		"psr-4": {
+			"OCA\\Vitalog\\": "lib/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"OCA\\Vitalog\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"optimize-autoloader": true,
+		"sort-packages": true
+	},
+	"minimum-stability": "dev",
+	"prefer-stable": true,
+	"scripts": {
+		"test": "phpunit -c tests/phpunit.xml",
+		"lint": "php-cs-fixer fix --dry-run --diff",
+		"cs:fix": "php-cs-fixer fix",
+		"psalm": "psalm --threads=1"
+	}
+}
