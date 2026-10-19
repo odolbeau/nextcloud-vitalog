@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Controller;
 
+use InvalidArgumentException;
 use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Service\NotFoundException;
 use OCA\Vitalog\Service\PlaceService;
@@ -34,7 +35,7 @@ class PlaceController extends OCSController {
 
 	#[NoAdminRequired]
 	public function create(string $name, ?string $address = null): DataResponse {
-		return new DataResponse($this->service->create($this->userId, $name, $address), Http::STATUS_CREATED);
+		return $this->handle(fn () => $this->service->create($this->userId, $name, $address), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
@@ -47,11 +48,13 @@ class PlaceController extends OCSController {
 		return $this->handle(fn () => $this->service->delete($id, $this->userId));
 	}
 
-	private function handle(callable $action): DataResponse {
+	private function handle(callable $action, int $status = Http::STATUS_OK): DataResponse {
 		try {
-			return new DataResponse($action());
+			return new DataResponse($action(), $status);
 		} catch (NotFoundException) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);
+		} catch (InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
 }

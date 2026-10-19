@@ -33,15 +33,14 @@ class PlaceService {
 	public function create(string $userId, string $name, ?string $address): Place {
 		$place = new Place();
 		$place->setUserId($userId);
-		$place->setName($name);
-		$place->setAddress($address);
+		$this->fill($place, $name, $address);
+
 		return $this->mapper->insert($place);
 	}
 
 	public function update(int $id, string $userId, string $name, ?string $address): Place {
 		$place = $this->find($id, $userId);
-		$place->setName($name);
-		$place->setAddress($address);
+		$this->fill($place, $name, $address);
 		$place = $this->mapper->update($place);
 		$this->resync($id, $userId);
 
@@ -68,5 +67,10 @@ class PlaceService {
 		foreach ($this->appointments->findByPlace($id, $userId) as $appointment) {
 			$this->calendarSync->sync($appointment);
 		}
+	}
+
+	private function fill(Place $place, string $name, ?string $address): void {
+		$place->setName(Validator::requiredText($name, Validator::NAME_MAX, 'name'));
+		$place->setAddress(Validator::optionalText($address, Validator::NOTES_MAX, 'address'));
 	}
 }

@@ -33,19 +33,14 @@ class PractitionerService {
 	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $notes): Practitioner {
 		$practitioner = new Practitioner();
 		$practitioner->setUserId($userId);
-		$practitioner->setName($name);
-		$practitioner->setSpecialty($specialty);
-		$practitioner->setPhone($phone);
-		$practitioner->setNotes($notes);
+		$this->fill($practitioner, $name, $specialty, $phone, $notes);
+
 		return $this->mapper->insert($practitioner);
 	}
 
 	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $notes): Practitioner {
 		$practitioner = $this->find($id, $userId);
-		$practitioner->setName($name);
-		$practitioner->setSpecialty($specialty);
-		$practitioner->setPhone($phone);
-		$practitioner->setNotes($notes);
+		$this->fill($practitioner, $name, $specialty, $phone, $notes);
 		$practitioner = $this->mapper->update($practitioner);
 		$this->resync($id, $userId);
 
@@ -72,5 +67,12 @@ class PractitionerService {
 		foreach ($this->appointments->findByPractitioner($id, $userId) as $appointment) {
 			$this->calendarSync->sync($appointment);
 		}
+	}
+
+	private function fill(Practitioner $practitioner, string $name, ?string $specialty, ?string $phone, ?string $notes): void {
+		$practitioner->setName(Validator::requiredText($name, Validator::NAME_MAX, 'name'));
+		$practitioner->setSpecialty(Validator::optionalText($specialty, Validator::NAME_MAX, 'specialty'));
+		$practitioner->setPhone(Validator::optionalText($phone, Validator::PHONE_MAX, 'phone'));
+		$practitioner->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
 	}
 }

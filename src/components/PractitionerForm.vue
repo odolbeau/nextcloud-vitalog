@@ -7,11 +7,19 @@
 		<div class="form">
 			<NcTextField
 				v-model="form.name"
+				:maxlength="255"
 				:label="t('vitalog', 'Name')"
 				required
 				autofocus />
-			<NcTextField v-model="form.specialty" :label="t('vitalog', 'Specialty')" />
-			<NcTextField v-model="form.phone" :label="t('vitalog', 'Phone')" type="tel" />
+			<NcTextField
+				v-model="form.specialty"
+				:maxlength="255"
+				:label="t('vitalog', 'Specialty')" />
+			<NcTextField
+				v-model="form.phone"
+				:maxlength="64"
+				:label="t('vitalog', 'Phone')"
+				type="tel" />
 			<NcTextArea v-model="form.notes" :label="t('vitalog', 'Notes')" rows="3" />
 		</div>
 		<template #actions>

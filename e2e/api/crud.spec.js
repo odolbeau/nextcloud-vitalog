@@ -39,6 +39,17 @@ test.describe('practitioners', () => {
 		const response = await admin.post('practitioners', { specialty: 'ORL' })
 		expect(response.status()).toBe(400)
 	})
+
+	test('rejects blank or oversized values and trims the rest', async () => {
+		expect((await admin.post('practitioners', { name: '   ' })).status()).toBe(400)
+		expect((await admin.post('practitioners', { name: 'x'.repeat(256) })).status()).toBe(400)
+		expect((await admin.post('practitioners', { name: 'Dr X', phone: '1'.repeat(65) })).status()).toBe(400)
+
+		const created = await admin.create('practitioners', { name: '  Dr Trim  ', specialty: '   ', phone: ' 0102 ' })
+		expect(created).toMatchObject({ name: 'Dr Trim', specialty: null, phone: '0102' })
+		expect((await admin.put(`practitioners/${created.id}`, { name: '' })).status()).toBe(400)
+		expect((await admin.data(await admin.get(`practitioners/${created.id}`))).name).toBe('Dr Trim')
+	})
 })
 
 test.describe('places', () => {
@@ -51,6 +62,11 @@ test.describe('places', () => {
 
 		expect((await admin.delete(`places/${created.id}`)).status()).toBe(200)
 		expect(await admin.list('places')).toEqual([])
+	})
+
+	test('rejects a blank or oversized name', async () => {
+		expect((await admin.post('places', { name: ' ' })).status()).toBe(400)
+		expect((await admin.post('places', { name: 'x'.repeat(256) })).status()).toBe(400)
 	})
 })
 
@@ -97,6 +113,9 @@ test.describe('appointments', () => {
 	for (const [label, body] of [
 		['unknown status', { startsAt: 1, status: 'bogus' }],
 		['zero duration', { startsAt: 1, duration: 0 }],
+		['duration over 24 hours', { startsAt: 1, duration: 1441 }],
+		['negative date', { startsAt: -1 }],
+		['oversized reason', { startsAt: 1, reason: 'x'.repeat(256) }],
 		['negative duration', { startsAt: 1, duration: -5 }],
 		['unknown practitioner', { startsAt: 1, practitionerId: 987654 }],
 		['unknown place', { startsAt: 1, placeId: 987654 }],

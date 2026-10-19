@@ -66,8 +66,11 @@ class AppointmentService {
 		if (!in_array($status, Appointment::STATUSES, true)) {
 			throw new InvalidArgumentException('Invalid status');
 		}
-		if ($duration <= 0) {
+		if ($duration <= 0 || $duration > Validator::DURATION_MAX) {
 			throw new InvalidArgumentException('Invalid duration');
+		}
+		if ($startsAt < 0) {
+			throw new InvalidArgumentException('Invalid date');
 		}
 		// Les références doivent appartenir à l'utilisateur (lève DoesNotExistException sinon).
 		try {
@@ -84,8 +87,8 @@ class AppointmentService {
 		$appointment->setDuration($duration);
 		$appointment->setPractitionerId($practitionerId);
 		$appointment->setPlaceId($placeId);
-		$appointment->setReason($reason);
-		$appointment->setNotes($notes);
+		$appointment->setReason(Validator::optionalText($reason, Validator::NAME_MAX, 'reason'));
+		$appointment->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
 		$appointment->setStatus($status);
 	}
 }

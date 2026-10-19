@@ -7,6 +7,7 @@
 		<div class="form">
 			<NcTextField
 				v-model="form.name"
+				:maxlength="255"
 				:label="t('vitalog', 'Name')"
 				required
 				autofocus />

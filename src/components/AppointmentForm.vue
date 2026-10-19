@@ -59,7 +59,11 @@
 				</NcButton>
 			</div>
 
-			<NcTextField v-model="reason" :label="t('vitalog', 'Reason')" :placeholder="t('vitalog', 'Check-up, follow-up, …')" />
+			<NcTextField
+				v-model="reason"
+				:maxlength="255"
+				:label="t('vitalog', 'Reason')"
+				:placeholder="t('vitalog', 'Check-up, follow-up, …')" />
 			<NcTextArea v-model="notes" :label="t('vitalog', 'Notes')" rows="4" />
 
 			<NcSelect
