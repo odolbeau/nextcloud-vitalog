@@ -18,4 +18,5 @@ First release.
 - Calendar mirroring with a reminder the day before; optional import of events added to the calendar, and one-shot import of the
   events already in it. Labels are written as event categories.
 - The view, selection and filters live in the URL: browser back / forward, reload and shared links work.
+- `occ vitalog:purge` erases all the data the app stored, to be run before removing it.
 - English and French interface.

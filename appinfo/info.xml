@@ -33,6 +33,9 @@
 		<php min-version="8.2"/>
 		<nextcloud min-version="34" max-version="35"/>
 	</dependencies>
+	<commands>
+		<command>OCA\Vitalog\Command\Purge</command>
+	</commands>
 	<navigations>
 		<navigation>
 			<name>Vitalog</name>

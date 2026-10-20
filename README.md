@@ -35,6 +35,19 @@ sudo -u www-data php occ app:enable vitalog
 `custom_apps` must be one of the `apps_paths` of your `config.php` (the default). The first activation creates the `vitalog_*` tables.
 Back up your database beforehand, as for any app installation.
 
+## Uninstalling
+
+Disabling or removing the app keeps your data: Nextcloud runs an app's uninstall steps on every disable (including automatic ones
+after an upgrade), so Vitalog never deletes anything by itself. To erase everything it stored, run the purge **before** removing it:
+
+```sh
+sudo -u www-data php occ vitalog:purge    # lists what will be deleted and asks for confirmation (--force to skip it)
+sudo -u www-data php occ app:remove vitalog
+```
+
+It drops the six `vitalog_*` tables and the users' settings. Calendar events created by Vitalog stay in the calendars, and attached
+files stay in the users' files.
+
 ## Development
 
 Requirements: PHP ≥ 8.2, Composer, Node ≥ 20, Docker.
