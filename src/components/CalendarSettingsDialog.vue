@@ -51,9 +51,6 @@
 			<p class="settings__hint">
 				{{ t('vitalog', 'Recurring events are ignored. Later changes to such an event are not reflected in Vitalog.') }}
 			</p>
-			<p class="settings__hint">
-				{{ t('vitalog', 'An event is updated when you change its appointment, not when you rename a practitioner, place or label.') }}
-			</p>
 		</div>
 		<div v-else class="settings">
 			<p>{{ t('vitalog', 'Add your appointments to one of your calendars, with a reminder the day before.') }}</p>

@@ -11,7 +11,6 @@
 		"All appointments": "Tous les rendez-vous",
 		"All labels": "Tous les libellés",
 		"All practitioners": "Tous les praticiens",
-		"An event is updated when you change its appointment, not when you rename a practitioner, place or label.": "Un événement est mis à jour quand vous modifiez son rendez-vous, pas quand vous renommez un praticien, un lieu ou un libellé.",
 		"Appointment deleted": "Rendez-vous supprimé",
 		"Appointments at this place are kept, but will no longer be linked to it.": "Les rendez-vous à ce lieu sont conservés, mais ne lui seront plus rattachés.",
 		"Appointments created from existing events: {count}": "Rendez-vous créés à partir d’événements existants : {count}",
