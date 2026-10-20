@@ -91,13 +91,12 @@ test.describe('appointments', () => {
 			placeId: place.id,
 			reason: 'Contrôle',
 			notes: 'À jeun',
-			status: 'planned',
 			synced: false,
 			attachments: [],
 		})
 
-		const updated = await admin.data(await admin.put(`appointments/${created.id}`, { startsAt: startsAt + 3600, duration: 30, status: 'done' }))
-		expect(updated).toMatchObject({ startsAt: startsAt + 3600, status: 'done', practitionerId: null, reason: null })
+		const updated = await admin.data(await admin.put(`appointments/${created.id}`, { startsAt: startsAt + 3600, duration: 30 }))
+		expect(updated).toMatchObject({ startsAt: startsAt + 3600, practitionerId: null, reason: null })
 
 		expect((await admin.delete(`appointments/${created.id}`)).status()).toBe(200)
 		expect((await admin.get(`appointments/${created.id}`)).status()).toBe(404)
@@ -111,7 +110,6 @@ test.describe('appointments', () => {
 	})
 
 	for (const [label, body] of [
-		['unknown status', { startsAt: 1, status: 'bogus' }],
 		['zero duration', { startsAt: 1, duration: 0 }],
 		['duration over 24 hours', { startsAt: 1, duration: 1441 }],
 		['negative date', { startsAt: -1 }],

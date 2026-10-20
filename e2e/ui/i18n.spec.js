@@ -27,9 +27,8 @@ test('the interface is available in French', async ({ page }) => {
 
 	await page.locator('[data-test^="appointment-"]').first().click()
 	const details = page.getByRole('article')
-	await expect(details).toContainText('Planifié')
 	await expect(details).toContainText('1 h')
-	await expect(details.getByRole('button', { name: 'Marquer comme effectué' })).toBeVisible()
+	await expect(details.getByRole('button', { name: 'Modifier' })).toBeVisible()
 	// les dates suivent la locale (jour de la semaine en français, première lettre en capitale)
 	await expect(details).toContainText(/(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche) \d{1,2} \p{L}+ \d{4} à \d{2}:\d{2}/iu)
 

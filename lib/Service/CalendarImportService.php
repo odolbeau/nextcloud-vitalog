@@ -26,9 +26,9 @@ class CalendarImportService {
 	}
 
 	/** Un échec est journalisé et n'empêche jamais la création de l'événement dans le calendrier. */
-	public function importEvent(string $userId, string $calendarUri, string $ics, ?int $now = null): ?Appointment {
+	public function importEvent(string $userId, string $calendarUri, string $ics): ?Appointment {
 		try {
-			return $this->doImport($userId, $calendarUri, $ics, $now ?? time());
+			return $this->doImport($userId, $calendarUri, $ics);
 		} catch (Throwable $e) {
 			$this->logger->error('Vitalog could not import a calendar event for ' . $userId, ['exception' => $e]);
 
@@ -36,7 +36,7 @@ class CalendarImportService {
 		}
 	}
 
-	private function doImport(string $userId, string $calendarUri, string $ics, int $now): ?Appointment {
+	private function doImport(string $userId, string $calendarUri, string $ics): ?Appointment {
 		if (!$this->sync->isImportEnabled($userId) || $this->sync->getTargetCalendar($userId) !== $calendarUri) {
 			return null;
 		}
@@ -52,8 +52,6 @@ class CalendarImportService {
 		$appointment->setReason($this->truncate($event['summary'], Validator::NAME_MAX));
 		$appointment->setNotes($this->truncate($event['description'], Validator::NOTES_MAX));
 		$appointment->setPlaceId($this->matchPlace($userId, $event['location']));
-		// un événement déjà passé a eu lieu
-		$appointment->setStatus($event['startsAt'] < $now ? Appointment::STATUS_DONE : Appointment::STATUS_PLANNED);
 		$appointment->setCalendarUid($event['uid']);
 		$appointment->setCalendarUri($calendarUri);
 

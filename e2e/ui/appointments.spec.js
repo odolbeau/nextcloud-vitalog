@@ -65,7 +65,7 @@ test('first visit shows the empty state, then a full appointment can be created'
 	await expect(details).not.toContainText(/ At | Min/)
 
 	const [stored] = await admin.list('appointments')
-	expect(stored).toMatchObject({ reason: 'Détartrage', duration: 45, status: 'planned' })
+	expect(stored).toMatchObject({ reason: 'Détartrage', duration: 45 })
 	expect(new Date(stored.startsAt * 1000).getHours()).toBe(9)
 })
 
@@ -101,45 +101,23 @@ test('editing an appointment updates the details', async ({ page }) => {
 	await expect(items(page).first()).toContainText('Suivi orthodontie')
 })
 
-test('status changes move the appointment between Upcoming and Past', async ({ page }) => {
+test('Upcoming and Past depend only on the date', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
+	await admin.create('appointments', { startsAt: inDays(-3), reason: 'Radio' })
 	await openApp(page)
 	await expect(nav(page, 'upcoming')).toContainText('1')
-
-	await items(page).first().click()
-	await page.getByRole('article').getByRole('button', { name: 'Mark as done' }).click()
-	await expect(page.getByText('Nothing planned')).toBeVisible()
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Bilan')
 
 	await nav(page, 'past').click()
 	await expect(items(page)).toHaveCount(1)
 	await items(page).first().click()
-	await expect(page.getByRole('article')).toContainText('Done')
+	// plus de statut : ni pastille, ni action « effectué » / « annulé »
+	await expect(page.getByRole('article').getByRole('heading', { name: 'Radio' })).toBeVisible()
+	await expect(page.getByRole('button', { name: /Mark as|Cancel appointment/ })).toHaveCount(0)
 
-	await page.getByRole('button', { name: 'Mark as planned' }).click()
-	await nav(page, 'upcoming').click()
-	await expect(items(page)).toHaveCount(1)
-
-	await items(page).first().click()
-	await page.getByRole('button', { name: 'Cancel appointment' }).click()
 	await nav(page, 'all').click()
-	await items(page).first().click()
-	await expect(page.getByRole('article')).toContainText('Cancelled')
-	expect((await admin.list('appointments'))[0].status).toBe('cancelled')
-})
-
-test('a planned appointment in the past asks whether it took place', async ({ page }) => {
-	await admin.create('appointments', { startsAt: inDays(-3), reason: 'Radio' })
-	await openApp(page)
-
-	// il n'est plus « à venir »
-	await expect(page.getByText('Nothing planned')).toBeVisible()
-	await nav(page, 'all').click()
-	await items(page).first().click()
-	await expect(page.getByText('This appointment is over. Did it take place?')).toBeVisible()
-
-	await page.getByRole('button', { name: 'Mark as done' }).first().click()
-	await expect(page.getByText('This appointment is over. Did it take place?')).toHaveCount(0)
-	expect((await admin.list('appointments'))[0].status).toBe('done')
+	await expect(items(page)).toHaveCount(2)
 })
 
 test('deleting asks for confirmation', async ({ page }) => {
@@ -190,8 +168,8 @@ test('search narrows the list by reason, practitioner or place', async ({ page }
 test('upcoming is sorted soonest first, past most recent first', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(9), reason: 'Plus tard' })
 	await admin.create('appointments', { startsAt: inDays(1), reason: 'Bientôt' })
-	await admin.create('appointments', { startsAt: inDays(-20), reason: 'Ancien', status: 'done' })
-	await admin.create('appointments', { startsAt: inDays(-2), reason: 'Récent', status: 'done' })
+	await admin.create('appointments', { startsAt: inDays(-20), reason: 'Ancien' })
+	await admin.create('appointments', { startsAt: inDays(-2), reason: 'Récent' })
 	await openApp(page)
 
 	await expect(items(page)).toHaveCount(2)
@@ -262,7 +240,7 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	expect((await admin.list('appointments'))[0]).toMatchObject({ id: appointment.id, synced: false })
 })
 
-test('an appointment created at a past date is marked as done', async ({ page }) => {
+test('an appointment created at a past date shows up in Past', async ({ page }) => {
 	await openApp(page)
 	await page.getByRole('button', { name: 'New appointment' }).first().click()
 	const form = dialog(page)
@@ -271,7 +249,11 @@ test('an appointment created at a past date is marked as done', async ({ page })
 	await form.getByRole('button', { name: 'Save' }).click()
 	await expect(dialog(page)).toHaveCount(0)
 
-	await expect.poll(async () => (await admin.list('appointments'))[0]?.status).toBe('done')
+	// l'app bascule sur la liste qui contient le rendez-vous : « Passés »
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Vaccin')
+	await nav(page, 'upcoming').click()
+	await expect(page.getByText('Nothing planned')).toBeVisible()
 })
 
 test('importing events from the calendar can be enabled from the settings, with its limits explained', async ({ page }) => {

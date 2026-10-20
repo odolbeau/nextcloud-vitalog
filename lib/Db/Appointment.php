@@ -22,19 +22,12 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReason(?string $reason)
  * @method string|null getNotes()
  * @method void setNotes(?string $notes)
- * @method string getStatus()
- * @method void setStatus(string $status)
  * @method string|null getCalendarUid()
  * @method void setCalendarUid(?string $calendarUid)
  * @method string|null getCalendarUri()
  * @method void setCalendarUri(?string $calendarUri)
  */
 class Appointment extends Entity implements JsonSerializable {
-	public const STATUS_PLANNED = 'planned';
-	public const STATUS_DONE = 'done';
-	public const STATUS_CANCELLED = 'cancelled';
-	public const STATUSES = [self::STATUS_PLANNED, self::STATUS_DONE, self::STATUS_CANCELLED];
-
 	protected ?string $userId = null;
 	protected ?int $practitionerId = null;
 	protected ?int $placeId = null;
@@ -42,7 +35,6 @@ class Appointment extends Entity implements JsonSerializable {
 	protected ?int $duration = null;
 	protected ?string $reason = null;
 	protected ?string $notes = null;
-	protected ?string $status = null;
 	protected ?string $calendarUid = null;
 	protected ?string $calendarUri = null;
 
@@ -62,7 +54,6 @@ class Appointment extends Entity implements JsonSerializable {
 			'duration' => $this->duration,
 			'reason' => $this->reason,
 			'notes' => $this->notes,
-			'status' => $this->status,
 			'synced' => $this->calendarUri !== null,
 			'calendarUid' => $this->calendarUri !== null ? $this->calendarUid : null,
 		];

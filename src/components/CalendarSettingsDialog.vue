@@ -6,7 +6,7 @@
 		@submit="submit"
 		@closing="emit('close')">
 		<div class="settings">
-			<p>{{ t('vitalog', 'Planned appointments are added to a calendar of your choice, with a reminder the day before. Changes and cancellations are reflected automatically.') }}</p>
+			<p>{{ t('vitalog', 'Appointments are added to a calendar of your choice, with a reminder the day before. Changes and deletions are reflected automatically.') }}</p>
 			<NcSelect
 				v-model="selected"
 				inputId="vitalog-calendar"
@@ -21,7 +21,7 @@
 				{{ t('vitalog', 'Create an appointment when I add an event to this calendar') }}
 			</NcCheckboxRadioSwitch>
 			<p class="settings__hint">
-				{{ t('vitalog', 'Optional and off by default. The new appointment can then be completed in Vitalog (practitioner, notes, documents…). Events that are already over are marked as done. Recurring events are not supported and are ignored.') }}
+				{{ t('vitalog', 'Optional and off by default. The new appointment can then be completed in Vitalog (practitioner, notes, documents…). Recurring events are not supported and are ignored.') }}
 			</p>
 			<p class="settings__hint">
 				{{ t('vitalog', 'The sync is one-way for events created in the calendar: later changes made to such an event in the calendar are not reflected in Vitalog. Changes made to an appointment in Vitalog are written to its event.') }}

@@ -71,7 +71,7 @@ test('an event added while importing is off creates nothing', async () => {
 	expect(await admin.list('appointments')).toHaveLength(0)
 })
 
-test('an event added to the target calendar becomes a planned appointment that stays linked to its event', async () => {
+test('an event added to the target calendar becomes an appointment that stays linked to its event', async () => {
 	const place = await admin.create('places', { name: 'Cabinet Martin' })
 	await configure('personal', true)
 	const startsAt = inDays(6, 15)
@@ -92,7 +92,6 @@ test('an event added to the target calendar becomes a planned appointment that s
 		notes: 'Apporter la carte',
 		placeId: place.id,
 		practitionerId: null,
-		status: 'planned',
 		synced: true,
 	})
 
@@ -108,13 +107,13 @@ test('an event added to the target calendar becomes a planned appointment that s
 	expect(await exportCalendar(ADMIN, 'personal')).not.toContain(uid)
 })
 
-test('an event that is already over becomes a done appointment', async () => {
+test('an event that is already over is imported too', async () => {
 	await configure('personal', true)
 
 	await addEvent('personal', { startsAt: inDays(-10), summary: 'Radio' })
 
 	const [appointment] = await admin.list('appointments')
-	expect(appointment).toMatchObject({ reason: 'Radio', status: 'done' })
+	expect(appointment).toMatchObject({ reason: 'Radio', synced: true })
 })
 
 test('events in another calendar, recurring events and Vitalog\'s own events are ignored', async () => {

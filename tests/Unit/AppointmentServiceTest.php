@@ -42,7 +42,7 @@ class AppointmentServiceTest extends TestCase {
 		$this->mapper->method('insert')->willReturnArgument(0);
 		$this->sync->expects(self::once())->method('sync');
 
-		$appointment = $this->service->create('alice', 1_800_000_000, 30, null, null, 'Contrôle', null, Appointment::STATUS_PLANNED);
+		$appointment = $this->service->create('alice', 1_800_000_000, 30, null, null, 'Contrôle', null);
 
 		self::assertSame('alice', $appointment->getUserId());
 		self::assertSame('Contrôle', $appointment->getReason());
@@ -53,7 +53,7 @@ class AppointmentServiceTest extends TestCase {
 		$this->mapper->expects(self::never())->method('insert');
 
 		$this->expectException(InvalidArgumentException::class);
-		$this->service->create('alice', 1_800_000_000, 30, 12, null, null, null, Appointment::STATUS_PLANNED);
+		$this->service->create('alice', 1_800_000_000, 30, 12, null, null, null);
 	}
 
 	public function testFindUnknownThrowsNotFound(): void {
@@ -74,13 +74,8 @@ class AppointmentServiceTest extends TestCase {
 		$this->service->delete(4, 'alice');
 	}
 
-	public function testCreateRejectsInvalidStatus(): void {
-		$this->expectException(InvalidArgumentException::class);
-		$this->service->create('alice', 1_800_000_000, 30, null, null, null, null, 'bogus');
-	}
-
 	public function testCreateRejectsNonPositiveDuration(): void {
 		$this->expectException(InvalidArgumentException::class);
-		$this->service->create('alice', 1_800_000_000, 0, null, null, null, null, Appointment::STATUS_PLANNED);
+		$this->service->create('alice', 1_800_000_000, 0, null, null, null, null);
 	}
 }

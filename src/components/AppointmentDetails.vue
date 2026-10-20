@@ -1,30 +1,14 @@
 <template>
 	<article class="details" :aria-label="title">
 		<header class="details__header">
-			<DateBadge :startsAt="appointment.startsAt" :muted="appointment.status !== 'planned'" />
+			<DateBadge :startsAt="appointment.startsAt" :muted="store.isPast(appointment)" />
 			<div class="details__heading">
 				<h2>{{ title }}</h2>
 				<p class="details__when">
 					{{ formatDateTime(appointment.startsAt) }} · {{ durationLabel }}
 				</p>
 			</div>
-			<NcChip
-				:text="statusLabel"
-				:variant="statusVariant"
-				noClose />
 		</header>
-
-		<NcNoteCard v-if="needsFollowUp" type="info">
-			<p>{{ t('vitalog', 'This appointment is over. Did it take place?') }}</p>
-			<div class="details__followup">
-				<NcButton variant="primary" @click="setStatus('done')">
-					{{ t('vitalog', 'Mark as done') }}
-				</NcButton>
-				<NcButton @click="setStatus('cancelled')">
-					{{ t('vitalog', 'It was cancelled') }}
-				</NcButton>
-			</div>
-		</NcNoteCard>
 
 		<div class="details__actions">
 			<NcButton @click="emit('edit')">
@@ -32,21 +16,6 @@
 					<Pencil :size="20" />
 				</template>
 				{{ t('vitalog', 'Edit') }}
-			</NcButton>
-			<NcButton v-if="appointment.status === 'planned' && !needsFollowUp" @click="setStatus('done')">
-				<template #icon>
-					<Check :size="20" />
-				</template>
-				{{ t('vitalog', 'Mark as done') }}
-			</NcButton>
-			<NcButton v-if="appointment.status !== 'planned'" @click="setStatus('planned')">
-				{{ t('vitalog', 'Mark as planned') }}
-			</NcButton>
-			<NcButton v-if="appointment.status === 'planned'" @click="setStatus('cancelled')">
-				<template #icon>
-					<Cancel :size="20" />
-				</template>
-				{{ t('vitalog', 'Cancel appointment') }}
 			</NcButton>
 			<NcButton variant="error" @click="confirmingDelete = true">
 				<template #icon>
@@ -159,14 +128,10 @@ import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcChip from '@nextcloud/vue/components/NcChip'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
-import Cancel from 'vue-material-design-icons/Cancel.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
-import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
@@ -200,18 +165,8 @@ const durationLabel = computed(() => {
 		: t('vitalog', '{minutes} min', { minutes })
 })
 
-const statusLabel = computed(() => ({
-	planned: t('vitalog', 'Planned'),
-	done: t('vitalog', 'Done'),
-	cancelled: t('vitalog', 'Cancelled'),
-})[props.appointment.status])
-const statusVariant = computed(() => ({ planned: 'primary', done: 'success', cancelled: 'tertiary' })[props.appointment.status])
-
-const needsFollowUp = computed(() => props.appointment.status === 'planned'
-	&& props.appointment.startsAt + props.appointment.duration * 60 < Date.now() / 1000)
-
 const calendarHint = computed(() => store.settings.calendarUri
-	? t('vitalog', 'Not added to your calendar (cancelled or sync failed).')
+	? t('vitalog', 'Not added to your calendar (sync failed).')
 	: t('vitalog', 'Calendar sync is off. Enable it from the settings in the left sidebar.'))
 
 const deleteButtons = [
@@ -226,8 +181,6 @@ const deleteButtons = [
 		},
 	},
 ]
-
-const setStatus = (status) => store.setStatus(props.appointment, status)
 
 const fileUrl = (attachment) => generateUrl('/f/{fileId}', { fileId: attachment.fileId })
 
@@ -285,7 +238,6 @@ async function pickFiles() {
 		}
 	}
 
-	&__followup,
 	&__actions {
 		display: flex;
 		flex-wrap: wrap;

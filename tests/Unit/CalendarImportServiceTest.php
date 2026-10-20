@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 class CalendarImportServiceTest extends TestCase {
-	private const NOW = 1_794_000_000;
+	private const NOW = 1_794_000_000; // date arbitraire des événements de test
 
 	private CalendarSyncService&MockObject $sync;
 	private AppointmentMapper&MockObject $appointments;
@@ -43,8 +43,8 @@ class CalendarImportServiceTest extends TestCase {
 			'DTSTART:' . gmdate('Ymd\THis\Z', $startsAt), 'DTEND:' . gmdate('Ymd\THis\Z', $startsAt + 3600), ...$extra, 'END:VEVENT', 'END:VCALENDAR', '']);
 	}
 
-	public function testCreatesPlannedAppointmentForFutureEvent(): void {
-		$appointment = $this->service->importEvent('alice', 'personal', $this->ics(self::NOW + 86400, 'SUMMARY:Contrôle', 'DESCRIPTION:Notes'), self::NOW);
+	public function testCreatesAnAppointmentFromTheEvent(): void {
+		$appointment = $this->service->importEvent('alice', 'personal', $this->ics(self::NOW + 86400, 'SUMMARY:Contrôle', 'DESCRIPTION:Notes'));
 
 		self::assertNotNull($appointment);
 		self::assertSame('alice', $appointment->getUserId());
@@ -52,15 +52,8 @@ class CalendarImportServiceTest extends TestCase {
 		self::assertSame(60, $appointment->getDuration());
 		self::assertSame('Contrôle', $appointment->getReason());
 		self::assertSame('Notes', $appointment->getNotes());
-		self::assertSame(Appointment::STATUS_PLANNED, $appointment->getStatus());
 		self::assertSame('evt-1', $appointment->getCalendarUid());
 		self::assertSame('personal', $appointment->getCalendarUri());
-	}
-
-	public function testPastEventIsDone(): void {
-		$appointment = $this->service->importEvent('alice', 'personal', $this->ics(self::NOW - 86400), self::NOW);
-
-		self::assertSame(Appointment::STATUS_DONE, $appointment?->getStatus());
 	}
 
 	public function testLinksPlaceByNameOrFirstSegment(): void {
@@ -71,15 +64,15 @@ class CalendarImportServiceTest extends TestCase {
 		$places->method('findAll')->willReturn([$place]);
 		$service = new CalendarImportService(new EventParser(), $this->sync, $this->appointments, $places, $this->logger);
 
-		self::assertSame(9, $service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:cabinet martin'), self::NOW)?->getPlaceId());
-		self::assertSame(9, $service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:Cabinet Martin\, 1 rue de la Paix'), self::NOW)?->getPlaceId());
-		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:Ailleurs'), self::NOW)?->getPlaceId());
+		self::assertSame(9, $service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:cabinet martin'))?->getPlaceId());
+		self::assertSame(9, $service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:Cabinet Martin\, 1 rue de la Paix'))?->getPlaceId());
+		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW, 'LOCATION:Ailleurs'))?->getPlaceId());
 	}
 
 	public function testIgnoresOtherCalendars(): void {
 		$this->appointments->expects(self::never())->method('insert');
 
-		self::assertNull($this->service->importEvent('alice', 'work', $this->ics(self::NOW), self::NOW));
+		self::assertNull($this->service->importEvent('alice', 'work', $this->ics(self::NOW)));
 	}
 
 	public function testIgnoresRecurringAndAlreadyKnownEvents(): void {
@@ -88,8 +81,8 @@ class CalendarImportServiceTest extends TestCase {
 		$known->expects(self::never())->method('insert');
 		$service = new CalendarImportService(new EventParser(), $this->sync, $known, $this->places, $this->logger);
 
-		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW), self::NOW));
-		self::assertNull($this->service->importEvent('alice', 'personal', $this->ics(self::NOW, 'RRULE:FREQ=DAILY'), self::NOW));
+		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW)));
+		self::assertNull($this->service->importEvent('alice', 'personal', $this->ics(self::NOW, 'RRULE:FREQ=DAILY')));
 	}
 
 	public function testDoesNothingWhenDisabled(): void {
@@ -99,7 +92,7 @@ class CalendarImportServiceTest extends TestCase {
 		$appointments->expects(self::never())->method('insert');
 		$service = new CalendarImportService(new EventParser(), $sync, $appointments, $this->places, $this->logger);
 
-		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW), self::NOW));
+		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW)));
 	}
 
 	public function testFailureIsLoggedNotThrown(): void {
@@ -109,6 +102,6 @@ class CalendarImportServiceTest extends TestCase {
 		$this->logger->expects(self::once())->method('error');
 		$service = new CalendarImportService(new EventParser(), $this->sync, $appointments, $this->places, $this->logger);
 
-		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW), self::NOW));
+		self::assertNull($service->importEvent('alice', 'personal', $this->ics(self::NOW)));
 	}
 }

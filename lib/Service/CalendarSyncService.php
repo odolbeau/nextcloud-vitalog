@@ -78,7 +78,7 @@ class CalendarSyncService {
 	private function doSync(Appointment $appointment): void {
 		$userId = $appointment->getUserId();
 		$target = $this->getTargetCalendar($userId);
-		$wanted = $target !== null && $appointment->getStatus() !== Appointment::STATUS_CANCELLED;
+		$wanted = $target !== null;
 
 		if ($appointment->getCalendarUri() !== null && (!$wanted || $appointment->getCalendarUri() !== $target)) {
 			$this->removeEvent($appointment);

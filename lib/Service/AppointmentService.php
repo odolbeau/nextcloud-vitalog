@@ -35,19 +35,19 @@ class AppointmentService {
 		}
 	}
 
-	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, string $status): Appointment {
+	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes): Appointment {
 		$appointment = new Appointment();
 		$appointment->setUserId($userId);
-		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $status);
+		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes);
 		$appointment = $this->mapper->insert($appointment);
 		$this->calendarSync->sync($appointment);
 
 		return $appointment;
 	}
 
-	public function update(int $id, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, string $status): Appointment {
+	public function update(int $id, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes): Appointment {
 		$appointment = $this->find($id, $userId);
-		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $status);
+		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes);
 		$appointment = $this->mapper->update($appointment);
 		$this->calendarSync->sync($appointment);
 
@@ -62,10 +62,7 @@ class AppointmentService {
 		return $this->mapper->delete($appointment);
 	}
 
-	private function fill(Appointment $appointment, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, string $status): void {
-		if (!in_array($status, Appointment::STATUSES, true)) {
-			throw new InvalidArgumentException('Invalid status');
-		}
+	private function fill(Appointment $appointment, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes): void {
 		if ($duration <= 0 || $duration > Validator::DURATION_MAX) {
 			throw new InvalidArgumentException('Invalid duration');
 		}
@@ -89,6 +86,5 @@ class AppointmentService {
 		$appointment->setPlaceId($placeId);
 		$appointment->setReason(Validator::optionalText($reason, Validator::NAME_MAX, 'reason'));
 		$appointment->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
-		$appointment->setStatus($status);
 	}
 }

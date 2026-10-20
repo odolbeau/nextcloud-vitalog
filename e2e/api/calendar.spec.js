@@ -85,15 +85,6 @@ test('creating, editing, cancelling and deleting keeps the calendar in sync', as
 	expect(moved).toHaveLength(1)
 	expect(moved[0]).toMatch(new RegExp(`DTSTART:${utc(startsAt + 7200)}`))
 
-	// annulation : l'événement disparaît
-	await admin.put(`appointments/${appointment.id}`, { startsAt, status: 'cancelled' })
-	expect(await events()).toHaveLength(0)
-	expect((await admin.data(await admin.get(`appointments/${appointment.id}`))).synced).toBe(false)
-
-	// replanification : il revient
-	await admin.put(`appointments/${appointment.id}`, { startsAt, status: 'planned' })
-	expect(await events()).toHaveLength(1)
-
 	// suppression
 	await admin.delete(`appointments/${appointment.id}`)
 	expect(await events()).toHaveLength(0)
@@ -128,15 +119,15 @@ test('deleting a practitioner updates the event summary', async () => {
 test('choosing a calendar syncs existing appointments, switching moves them, disabling removes them', async () => {
 	await admin.create('appointments', { startsAt: inDays(3), reason: 'A' })
 	await admin.create('appointments', { startsAt: inDays(6), reason: 'B' })
-	await admin.create('appointments', { startsAt: inDays(8), reason: 'Annulé', status: 'cancelled' })
+	await admin.create('appointments', { startsAt: inDays(8), reason: 'C' })
 	expect(await events()).toHaveLength(0)
 
 	await setCalendar('personal')
-	expect(await events()).toHaveLength(2)
+	expect(await events()).toHaveLength(3)
 
 	await setCalendar(SECOND)
 	expect(await events('personal')).toHaveLength(0)
-	expect(await events(SECOND)).toHaveLength(2)
+	expect(await events(SECOND)).toHaveLength(3)
 
 	await setCalendar(null)
 	expect(await events(SECOND)).toHaveLength(0)

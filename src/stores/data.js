@@ -16,11 +16,13 @@ export const useDataStore = defineStore('data', () => {
 	const loadError = ref(false)
 
 	const now = () => Math.floor(Date.now() / 1000)
+	// « passé » ne dépend que de la date : le rendez-vous est terminé
+	const isPast = (a) => a.startsAt + a.duration * 60 < now()
 	const upcoming = computed(() => appointments.value
-		.filter((a) => a.startsAt + a.duration * 60 >= now() && a.status !== 'cancelled' && a.status !== 'done')
+		.filter((a) => !isPast(a))
 		.sort((a, b) => a.startsAt - b.startsAt))
 	const past = computed(() => appointments.value
-		.filter((a) => !upcoming.value.includes(a))
+		.filter(isPast)
 		.sort((a, b) => b.startsAt - a.startsAt))
 	const all = computed(() => [...appointments.value].sort((a, b) => b.startsAt - a.startsAt))
 
@@ -83,22 +85,6 @@ export const useDataStore = defineStore('data', () => {
 		}
 		return saved
 	}
-
-	/**
-	 * Changement de statut : le serveur remplace l'objet entier, on renvoie donc tous les champs.
-	 *
-	 * @param appointment
-	 * @param status
-	 */
-	const setStatus = (appointment, status) => saveAppointment({
-		startsAt: appointment.startsAt,
-		duration: appointment.duration,
-		practitionerId: appointment.practitionerId,
-		placeId: appointment.placeId,
-		reason: appointment.reason,
-		notes: appointment.notes,
-		status,
-	}, appointment.id)
 
 	async function deleteAppointment(id) {
 		const done = await guard(() => api.destroy('appointments', id), t('vitalog', 'The appointment could not be deleted.'))
@@ -191,11 +177,11 @@ export const useDataStore = defineStore('data', () => {
 		upcoming,
 		past,
 		all,
+		isPast,
 		practitionerById,
 		placeById,
 		load,
 		saveAppointment,
-		setStatus,
 		deleteAppointment,
 		addAttachment,
 		removeAttachment,

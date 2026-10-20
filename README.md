@@ -2,15 +2,15 @@
 
 Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rendez-vous médicaux.
 
-- **Rendez-vous** : date, durée, motif, notes, statut (planifié / effectué / annulé), praticien et lieu.
+- **Rendez-vous** : date, durée, motif, notes, praticien et lieu. Pas de statut : « à venir » et « passé » ne dépendent que de la date.
 - **Praticiens et lieux** : créés une fois (ou à la volée depuis un rendez-vous), réutilisés partout.
   Un praticien peut être lié à une fiche de l'app **Contacts** (facultatif) : la fiche fait foi pour le nom, la spécialité et le
   téléphone, la copie locale reste utilisable si la fiche disparaît, et le menu des contacts propose « Rendez-vous Vitalog ».
 - **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
-- **Calendrier** : les rendez-vous planifiés sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
-  déplacement, annulation et suppression sont répercutés.
-  En option (désactivée par défaut), un événement ajouté à ce calendrier crée aussi un rendez-vous (« effectué » s'il est déjà
-  passé). Sens unique : les modifications ultérieures de l'événement ne sont pas répercutées, et les événements récurrents sont ignorés.
+- **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
+  déplacement et suppression sont répercutés.
+  En option (désactivée par défaut), un événement ajouté à ce calendrier crée aussi un rendez-vous.
+  Sens unique : les modifications ultérieures de l'événement ne sont pas répercutées, et les événements récurrents sont ignorés.
 - Interface en anglais et en français. Les données restent sur votre instance et sont strictement privées à chaque utilisateur.
 
 Compatible Nextcloud **34 et 35** (PHP 8.2+ ; PHP 8.3+ pour Nextcloud 35). Nextcloud 33 n'est volontairement pas supporté :

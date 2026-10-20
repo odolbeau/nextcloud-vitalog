@@ -52,13 +52,12 @@ class CalendarSyncServiceTest extends TestCase {
 		);
 	}
 
-	private function appointment(string $status = Appointment::STATUS_PLANNED): Appointment {
+	private function appointment(): Appointment {
 		$appointment = new Appointment();
 		$appointment->setId(7);
 		$appointment->setUserId('alice');
 		$appointment->setStartsAt(1_800_000_000);
 		$appointment->setDuration(30);
-		$appointment->setStatus($status);
 
 		return $appointment;
 	}
@@ -107,19 +106,6 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->gateway->expects(self::never())->method('delete');
 
 		$this->service->sync($appointment);
-	}
-
-	public function testCancelledAppointmentRemovesEvent(): void {
-		$appointment = $this->appointment(Appointment::STATUS_CANCELLED);
-		$appointment->setCalendarUid('fixed@vitalog');
-		$appointment->setCalendarUri('personal');
-
-		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog');
-		$this->gateway->expects(self::never())->method('put');
-
-		$this->service->sync($appointment);
-
-		self::assertNull($appointment->getCalendarUri());
 	}
 
 	public function testChangingCalendarMovesEvent(): void {

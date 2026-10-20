@@ -65,15 +65,6 @@
 				:label="t('vitalog', 'Reason')"
 				:placeholder="t('vitalog', 'Check-up, follow-up, …')" />
 			<NcTextArea v-model="notes" :label="t('vitalog', 'Notes')" rows="4" />
-
-			<NcSelect
-				v-if="appointment"
-				v-model="status"
-				inputId="vitalog-status"
-				:inputLabel="t('vitalog', 'Status')"
-				:options="statuses"
-				:clearable="false"
-				label="label" />
 		</div>
 
 		<PractitionerForm
@@ -127,12 +118,6 @@ const durations = [15, 30, 45, 60, 90, 120].map((minutes) => ({
 		? t('vitalog', '{hours} h', { hours: minutes / 60 })
 		: t('vitalog', '{minutes} min', { minutes }),
 }))
-const statuses = [
-	{ id: 'planned', label: t('vitalog', 'Planned') },
-	{ id: 'done', label: t('vitalog', 'Done') },
-	{ id: 'cancelled', label: t('vitalog', 'Cancelled') },
-]
-
 const practitionerOptions = computed(() => store.practitioners.map((p) => toOption(p.id, p.specialty ? `${p.name} (${p.specialty})` : p.name)))
 const placeOptions = computed(() => store.places.map((p) => toOption(p.id, p.name)))
 
@@ -142,7 +127,6 @@ const practitioner = ref(props.appointment?.practitionerId ? practitionerOptions
 const place = ref(props.appointment?.placeId ? placeOptions.value.find((o) => o.id === props.appointment.placeId) ?? null : null)
 const reason = ref(props.appointment?.reason ?? '')
 const notes = ref(props.appointment?.notes ?? '')
-const status = ref(statuses.find((s) => s.id === (props.appointment?.status ?? 'planned')))
 const creating = ref(null)
 const saving = ref(false)
 
@@ -157,8 +141,6 @@ async function submit() {
 		placeId: place.value?.id ?? null,
 		reason: reason.value.trim() || null,
 		notes: notes.value.trim() || null,
-		// un rendez-vous créé à une date passée a déjà eu lieu
-		status: !props.appointment && startsAt.value < new Date() ? 'done' : status.value.id,
 	}, props.appointment?.id)
 	saving.value = false
 	if (saved) {

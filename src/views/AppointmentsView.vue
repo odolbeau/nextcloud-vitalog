@@ -27,13 +27,13 @@
 						compact
 						@click="selectedId = item.id">
 						<template #icon>
-							<DateBadge :startsAt="item.startsAt" :muted="item.status !== 'planned'" />
+							<DateBadge :startsAt="item.startsAt" :muted="store.isPast(item)" />
 						</template>
 						<template #subname>
 							{{ subname(item) }}
 						</template>
 						<template #details>
-							<span :class="{ list__cancelled: item.status === 'cancelled' }">{{ formatTime(item.startsAt) }}</span>
+							<span>{{ formatTime(item.startsAt) }}</span>
 						</template>
 					</NcListItem>
 				</ul>
@@ -128,7 +128,7 @@ const emptyTitle = computed(() => query.value !== ''
 const emptyDescription = computed(() => query.value !== ''
 	? t('vitalog', 'No appointment matches your search.')
 	: props.filter === 'past'
-		? t('vitalog', 'Appointments that are done or cancelled will show up here.')
+		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
 
 function onShowDetails(show) {
@@ -176,10 +176,6 @@ watch(() => props.focusId, (id) => {
 
 	&__loading {
 		margin-top: 40px;
-	}
-
-	&__cancelled {
-		text-decoration: line-through;
 	}
 
 	&__empty {
