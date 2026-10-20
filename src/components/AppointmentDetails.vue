@@ -60,7 +60,13 @@
 			<template v-if="practitioner">
 				<dt>{{ t('vitalog', 'Practitioner') }}</dt>
 				<dd>
-					<strong>{{ practitioner.name }}</strong>
+					<a
+						v-if="practitioner.contactUrl"
+						:href="practitioner.contactUrl"
+						target="_blank"
+						rel="noopener"
+						:title="t('vitalog', 'Open in Contacts')"><strong>{{ practitioner.name }}</strong></a>
+					<strong v-else>{{ practitioner.name }}</strong>
 					<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
 					<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
 				</dd>

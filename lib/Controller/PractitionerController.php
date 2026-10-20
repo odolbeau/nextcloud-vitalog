@@ -9,6 +9,7 @@ use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Service\NotFoundException;
 use OCA\Vitalog\Service\PractitionerService;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
@@ -34,13 +35,20 @@ class PractitionerController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null): DataResponse {
-		return $this->handle(fn () => $this->service->create($this->userId, $name, $specialty, $phone, $notes), Http::STATUS_CREATED);
+	public function create(string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null, ?string $contactUid = null): DataResponse {
+		return $this->handle(fn () => $this->service->create($this->userId, $name, $specialty, $phone, $notes, $contactUid), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null): DataResponse {
-		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $specialty, $phone, $notes));
+	public function update(int $id, string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null, ?string $contactUid = null): DataResponse {
+		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $specialty, $phone, $notes, $contactUid));
+	}
+
+	/** Ajoute le praticien aux contacts de l'utilisateur et le lie à la fiche créée. */
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/practitioners/{id}/contact')]
+	public function createContact(int $id): DataResponse {
+		return $this->handle(fn () => $this->service->createContact($id, $this->userId), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]

@@ -91,11 +91,13 @@ const props = defineProps({
 	filter: { type: String, required: true },
 	// Identifiant à sélectionner (ex. après création).
 	focusId: { type: Number, default: null },
+	// Recherche appliquée à l'ouverture (ex. rendez-vous d'un praticien).
+	initialQuery: { type: String, default: '' },
 })
 const emit = defineEmits(['create', 'edit'])
 
 const store = useDataStore()
-const query = ref('')
+const query = ref(props.initialQuery)
 const selectedId = ref(null)
 
 const heading = computed(() => ({
@@ -144,6 +146,9 @@ function subname(item) {
 	return parts.length > 0 ? parts.join(' · ') : formatDate(item.startsAt)
 }
 
+watch(() => props.initialQuery, (value) => {
+	query.value = value
+})
 watch(() => props.filter, () => {
 	selectedId.value = null
 })

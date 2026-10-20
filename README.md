@@ -4,6 +4,8 @@ Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rend
 
 - **Rendez-vous** : date, durée, motif, notes, statut (planifié / effectué / annulé), praticien et lieu.
 - **Praticiens et lieux** : créés une fois (ou à la volée depuis un rendez-vous), réutilisés partout.
+  Un praticien peut être lié à une fiche de l'app **Contacts** (facultatif) : la fiche fait foi pour le nom, la spécialité et le
+  téléphone, la copie locale reste utilisable si la fiche disparaît, et le menu des contacts propose « Rendez-vous Vitalog ».
 - **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
 - **Calendrier** : les rendez-vous planifiés sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
   déplacement, annulation et suppression sont répercutés.
@@ -53,6 +55,8 @@ La CI GitHub (`.github/workflows/ci.yml`) exécute le lint, Psalm, PHPUnit sur P
 - `lib/Calendar` : `CalendarGateway` (interface) et `DavCalendarGateway`. L'API publique `OCP\Calendar` ne permet que de **créer** un
   événement ; la mise à jour et la suppression passent donc par `OCA\DAV\CalDAV\CalDavBackend` (classe interne mais utilisée par les
   apps officielles), isolée derrière l'interface.
+- `lib/Contacts` : `ContactGateway` et `ManagerContactGateway` (API publique `OCP\Contacts\IManager`, carnets de l'utilisateur
+  connecté) ; `lib/ContactsMenu` : action « Rendez-vous Vitalog » sur les fiches liées.
 - `lib/Controller` : API OCS sous `/ocs/v2.php/apps/vitalog/api/` (`appointments`, `practitioners`, `places`, `settings`,
   `appointments/{id}/attachments`). `PUT` remplace l'objet entier.
 - `src` : Vue 3 + `@nextcloud/vue` 9 + Pinia (`stores/data.js`), build Vite (`@nextcloud/vite-config`).

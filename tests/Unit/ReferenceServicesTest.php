@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Tests\Unit;
 
+use OCA\Vitalog\Contacts\ContactGateway;
 use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Place;
@@ -38,7 +39,7 @@ class ReferenceServicesTest extends TestCase {
 		$this->appointments->expects(self::once())->method('update')->with($appointment);
 		$this->sync->expects(self::once())->method('sync')->with($appointment);
 
-		(new PractitionerService($mapper, $this->appointments, $this->sync))->delete(3, 'alice');
+		(new PractitionerService($mapper, $this->appointments, $this->sync, $this->createMock(ContactGateway::class)))->delete(3, 'alice');
 
 		self::assertNull($appointment->getPractitionerId());
 	}
@@ -61,6 +62,6 @@ class ReferenceServicesTest extends TestCase {
 		$mapper->method('find')->willThrowException(new DoesNotExistException(''));
 
 		$this->expectException(NotFoundException::class);
-		(new PractitionerService($mapper, $this->appointments, $this->sync))->find(1, 'alice');
+		(new PractitionerService($mapper, $this->appointments, $this->sync, $this->createMock(ContactGateway::class)))->find(1, 'alice');
 	}
 }

@@ -14,6 +14,9 @@
 		<php min-version="8.2"/>
 		<nextcloud min-version="34" max-version="35"/>
 	</dependencies>
+	<contactsmenu>
+		<provider>OCA\Vitalog\ContactsMenu\AppointmentsProvider</provider>
+	</contactsmenu>
 	<navigations>
 		<navigation>
 			<name>Vitalog</name>

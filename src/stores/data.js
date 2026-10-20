@@ -161,6 +161,14 @@ export const useDataStore = defineStore('data', () => {
 
 	const savePractitioner = (form, id = null) => saveReference('practitioners', practitioners, form, id)
 	const deletePractitioner = (id) => deleteReference('practitioners', practitioners, id)
+	async function createContactFor(practitioner) {
+		const saved = await guard(() => api.createContact(practitioner.id), t('vitalog', 'The contact could not be created.'))
+		if (saved) {
+			replaceIn(practitioners, saved)
+		}
+		return saved
+	}
+
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
 	const deletePlace = (id) => deleteReference('places', places, id)
 
@@ -192,6 +200,7 @@ export const useDataStore = defineStore('data', () => {
 		addAttachment,
 		removeAttachment,
 		savePractitioner,
+		createContactFor,
 		deletePractitioner,
 		savePlace,
 		deletePlace,

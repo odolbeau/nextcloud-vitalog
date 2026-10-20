@@ -42,4 +42,17 @@ class PractitionerMapper extends QBMapper {
 			->orderBy('name', 'ASC');
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * @return list<Practitioner>
+	 * @throws Exception
+	 */
+	public function findByContactUid(string $contactUid, string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('contact_uid', $qb->createNamedParameter($contactUid)))
+			->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		return $this->findEntities($qb);
+	}
 }

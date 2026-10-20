@@ -80,6 +80,7 @@
 			v-else
 			:filter="view"
 			:focusId="focusId"
+			:initialQuery="initialQuery"
 			@create="openForm()"
 			@edit="openForm" />
 
@@ -125,6 +126,8 @@ const formOpen = ref(false)
 const editing = ref(null)
 const settingsOpen = ref(false)
 const focusId = ref(null)
+// lien « Rendez-vous Vitalog » du menu des contacts : ?practitioner=ID affiche les rendez-vous de ce praticien
+const initialQuery = ref('')
 
 const appointmentViews = computed(() => [
 	{ id: 'upcoming', name: t('vitalog', 'Upcoming'), icon: CalendarArrowRight, count: store.upcoming.length },
@@ -151,7 +154,15 @@ function onSaved(appointment) {
 	})
 }
 
-onMounted(() => store.load())
+onMounted(async () => {
+	await store.load()
+	const id = Number(new URLSearchParams(window.location.search).get('practitioner'))
+	const practitioner = id ? store.practitionerById(id) : null
+	if (practitioner) {
+		view.value = 'all'
+		initialQuery.value = practitioner.name
+	}
+})
 </script>
 
 <style scoped lang="scss">

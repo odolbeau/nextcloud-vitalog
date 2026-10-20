@@ -6,6 +6,8 @@ namespace OCA\Vitalog\AppInfo;
 
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\DavCalendarGateway;
+use OCA\Vitalog\Contacts\ContactGateway;
+use OCA\Vitalog\Contacts\ManagerContactGateway;
 use OCA\Vitalog\Listener\CalendarObjectCreatedListener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -22,6 +24,7 @@ class Application extends App implements IBootstrap {
 
 	public function register(IRegistrationContext $context): void {
 		$context->registerServiceAlias(CalendarGateway::class, DavCalendarGateway::class);
+		$context->registerServiceAlias(ContactGateway::class, ManagerContactGateway::class);
 		$context->registerEventListener(CalendarObjectCreatedEvent::class, CalendarObjectCreatedListener::class);
 	}
 
