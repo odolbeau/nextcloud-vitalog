@@ -10,7 +10,9 @@ async function api(method, path, body) {
 		headers: { Authorization: AUTH, 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 		body: body && JSON.stringify(body),
 	})
-	if (!response.ok) { throw new Error(`${method} ${path}: ${response.status} ${await response.text()}`) }
+	if (!response.ok) {
+		throw new Error(`${method} ${path}: ${response.status} ${await response.text()}`)
+	}
 	return (await response.json()).ocs.data
 }
 const vitalog = (path) => `apps/vitalog/api/${path}`
@@ -19,7 +21,9 @@ for (const key of ['language', 'locale']) {
 	await api('PUT', 'cloud/users/admin', { key, value: key === 'locale' ? 'en_US' : 'en' })
 }
 for (const kind of ['appointments', 'practitioners', 'places', 'labels']) {
-	for (const item of await api('GET', vitalog(kind))) { await api('DELETE', vitalog(`${kind}/${item.id}`)) }
+	for (const item of await api('GET', vitalog(kind))) {
+		await api('DELETE', vitalog(`${kind}/${item.id}`))
+	}
 }
 
 function at(days, hour, minute = 0) {
