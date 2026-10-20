@@ -35,8 +35,6 @@
 							v-if="practitioner.contactUrl"
 							variant="tertiary"
 							:href="practitioner.contactUrl"
-							target="_blank"
-							rel="noopener"
 							:aria-label="t('vitalog', 'Open {name} in Contacts', { name: practitioner.name })"
 							@click.stop>
 							<template #icon>

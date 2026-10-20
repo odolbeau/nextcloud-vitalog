@@ -70,7 +70,6 @@
 						class="details__open"
 						variant="tertiary"
 						:href="practitioner.contactUrl"
-						target="_blank"
 						:title="t('vitalog', 'Open in Contacts')"
 						:aria-label="t('vitalog', 'Open in Contacts')">
 						<template #icon>
@@ -86,9 +85,7 @@
 					<a
 						v-if="place.address"
 						class="details__block"
-						:href="mapUrl"
-						target="_blank"
-						rel="noopener noreferrer">{{ place.address }}</a>
+						:href="mapUrl">{{ place.address }}</a>
 				</dd>
 			</template>
 			<template v-if="appointment.notes">
@@ -106,7 +103,6 @@
 					class="details__open"
 					variant="tertiary"
 					:href="calendarUrl"
-					target="_blank"
 					:title="t('vitalog', 'Open in Calendar')"
 					:aria-label="t('vitalog', 'Open in Calendar')">
 					<template #icon>
@@ -134,9 +130,7 @@
 					<FileOutline :size="20" />
 					<a
 						v-if="attachment.name"
-						:href="fileUrl(attachment)"
-						target="_blank"
-						rel="noopener noreferrer">{{ attachment.name }}</a>
+						:href="fileUrl(attachment)">{{ attachment.name }}</a>
 					<span v-else class="details__muted">{{ t('vitalog', 'File no longer available') }}</span>
 					<NcButton
 						variant="tertiary"

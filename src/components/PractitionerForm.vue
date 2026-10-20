@@ -21,9 +21,7 @@
 					{{ t('vitalog', 'Name, specialty and phone come from the contact.') }}
 					<a
 						v-if="practitioner?.contactUrl"
-						:href="practitioner.contactUrl"
-						target="_blank"
-						rel="noopener">{{ t('vitalog', 'Edit in Contacts') }}</a>
+						:href="practitioner.contactUrl">{{ t('vitalog', 'Edit in Contacts') }}</a>
 				</p>
 				<NcNoteCard v-else-if="contact && practitioner?.contactStatus === 'missing'" type="warning">
 					{{ t('vitalog', 'The linked contact no longer exists. The details below are kept; clear the contact field to unlink.') }}
