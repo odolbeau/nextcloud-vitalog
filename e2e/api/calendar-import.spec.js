@@ -4,15 +4,20 @@ import { ADMIN, client, exportCalendar, inDays } from '../helpers.js'
 let admin
 // un calendrier supprimé reste en corbeille avec son URI : on en crée un nouveau à chaque exécution
 const OTHER = `vitalog-e2e-import-${Date.now()}`
+// calendrier dédié à l'import ponctuel : « personal » contient déjà l'événement d'accueil de Nextcloud
+const EXISTING = `vitalog-e2e-existing-${Date.now()}`
 
 test.beforeAll(async () => {
 	admin = await client()
 	const created = await admin.context.fetch(`/remote.php/dav/calendars/${ADMIN.user}/${OTHER}/`, { method: 'MKCALENDAR' })
 	expect(created.status()).toBe(201)
+	const existing = await admin.context.fetch(`/remote.php/dav/calendars/${ADMIN.user}/${EXISTING}/`, { method: 'MKCALENDAR' })
+	expect(existing.status()).toBe(201)
 })
 test.afterAll(async () => {
 	await admin.reset()
 	await admin.context.delete(`/remote.php/dav/calendars/${ADMIN.user}/${OTHER}/`)
+	await admin.context.delete(`/remote.php/dav/calendars/${ADMIN.user}/${EXISTING}/`)
 	await admin.dispose()
 })
 test.beforeEach(async () => {
@@ -49,8 +54,8 @@ async function addEvent(calendar, { startsAt, durationMinutes = 60, summary, loc
 	return uid
 }
 
-async function configure(calendarUri, importFromCalendar) {
-	const response = await admin.put('settings', { calendarUri, importFromCalendar })
+async function configure(calendarUri, importFromCalendar, importExisting = false) {
+	const response = await admin.put('settings', { calendarUri, importFromCalendar, importExisting })
 	expect(response.status()).toBe(200)
 	return admin.data(response)
 }
@@ -126,4 +131,31 @@ test('events in another calendar, recurring events and Vitalog\'s own events are
 	// un rendez-vous créé dans Vitalog crée son événement, qui ne doit pas revenir en doublon
 	await admin.create('appointments', { startsAt: inDays(5), reason: 'Depuis Vitalog' })
 	expect(await admin.list('appointments')).toHaveLength(1)
+})
+
+test('choosing a calendar can import the events it already contains, once', async () => {
+	const place = await admin.create('places', { name: 'Cabinet Martin' })
+	await addEvent(EXISTING, { startsAt: inDays(5), summary: 'Futur', location: 'Cabinet Martin' })
+	await addEvent(EXISTING, { startsAt: inDays(-30), summary: 'Passé' })
+	await addEvent(EXISTING, { startsAt: inDays(6), summary: 'Récurrent', extra: ['RRULE:FREQ=WEEKLY;COUNT=3'] })
+	await addEvent(OTHER, { startsAt: inDays(7), summary: 'Autre calendrier' })
+	// un rendez-vous Vitalog déjà synchronisé ne doit pas revenir en doublon
+	await admin.create('appointments', { startsAt: inDays(8), reason: 'Déjà dans Vitalog' })
+
+	// sans demander l'import ponctuel, rien n'est créé
+	let settings = await configure(EXISTING, false, false)
+	expect(settings.imported).toBe(0)
+	expect(await admin.list('appointments')).toHaveLength(1)
+
+	settings = await configure(EXISTING, false, true)
+	expect(settings.imported).toBe(2)
+	// l'import ponctuel n'est pas mémorisé, ni l'import à chaque ajout
+	expect(settings.importFromCalendar).toBe(false)
+	const reasons = (await admin.list('appointments')).map((a) => a.reason).sort()
+	expect(reasons).toEqual(['Déjà dans Vitalog', 'Futur', 'Passé'])
+	expect((await admin.list('appointments')).find((a) => a.reason === 'Futur')).toMatchObject({ placeId: place.id, synced: true })
+
+	// rejouer ne crée rien de plus
+	expect((await configure(EXISTING, false, true)).imported).toBe(0)
+	expect(await admin.list('appointments')).toHaveLength(3)
 })

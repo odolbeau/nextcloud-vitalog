@@ -23,6 +23,16 @@ namespace OCA\DAV\CalDAV {
 			return null;
 		}
 
+		/** @return list<array<string, mixed>> */
+		public function getCalendarObjects($calendarId, $calendarType = self::CALENDAR_TYPE_CALENDAR): array {
+			return [];
+		}
+
+		/** @return list<array<string, mixed>> */
+		public function getMultipleCalendarObjects($calendarId, array $uris, $calendarType = self::CALENDAR_TYPE_CALENDAR): array {
+			return [];
+		}
+
 		public function getCalendarObjectByUID($principalUri, $uid, $calendarUri = null) {
 			return null;
 		}

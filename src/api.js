@@ -19,7 +19,7 @@ export const searchContacts = (search) => axios.get(url('contacts'), { ...config
 export const createContact = (practitionerId) => axios.post(url(`practitioners/${practitionerId}/contact`), {}, config).then(unwrap)
 
 export const getSettings = () => axios.get(url('settings'), config).then(unwrap)
-export const saveSettings = (calendarUri, importFromCalendar) => axios.put(url('settings'), { calendarUri, importFromCalendar }, config).then(unwrap)
+export const saveSettings = (calendarUri, importFromCalendar, importExisting) => axios.put(url('settings'), { calendarUri, importFromCalendar, importExisting }, config).then(unwrap)
 
 /**
  * Message d'erreur renvoyé par le serveur, le cas échéant.

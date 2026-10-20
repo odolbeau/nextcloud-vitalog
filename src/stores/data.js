@@ -158,11 +158,15 @@ export const useDataStore = defineStore('data', () => {
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
 	const deletePlace = (id) => deleteReference('places', places, id)
 
-	async function saveCalendar(calendarUri, importFromCalendar = false) {
-		const saved = await guard(() => api.saveSettings(calendarUri, importFromCalendar), t('vitalog', 'The calendar setting could not be saved.'))
+	async function saveCalendar(calendarUri, importFromCalendar = false, importExisting = false) {
+		const saved = await guard(() => api.saveSettings(calendarUri, importFromCalendar, importExisting), t('vitalog', 'The calendar setting could not be saved.'))
 		if (saved) {
-			settings.value = saved
+			const { imported, ...current } = saved
+			settings.value = current
 			await refreshAppointments()
+			if (importExisting) {
+				showSuccess(t('vitalog', 'Appointments created from existing events: {count}', { count: imported }))
+			}
 		}
 		return saved
 	}

@@ -20,6 +20,14 @@ interface CalendarGateway {
 	 */
 	public function put(string $userId, string $calendarUri, string $uid, string $ics): void;
 
+	/**
+	 * Contenu iCalendar des événements (VEVENT) du calendrier.
+	 *
+	 * @return iterable<string>
+	 * @throws CalendarException si le calendrier n'existe pas
+	 */
+	public function listEvents(string $userId, string $calendarUri): iterable;
+
 	/** Supprime l'événement portant cet UID s'il existe (sans erreur sinon). */
 	public function delete(string $userId, string $calendarUri, string $uid): void;
 }

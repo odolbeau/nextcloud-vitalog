@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Service;
 
+use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\EventParser;
 use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Db\AppointmentMapper;
@@ -17,6 +18,7 @@ use Throwable;
  */
 class CalendarImportService {
 	public function __construct(
+		private CalendarGateway $gateway,
 		private EventParser $parser,
 		private CalendarSyncService $sync,
 		private AppointmentMapper $appointments,
@@ -36,10 +38,35 @@ class CalendarImportService {
 		}
 	}
 
+	/**
+	 * Crée un rendez-vous pour chaque événement du calendrier qui n'en a pas encore (événements passés compris).
+	 * Un événement en échec est journalisé et n'interrompt pas les suivants.
+	 *
+	 * @return int nombre de rendez-vous créés
+	 */
+	public function importExisting(string $userId, string $calendarUri): int {
+		$created = 0;
+		foreach ($this->gateway->listEvents($userId, $calendarUri) as $ics) {
+			try {
+				if ($this->createFrom($userId, $calendarUri, $ics) !== null) {
+					$created++;
+				}
+			} catch (Throwable $e) {
+				$this->logger->error('Vitalog could not import an existing calendar event for ' . $userId, ['exception' => $e]);
+			}
+		}
+
+		return $created;
+	}
+
 	private function doImport(string $userId, string $calendarUri, string $ics): ?Appointment {
 		if (!$this->sync->isImportEnabled($userId) || $this->sync->getTargetCalendar($userId) !== $calendarUri) {
 			return null;
 		}
+		return $this->createFrom($userId, $calendarUri, $ics);
+	}
+
+	private function createFrom(string $userId, string $calendarUri, string $ics): ?Appointment {
 		$event = $this->parser->parse($ics);
 		if ($event === null || $this->appointments->findByCalendarUid($event['uid'], $userId) !== null) {
 			return null;

@@ -277,3 +277,30 @@ test('importing events from the calendar can be enabled from the settings, with 
 	await nav(page, 'settings').click()
 	await expect(dialog(page).getByRole('switch', { name: /Create an appointment when I add an event/ })).toBeChecked()
 })
+
+test('selecting a calendar can import the events it already contains', async ({ page }) => {
+	const uid = `ui-existing-${Date.now()}`
+	// calendrier dédié : « personal » contient déjà l'événement d'accueil de Nextcloud
+	const calendar = `vitalog-e2e-ui-existing-${Date.now()}`
+	expect((await admin.context.fetch(`/remote.php/dav/calendars/admin/${calendar}/`, { method: 'MKCALENDAR' })).status()).toBe(201)
+	const start = new Date(Date.now() + 4 * 86400_000).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+	const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Vitalog e2e//EN', 'BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${start}`, `DTSTART:${start}`, `DTEND:${start}`, 'SUMMARY:Déjà au calendrier', 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n')
+	expect((await admin.context.put(`/remote.php/dav/calendars/admin/${calendar}/${uid}.ics`, { headers: { 'Content-Type': 'text/calendar' }, data: ics })).status()).toBe(201)
+
+	await openApp(page)
+	await nav(page, 'settings').click()
+	const settings = dialog(page)
+	const existing = settings.getByRole('checkbox', { name: /Also create appointments from the events already/ })
+	await expect(existing).toBeDisabled()
+	await choose(page, 'Calendar', calendar)
+	await expect(existing).toBeEnabled()
+	await existing.check({ force: true })
+	await settings.getByRole('button', { name: 'Save' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Déjà au calendrier')
+	await expect(page.getByText('Appointments created from existing events: 1', { exact: true })).toBeVisible()
+
+	await admin.context.delete(`/remote.php/dav/calendars/admin/${calendar}/`)
+})

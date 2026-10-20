@@ -10,6 +10,7 @@ Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rend
 - **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
   déplacement et suppression sont répercutés.
   En option (désactivée par défaut), un événement ajouté à ce calendrier crée aussi un rendez-vous.
+  À la sélection du calendrier, on peut aussi importer d'un coup les événements déjà présents (passés compris).
   Sens unique : les modifications ultérieures de l'événement ne sont pas répercutées, et les événements récurrents sont ignorés.
 - Interface en anglais et en français. Les données restent sur votre instance et sont strictement privées à chaque utilisateur.
 

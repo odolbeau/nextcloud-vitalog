@@ -15,6 +15,14 @@
 				:clearable="false"
 				label="label" />
 			<NcCheckboxRadioSwitch
+				v-model="importExisting"
+				:disabled="selected.id === null">
+				{{ t('vitalog', 'Also create appointments from the events already in this calendar') }}
+			</NcCheckboxRadioSwitch>
+			<p class="settings__hint">
+				{{ t('vitalog', 'Done once, when you save. Past events are included; recurring events are ignored.') }}
+			</p>
+			<NcCheckboxRadioSwitch
 				v-model="importFromCalendar"
 				type="switch"
 				:disabled="selected.id === null">
@@ -63,11 +71,13 @@ const options = computed(() => [
 	...store.settings.calendars.map((c) => ({ id: c.uri, label: c.name })),
 ])
 const importFromCalendar = ref(store.settings.importFromCalendar)
+// ponctuel, jamais mémorisé
+const importExisting = ref(false)
 const selected = ref(options.value.find((o) => o.id === store.settings.calendarUri) ?? options.value[0])
 
 async function submit() {
 	saving.value = true
-	const saved = await store.saveCalendar(selected.value.id, selected.value.id !== null && importFromCalendar.value)
+	const saved = await store.saveCalendar(selected.value.id, selected.value.id !== null && importFromCalendar.value, selected.value.id !== null && importExisting.value)
 	saving.value = false
 	if (saved) {
 		emit('close')
