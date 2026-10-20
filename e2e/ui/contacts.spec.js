@@ -93,3 +93,17 @@ test('the contacts menu link opens the appointments of a practitioner', async ({
 	await expect(page.locator('[data-test^="appointment-"]')).toHaveCount(1)
 	await expect(page.locator('[data-test^="appointment-"]')).toContainText('Chez Lien')
 })
+
+test('linked practitioners link to their contact from the list and from the appointment', async ({ page }) => {
+	const uid = `vitalog-ui-link-${Date.now()}`
+	await putContact(uid, 'Dr Lien Direct', 'ORL', '0102030405')
+	const doctor = await admin.create('practitioners', { name: 'x', contactUid: uid })
+	await admin.create('appointments', { startsAt: inDays(2), reason: 'Visite', practitionerId: doctor.id })
+	await openApp(page)
+
+	await page.locator('[data-test^="appointment-"]').first().click()
+	await expect(page.getByRole('article').getByRole('link', { name: 'Open in Contacts' })).toHaveAttribute('href', new RegExp(`/apps/contacts/direct/contact/${uid}`))
+
+	await nav(page, 'practitioners').click()
+	await expect(page.getByRole('link', { name: 'Open Dr Lien Direct in Contacts' })).toHaveAttribute('href', new RegExp(`/apps/contacts/direct/contact/${uid}`))
+})

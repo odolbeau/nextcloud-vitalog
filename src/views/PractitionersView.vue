@@ -32,6 +32,18 @@
 					</template>
 					<template #extra-actions>
 						<NcButton
+							v-if="practitioner.contactUrl"
+							variant="tertiary"
+							:href="practitioner.contactUrl"
+							target="_blank"
+							rel="noopener"
+							:aria-label="t('vitalog', 'Open {name} in Contacts', { name: practitioner.name })"
+							@click.stop>
+							<template #icon>
+								<CardAccountDetails :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
 							variant="tertiary"
 							:aria-label="t('vitalog', 'Delete {name}', { name: practitioner.name })"
 							@click.stop="deleting = practitioner">
@@ -66,6 +78,7 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'

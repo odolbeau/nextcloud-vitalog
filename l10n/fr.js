@@ -66,6 +66,7 @@ OC.L10N.register(
         "Notes": "Notes",
         "Nothing planned": "Rien de prévu",
         "Open in Contacts": "Ouvrir dans Contacts",
+        "Open {name} in Contacts": "Ouvrir {name} dans Contacts",
         "Optional and off by default. The new appointment can then be completed in Vitalog (practitioner, notes, documents…). Events that are already over are marked as done. Recurring events are not supported and are ignored.": "Facultatif, désactivé par défaut. Le rendez-vous créé peut ensuite être complété dans Vitalog (praticien, notes, documents…). Les événements déjà passés sont marqués comme effectués. Les événements récurrents ne sont pas pris en charge et sont ignorés.",
         "Past": "Passés",
         "Past appointments": "Rendez-vous passés",
