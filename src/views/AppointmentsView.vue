@@ -17,34 +17,37 @@
 						:showTrailingButton="query !== ''"
 						:trailingButtonLabel="t('vitalog', 'Clear search')"
 						@trailingButtonClick="query = ''" />
-					<NcPopover v-if="store.labels.length > 0" v-model:shown="filterOpen" popupRole="dialog">
+					<NcPopover v-if="groups.length > 0" v-model:shown="filterOpen" popupRole="dialog">
 						<template #trigger="{ attrs }">
 							<NcButton
 								v-bind="attrs"
-								:variant="labelFilter ? 'secondary' : 'tertiary'"
-								:aria-label="t('vitalog', 'Filter by label')"
-								:title="t('vitalog', 'Filter by label')"
-								data-test="label-filter-button">
+								:variant="activeFilters.length > 0 ? 'secondary' : 'tertiary'"
+								:aria-label="t('vitalog', 'Filter')"
+								:title="t('vitalog', 'Filter')"
+								data-test="filter-button">
 								<template #icon>
-									<FilterVariantRemove v-if="labelFilter" :size="20" />
+									<FilterVariantRemove v-if="activeFilters.length > 0" :size="20" />
 									<FilterVariant v-else :size="20" />
 								</template>
 							</NcButton>
 						</template>
 						<div class="list__popover">
-							<div role="radiogroup" :aria-label="t('vitalog', 'Filter by label')" class="list__choices">
-								<NcCheckboxRadioSwitch
-									v-for="label in store.labels"
-									:key="label.id"
-									:modelValue="labelId"
-									type="radio"
-									name="vitalog-label-filter"
-									:value="label.id"
-									@update:modelValue="chooseLabel(label.id)">
-									{{ label.name }}
-								</NcCheckboxRadioSwitch>
-							</div>
-							<NcButton v-if="labelFilter" variant="tertiary" @click="resetLabelFilter">
+							<section v-for="group in groups" :key="group.key" class="list__group">
+								<h3>{{ group.title }}</h3>
+								<div role="radiogroup" :aria-label="group.title" class="list__choices">
+									<NcCheckboxRadioSwitch
+										v-for="option in group.options"
+										:key="option.id"
+										:modelValue="group.current"
+										type="radio"
+										:name="`vitalog-filter-${group.key}`"
+										:value="option.id"
+										@update:modelValue="setFilter(group.key, option.id)">
+										{{ option.label }}
+									</NcCheckboxRadioSwitch>
+								</div>
+							</section>
+							<NcButton v-if="activeFilters.length > 0" variant="tertiary" @click="resetFilters">
 								<template #icon>
 									<Close :size="20" />
 								</template>
@@ -53,12 +56,14 @@
 						</div>
 					</NcPopover>
 				</div>
-				<div v-if="labelFilter" class="list__active-filter">
-					<NcChip
-						:text="labelFilter.label"
-						:ariaLabelClose="t('vitalog', 'Remove the label filter')"
-						@close="labelFilter = null" />
-				</div>
+				<ul v-if="activeFilters.length > 0" class="list__active-filter" :aria-label="t('vitalog', 'Active filters')">
+					<li v-for="active in activeFilters" :key="active.key">
+						<NcChip
+							:text="active.text"
+							:ariaLabelClose="t('vitalog', 'Remove the filter {name}', { name: active.text })"
+							@close="setFilter(active.key, null)" />
+					</li>
+				</ul>
 
 				<NcLoadingIcon v-if="!store.loaded" class="list__loading" :size="32" />
 				<ul v-else-if="items.length > 0" class="list" :aria-label="heading">
@@ -142,22 +147,36 @@ const props = defineProps({
 	filter: { type: String, required: true },
 	// Identifiant à sélectionner (ex. après création).
 	focusId: { type: Number, default: null },
-	// Recherche appliquée à l'ouverture (ex. rendez-vous d'un praticien).
-	initialQuery: { type: String, default: '' },
 	// Libellé qui filtre la liste (identifiant, ou null).
 	labelId: { type: Number, default: null },
+	// Praticien qui filtre la liste (identifiant, ou null).
+	practitionerId: { type: Number, default: null },
 })
-const emit = defineEmits(['create', 'edit', 'update:labelId', 'showLabel'])
+const emit = defineEmits(['create', 'edit', 'update:labelId', 'update:practitionerId', 'showLabel'])
 
 const store = useDataStore()
-const query = ref(props.initialQuery)
+const query = ref('')
 const selectedId = ref(null)
 const filterOpen = ref(false)
-const labelOptions = computed(() => store.labels.map((l) => ({ id: l.id, label: l.name })))
-const labelFilter = computed({
-	get: () => labelOptions.value.find((o) => o.id === props.labelId) ?? null,
-	set: (option) => emit('update:labelId', option?.id ?? null),
-})
+// Un « 0 » signifie « tous » (les identifiants commencent à 1) : une valeur de bouton radio ne peut pas être null.
+const groups = computed(() => [
+	{
+		key: 'label',
+		title: t('vitalog', 'Label'),
+		options: store.labels.length > 0 ? [{ id: 0, label: t('vitalog', 'All labels') }, ...store.labels.map((l) => ({ id: l.id, label: l.name }))] : [],
+		current: props.labelId ?? 0,
+	},
+	{
+		key: 'practitioner',
+		title: t('vitalog', 'Practitioner'),
+		options: store.practitioners.length > 0 ? [{ id: 0, label: t('vitalog', 'All practitioners') }, ...store.practitioners.map((p) => ({ id: p.id, label: p.name }))] : [],
+		current: props.practitionerId ?? 0,
+	},
+].filter((group) => group.options.length > 0))
+const activeFilters = computed(() => [
+	props.labelId !== null && store.labelById(props.labelId) && { key: 'label', text: store.labelById(props.labelId).name },
+	props.practitionerId !== null && store.practitionerById(props.practitionerId) && { key: 'practitioner', text: store.practitionerById(props.practitionerId).name },
+].filter(Boolean))
 
 const heading = computed(() => ({
 	upcoming: t('vitalog', 'Upcoming appointments'),
@@ -168,7 +187,8 @@ const heading = computed(() => ({
 const source = computed(() => store[props.filter])
 const items = computed(() => {
 	const needle = query.value.trim().toLowerCase()
-	const labelled = props.labelId === null ? source.value : source.value.filter((a) => a.labelIds?.includes(props.labelId))
+	const labelled = source.value.filter((a) => (props.labelId === null || a.labelIds?.includes(props.labelId))
+		&& (props.practitionerId === null || a.practitionerId === props.practitionerId))
 	if (needle === '') {
 		return labelled
 	}
@@ -183,7 +203,7 @@ const items = computed(() => {
 })
 const selected = computed(() => store.appointments.find((a) => a.id === selectedId.value) ?? null)
 
-const filtering = computed(() => query.value !== '' || props.labelId !== null)
+const filtering = computed(() => query.value !== '' || props.labelId !== null || props.practitionerId !== null)
 const emptyTitle = computed(() => filtering.value
 	? t('vitalog', 'No match')
 	: { upcoming: t('vitalog', 'Nothing planned'), past: t('vitalog', 'No past appointments'), all: t('vitalog', 'No appointments yet') }[props.filter])
@@ -193,13 +213,13 @@ const emptyDescription = computed(() => filtering.value
 		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
 
-function chooseLabel(id) {
-	emit('update:labelId', id)
-	filterOpen.value = false
+function setFilter(key, id) {
+	emit(key === 'label' ? 'update:labelId' : 'update:practitionerId', id || null)
 }
 
-function resetLabelFilter() {
-	labelFilter.value = null
+function resetFilters() {
+	emit('update:labelId', null)
+	emit('update:practitionerId', null)
 	filterOpen.value = false
 }
 
@@ -223,9 +243,6 @@ function subname(item) {
 	return parts.length > 0 ? parts.join(' · ') : formatDate(item.startsAt)
 }
 
-watch(() => props.initialQuery, (value) => {
-	query.value = value
-})
 watch(() => props.filter, () => {
 	selectedId.value = null
 })
@@ -264,8 +281,13 @@ watch(() => props.focusId, (id) => {
 		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
+	&__group h3 {
+		margin: 0 0 4px;
+		font-size: 1em;
+	}
+
 	&__choices {
-		max-height: 300px;
+		max-height: 200px;
 		overflow-y: auto;
 	}
 

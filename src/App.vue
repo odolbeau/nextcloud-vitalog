@@ -89,9 +89,9 @@
 		<AppointmentsView
 			v-else
 			v-model:labelId="labelFilter"
+			v-model:practitionerId="practitionerFilter"
 			:filter="view"
 			:focusId="focusId"
-			:initialQuery="initialQuery"
 			@showLabel="showLabel"
 			@create="openForm()"
 			@edit="openForm" />
@@ -140,12 +140,17 @@ const formOpen = ref(false)
 const editing = ref(null)
 const settingsOpen = ref(false)
 const focusId = ref(null)
-// lien « Rendez-vous Vitalog » du menu des contacts : ?practitioner=ID affiche les rendez-vous de ce praticien
-const initialQuery = ref('')
 // libellé qui filtre la liste des rendez-vous (conservés en changeant de vue)
 const labelFilter = ref(null)
+// praticien qui filtre la liste ; le lien « Rendez-vous Vitalog » du menu des contacts l'ouvre par ?practitioner=ID
+const practitionerFilter = ref(null)
 
 // un libellé supprimé ne doit pas laisser un filtre fantôme
+watch(() => store.practitioners, (practitioners) => {
+	if (!practitioners.some((p) => p.id === practitionerFilter.value)) {
+		practitionerFilter.value = null
+	}
+})
 watch(() => store.labels, (labels) => {
 	if (!labels.some((l) => l.id === labelFilter.value)) {
 		labelFilter.value = null
@@ -194,7 +199,7 @@ onMounted(async () => {
 	const practitioner = id ? store.practitionerById(id) : null
 	if (practitioner) {
 		view.value = 'all'
-		initialQuery.value = practitioner.name
+		practitionerFilter.value = practitioner.id
 	}
 })
 </script>

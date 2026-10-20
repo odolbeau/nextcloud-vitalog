@@ -66,15 +66,13 @@ test('filtering by label brings together appointments of different practitioners
 
 	// le filtre actif est visible sous la recherche et se retire d'un clic
 	await expect(page.getByText('Cheville', { exact: true }).first()).toBeVisible()
-	await page.getByRole('button', { name: 'Remove the label filter' }).click()
+	await page.getByRole('button', { name: 'Remove the filter Cheville' }).click()
 	await expect(items(page)).toHaveCount(3)
 
 	// ou se change depuis le bouton de filtre
-	await page.locator('[data-test="label-filter-button"]').click()
-	await page.getByRole('radiogroup').getByText('Don du sang').click()
+	await page.locator('[data-test="filter-button"]').click()
+	await page.getByRole('radiogroup', { name: 'Label' }).getByText('Don du sang').click()
 	await expect(items(page)).toHaveCount(1)
-	// la fenêtre se referme après le choix ; on la rouvre pour réinitialiser
-	await page.locator('[data-test="label-filter-button"]').click()
 	await page.getByRole('button', { name: 'Reset the filter' }).click()
 	await expect(items(page)).toHaveCount(3)
 
@@ -82,6 +80,30 @@ test('filtering by label brings together appointments of different practitioners
 	await page.getByLabel('Search appointments').fill('cheville')
 	await expect(items(page)).toHaveCount(2)
 	await expectNoViolations(page)
+})
+
+test('the list can be filtered by practitioner, alone or with a label', async ({ page }) => {
+	const ankle = await admin.create('labels', { name: 'Cheville' })
+	const gp = await admin.create('practitioners', { name: 'Dr Généraliste' })
+	const physio = await admin.create('practitioners', { name: 'Kiné Durand' })
+	await admin.create('appointments', { startsAt: inDays(2), reason: 'Consultation', practitionerId: gp.id, labelIds: [ankle.id] })
+	await admin.create('appointments', { startsAt: inDays(4), reason: 'Séance 1', practitionerId: physio.id, labelIds: [ankle.id] })
+	await admin.create('appointments', { startsAt: inDays(6), reason: 'Séance 2', practitionerId: physio.id })
+
+	await openApp(page)
+	await expect(items(page)).toHaveCount(3)
+	await page.locator('[data-test="filter-button"]').click()
+	await page.getByRole('radiogroup', { name: 'Practitioner' }).getByText('Kiné Durand').click()
+	await expect(items(page)).toHaveCount(2)
+
+	// les filtres se cumulent : praticien ET libellé
+	await page.getByRole('radiogroup', { name: 'Label' }).getByText('Cheville').click()
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page)).toContainText('Séance 1')
+	await expectNoViolations(page)
+
+	await page.getByRole('button', { name: 'Reset the filter' }).click()
+	await expect(items(page)).toHaveCount(3)
 })
 
 test('labels can be renamed, coloured and deleted from their page', async ({ page }) => {
