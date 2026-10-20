@@ -59,12 +59,14 @@
 		<dl class="details__facts">
 			<template v-if="practitioner">
 				<dt>{{ t('vitalog', 'Practitioner') }}</dt>
-				<dd>
-					<strong>{{ practitioner.name }}</strong>
-					<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
+				<dd class="details__person">
+					<div>
+						<strong>{{ practitioner.name }}</strong>
+						<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
+						<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
+					</div>
 					<NcButton
 						v-if="practitioner.contactUrl"
-						class="details__contact"
 						variant="tertiary"
 						:href="practitioner.contactUrl"
 						target="_blank"
@@ -74,7 +76,6 @@
 							<CardAccountDetails :size="20" />
 						</template>
 					</NcButton>
-					<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
 				</dd>
 			</template>
 			<template v-if="place">
@@ -240,12 +241,6 @@ async function pickFiles() {
 </script>
 
 <style scoped lang="scss">
-.details__contact {
-	display: inline-flex;
-	vertical-align: middle;
-	margin-inline-start: 4px;
-}
-
 .details {
 	display: flex;
 	flex-direction: column;
@@ -303,6 +298,12 @@ async function pickFiles() {
 
 	&__block {
 		display: block;
+	}
+
+	&__person {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 
 	&__notes {
