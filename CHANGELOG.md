@@ -5,7 +5,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.1.0]
+## 0.1.0
 
 First release.
 

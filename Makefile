@@ -17,7 +17,7 @@ lint:
 package: clean
 	npm ci && npm run build
 	mkdir -p $(PACKAGE_DIR)/$(APP_ID)
-	cp -r appinfo lib templates js l10n img LICENSE $(PACKAGE_DIR)/$(APP_ID)/
+	cp -r appinfo lib templates js l10n img LICENSE CHANGELOG.md $(PACKAGE_DIR)/$(APP_ID)/
 	find $(PACKAGE_DIR) -name '*.map' -delete
 	tar -C $(PACKAGE_DIR) -czf $(ARCHIVE) $(APP_ID)
 	@echo "Built $(ARCHIVE)"

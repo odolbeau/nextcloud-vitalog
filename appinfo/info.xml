@@ -18,7 +18,7 @@
 * **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec un rappel la veille), et les événements peuvent être importés comme rendez-vous.
 * **Privé** : vos données restent sur votre instance et sont strictement privées à chaque utilisateur.]]></description>
 	<version>0.1.0</version>
-	<licence>agpl</licence>
+	<licence>AGPL-3.0-or-later</licence>
 	<author>Olivier Dolbeau</author>
 	<namespace>Vitalog</namespace>
 	<category>organization</category>
