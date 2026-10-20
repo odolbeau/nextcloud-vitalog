@@ -15,9 +15,9 @@
 					v-for="item in appointmentViews"
 					:key="item.id"
 					:name="item.name"
-					:active="view === item.id"
+					:active="nav.view === item.id"
 					:data-test="`nav-${item.id}`"
-					@click="view = item.id">
+					@click.prevent="go({ view: item.id })">
 					<template #icon>
 						<component :is="item.icon" :size="20" />
 					</template>
@@ -28,27 +28,27 @@
 				<NcAppNavigationSpacer />
 				<NcAppNavigationItem
 					:name="t('vitalog', 'Practitioners')"
-					:active="view === 'practitioners'"
+					:active="nav.view === 'practitioners'"
 					data-test="nav-practitioners"
-					@click="view = 'practitioners'">
+					@click.prevent="go({ view: 'practitioners' })">
 					<template #icon>
 						<Stethoscope :size="20" />
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationItem
 					:name="t('vitalog', 'Labels')"
-					:active="view === 'labels'"
+					:active="nav.view === 'labels'"
 					data-test="nav-labels"
-					@click="view = 'labels'">
+					@click.prevent="go({ view: 'labels' })">
 					<template #icon>
 						<TagMultiple :size="20" />
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationItem
 					:name="t('vitalog', 'Places')"
-					:active="view === 'places'"
+					:active="nav.view === 'places'"
 					data-test="nav-places"
-					@click="view = 'places'">
+					@click.prevent="go({ view: 'places' })">
 					<template #icon>
 						<MapMarker :size="20" />
 					</template>
@@ -60,7 +60,7 @@
 					<NcAppNavigationItem
 						:name="t('vitalog', 'Calendar sync')"
 						data-test="nav-settings"
-						@click="settingsOpen = true">
+						@click.prevent="settingsOpen = true">
 						<template #icon>
 							<CalendarSync :size="20" />
 						</template>
@@ -83,15 +83,16 @@
 				</template>
 			</NcEmptyContent>
 		</NcAppContent>
-		<PractitionersView v-else-if="view === 'practitioners'" />
-		<PlacesView v-else-if="view === 'places'" />
-		<LabelsView v-else-if="view === 'labels'" @filter="showLabel" />
+		<PractitionersView v-else-if="nav.view === 'practitioners'" />
+		<PlacesView v-else-if="nav.view === 'places'" />
+		<LabelsView v-else-if="nav.view === 'labels'" @filter="showLabel" />
 		<AppointmentsView
 			v-else
-			v-model:labelId="labelFilter"
-			v-model:practitionerId="practitionerFilter"
-			:filter="view"
-			:focusId="focusId"
+			:filter="nav.view"
+			:labelId="nav.label"
+			:practitionerId="nav.practitioner"
+			@update:labelId="(id) => go({ label: id })"
+			@update:practitionerId="(id) => go({ practitioner: id })"
 			@showLabel="showLabel"
 			@create="openForm()"
 			@edit="openForm" />
@@ -132,28 +133,27 @@ import AppointmentsView from './views/AppointmentsView.vue'
 import LabelsView from './views/LabelsView.vue'
 import PlacesView from './views/PlacesView.vue'
 import PractitionersView from './views/PractitionersView.vue'
+import { go, nav } from './navigation.js'
 import { useDataStore } from './stores/data.js'
 
 const store = useDataStore()
-const view = ref('upcoming')
 const formOpen = ref(false)
 const editing = ref(null)
 const settingsOpen = ref(false)
-const focusId = ref(null)
-// libellé qui filtre la liste des rendez-vous (conservés en changeant de vue)
-const labelFilter = ref(null)
-// praticien qui filtre la liste ; le lien « Rendez-vous Vitalog » du menu des contacts l'ouvre par ?practitioner=ID
-const practitionerFilter = ref(null)
 
-// un libellé supprimé ne doit pas laisser un filtre fantôme
-watch(() => store.practitioners, (practitioners) => {
-	if (!practitioners.some((p) => p.id === practitionerFilter.value)) {
-		practitionerFilter.value = null
+// un élément supprimé (ou un lien périmé) ne doit pas laisser un filtre ou une sélection fantôme
+watch(() => [store.loaded, nav.label, nav.practitioner, nav.appointment, store.labels, store.practitioners, store.appointments], () => {
+	if (!store.loaded) {
+		return
 	}
-})
-watch(() => store.labels, (labels) => {
-	if (!labels.some((l) => l.id === labelFilter.value)) {
-		labelFilter.value = null
+	const stale = {}
+	for (const [key, known] of [['label', store.labelById], ['practitioner', store.practitionerById], ['appointment', (id) => store.appointments.find((a) => a.id === id)]]) {
+		if (nav[key] !== null && !known(nav[key])) {
+			stale[key] = null
+		}
+	}
+	if (Object.keys(stale).length > 0) {
+		go(stale, { replace: true })
 	}
 })
 
@@ -170,38 +170,16 @@ function openForm(appointment = null) {
 
 /** Tous les rendez-vous portant ce libellé, passés et à venir. */
 function showLabel(id) {
-	labelFilter.value = id
-	view.value = 'all'
+	go({ label: id, view: 'all' })
 }
 
 function onSaved(appointment) {
-	if (!['practitioners', 'places', 'labels'].includes(view.value)) {
-		// l'enregistrement peut faire passer le rendez-vous d'une liste à l'autre : on bascule sur celle qui le contient
-		view.value = store.upcoming.some((a) => a.id === appointment.id) ? 'upcoming' : 'past'
-	} else {
-		view.value = 'upcoming'
-	}
-	focusId.value = null
-	// laisser le temps au changement de vue avant de sélectionner
-	queueMicrotask(() => {
-		focusId.value = appointment.id
-	})
+	// l'enregistrement peut faire passer le rendez-vous d'une liste à l'autre : on bascule sur celle qui le contient
+	const appointmentView = store.upcoming.some((a) => a.id === appointment.id) ? 'upcoming' : 'past'
+	go({ view: ['practitioners', 'places', 'labels'].includes(nav.view) ? 'upcoming' : appointmentView, appointment: appointment.id })
 }
 
-onMounted(async () => {
-	await store.load()
-	const params = new URLSearchParams(window.location.search)
-	const labelId = Number(params.get('label'))
-	if (labelId && store.labelById(labelId)) {
-		showLabel(labelId)
-	}
-	const id = Number(params.get('practitioner'))
-	const practitioner = id ? store.practitionerById(id) : null
-	if (practitioner) {
-		view.value = 'all'
-		practitionerFilter.value = practitioner.id
-	}
-})
+onMounted(() => store.load())
 </script>
 
 <style scoped lang="scss">

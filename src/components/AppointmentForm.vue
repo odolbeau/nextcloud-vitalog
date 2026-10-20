@@ -114,6 +114,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import PlaceForm from './PlaceForm.vue'
 import PractitionerForm from './PractitionerForm.vue'
 import { nextHalfHour, toDate, toTimestamp } from '../format.js'
+import { useDialogHistory } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -121,6 +122,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
+useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const toOption = (id, label) => ({ id, label })
 

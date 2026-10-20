@@ -60,10 +60,12 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import { useDialogHistory } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const emit = defineEmits(['close'])
 
+useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const saving = ref(false)
 const options = computed(() => [

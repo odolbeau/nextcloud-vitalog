@@ -79,7 +79,7 @@
 						:active="item.id === selectedId"
 						:data-test="`appointment-${item.id}`"
 						compact
-						@click="selectedId = item.id">
+						@click.prevent="selectedId = item.id">
 						<template #icon>
 							<DateBadge :startsAt="item.startsAt" :muted="store.isPast(item)" />
 						</template>
@@ -114,7 +114,7 @@
 			:appointment="selected"
 			@edit="emit('edit', selected)"
 			@filterLabel="showLabel"
-			@deleted="selectedId = null" />
+			@deleted="go({ appointment: null }, { replace: true })" />
 		<NcEmptyContent
 			v-else
 			:name="t('vitalog', 'Select an appointment')"
@@ -128,7 +128,7 @@
 
 <script setup>
 import { t } from '@nextcloud/l10n'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppContentList from '@nextcloud/vue/components/NcAppContentList'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -148,12 +148,11 @@ import Tag from 'vue-material-design-icons/Tag.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
 import { formatDate, formatTime } from '../format.js'
+import { go, nav } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
 	filter: { type: String, required: true },
-	// Identifiant à sélectionner (ex. après création).
-	focusId: { type: Number, default: null },
 	// Libellé qui filtre la liste (identifiant, ou null).
 	labelId: { type: Number, default: null },
 	// Praticien qui filtre la liste (identifiant, ou null).
@@ -163,7 +162,11 @@ const emit = defineEmits(['create', 'edit', 'update:labelId', 'update:practition
 
 const store = useDataStore()
 const query = ref('')
-const selectedId = ref(null)
+// le rendez-vous sélectionné fait partie de l'URL : « précédent » revient à la liste (ou à la sélection d'avant)
+const selectedId = computed({
+	get: () => nav.appointment,
+	set: (id) => go({ appointment: id }),
+})
 const filterOpen = ref(false)
 // Un « 0 » signifie « tous » (les identifiants commencent à 1) : une valeur de bouton radio ne peut pas être null.
 const groups = computed(() => [
@@ -250,14 +253,6 @@ function subname(item) {
 	return parts.length > 0 ? parts.join(' · ') : formatDate(item.startsAt)
 }
 
-watch(() => props.filter, () => {
-	selectedId.value = null
-})
-watch(() => props.focusId, (id) => {
-	if (id !== null) {
-		selectedId.value = id
-	}
-}, { immediate: true })
 </script>
 
 <style scoped lang="scss">
@@ -303,7 +298,6 @@ watch(() => props.focusId, (id) => {
 		overflow-y: auto;
 	}
 
-	// le champ de recherche aligné sur les boutons voisins (NcTextField réserve 6 px au-dessus pour son libellé)
 	&__popover {
 		display: flex;
 		flex-direction: column;

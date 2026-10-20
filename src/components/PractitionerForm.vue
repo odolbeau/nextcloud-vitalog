@@ -74,6 +74,7 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import * as api from '../api.js'
+import { useDialogHistory } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -81,6 +82,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
+useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const saving = ref(false)
 const form = reactive({

@@ -34,6 +34,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import { useDialogHistory } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -41,6 +42,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
+useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const saving = ref(false)
 const form = reactive({

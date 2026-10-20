@@ -3,7 +3,7 @@
 		<div class="reference">
 			<header class="reference__header">
 				<h2>{{ t('vitalog', 'Labels') }}</h2>
-				<NcButton variant="primary" @click="editing = {}">
+				<NcButton variant="primary" @click.prevent="editing = {}">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -26,7 +26,7 @@
 					:key="label.id"
 					:name="label.name"
 					:data-test="`label-row-${label.id}`"
-					@click="editing = label">
+					@click.prevent="editing = label">
 					<template #icon>
 						<span
 							class="dot"

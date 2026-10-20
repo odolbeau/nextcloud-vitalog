@@ -56,6 +56,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { LABEL_COLORS } from '../labels.js'
+import { useDialogHistory } from '../navigation.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -63,6 +64,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
+useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const saving = ref(false)
 const form = reactive({

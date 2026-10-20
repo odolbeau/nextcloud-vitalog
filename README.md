@@ -10,6 +10,7 @@ Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rend
   praticien et le lieu (« cheville », « don du sang »…). Un rendez-vous peut en porter plusieurs ; la liste se filtre par libellé
   ; la liste se filtre aussi par praticien, et les deux filtres se cumulent (bouton de filtre à côté de la recherche, ou page « Libellés »). Ils sont écrits dans les catégories de
   l'événement du calendrier (sens unique : les catégories modifiées dans Calendrier ne reviennent pas).
+- **Navigation** : la vue, le rendez-vous sélectionné et les filtres sont dans l'URL (`?view=…&appointment=…&label=…&practitioner=…`) ; précédent / suivant, rechargement et liens partagés fonctionnent, et « précédent » ferme une fenêtre ouverte.
 - **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
 - **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
   déplacement et suppression sont répercutés.
