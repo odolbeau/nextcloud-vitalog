@@ -62,12 +62,18 @@
 				<dd>
 					<strong>{{ practitioner.name }}</strong>
 					<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
-					<a
+					<NcButton
 						v-if="practitioner.contactUrl"
-						class="details__block"
+						class="details__contact"
+						variant="tertiary"
 						:href="practitioner.contactUrl"
 						target="_blank"
-						rel="noopener">{{ t('vitalog', 'Open in Contacts') }}</a>
+						:title="t('vitalog', 'Open in Contacts')"
+						:aria-label="t('vitalog', 'Open in Contacts')">
+						<template #icon>
+							<CardAccountDetails :size="20" />
+						</template>
+					</NcButton>
 					<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
 				</dd>
 			</template>
@@ -150,6 +156,7 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
+import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -233,6 +240,12 @@ async function pickFiles() {
 </script>
 
 <style scoped lang="scss">
+.details__contact {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-start: 4px;
+}
+
 .details {
 	display: flex;
 	flex-direction: column;
