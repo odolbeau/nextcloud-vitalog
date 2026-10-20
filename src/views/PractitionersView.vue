@@ -32,6 +32,15 @@
 					</template>
 					<template #extra-actions>
 						<NcButton
+							variant="tertiary"
+							:aria-label="t('vitalog', 'Show appointments with {name}', { name: practitioner.name })"
+							:title="t('vitalog', 'Show appointments')"
+							@click.stop="emit('filter', practitioner.id)">
+							<template #icon>
+								<CalendarSearch :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
 							v-if="practitioner.contactUrl"
 							variant="tertiary"
 							:href="practitioner.contactUrl"
@@ -76,12 +85,15 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import CalendarSearch from 'vue-material-design-icons/CalendarSearch.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
 import PractitionerForm from '../components/PractitionerForm.vue'
 import { useDataStore } from '../stores/data.js'
+
+const emit = defineEmits(['filter'])
 
 const store = useDataStore()
 const editing = ref(null)

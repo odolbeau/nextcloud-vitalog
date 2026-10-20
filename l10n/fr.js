@@ -108,6 +108,7 @@ OC.L10N.register(
         "Show all appointments labelled {name}": "Afficher tous les rendez-vous « {name} »",
         "Show appointments": "Afficher les rendez-vous",
         "Show appointments labelled {name}": "Afficher les rendez-vous « {name} »",
+        "Show appointments with {name}": "Afficher les rendez-vous avec {name}",
         "Specialty": "Spécialité",
         "Sync disabled": "Synchro désactivée",
         "Teal": "Turquoise",

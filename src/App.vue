@@ -83,7 +83,7 @@
 				</template>
 			</NcEmptyContent>
 		</NcAppContent>
-		<PractitionersView v-else-if="nav.view === 'practitioners'" />
+		<PractitionersView v-else-if="nav.view === 'practitioners'" @filter="showPractitioner" />
 		<PlacesView v-else-if="nav.view === 'places'" />
 		<LabelsView v-else-if="nav.view === 'labels'" @filter="showLabel" />
 		<AppointmentsView
@@ -171,6 +171,11 @@ function openForm(appointment = null) {
 /** Tous les rendez-vous portant ce libellé, passés et à venir. */
 function showLabel(id) {
 	go({ label: id, view: 'all' })
+}
+
+/** Tous les rendez-vous avec ce praticien, passés et à venir. */
+function showPractitioner(id) {
+	go({ practitioner: id, view: 'all' })
 }
 
 function onSaved(appointment) {

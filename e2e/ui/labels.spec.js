@@ -106,6 +106,20 @@ test('the list can be filtered by practitioner, alone or with a label', async ({
 	await expect(items(page)).toHaveCount(3)
 })
 
+test('a practitioner can be opened as a filter from the practitioners page', async ({ page }) => {
+	const gp = await admin.create('practitioners', { name: 'Dr Généraliste' })
+	const other = await admin.create('practitioners', { name: 'Kiné Durand' })
+	await admin.create('appointments', { startsAt: inDays(-9), reason: 'Passé', practitionerId: gp.id })
+	await admin.create('appointments', { startsAt: inDays(3), reason: 'Futur', practitionerId: gp.id })
+	await admin.create('appointments', { startsAt: inDays(5), reason: 'Autre', practitionerId: other.id })
+
+	await openApp(page)
+	await nav(page, 'practitioners').click()
+	await page.getByRole('button', { name: 'Show appointments with Dr Généraliste' }).click()
+	await expect(items(page)).toHaveCount(2)
+	await expect(page.getByRole('button', { name: 'Remove the filter Dr Généraliste' })).toBeVisible()
+})
+
 test('labels can be renamed, coloured and deleted from their page', async ({ page }) => {
 	const ankle = await admin.create('labels', { name: 'Cheville' })
 	await admin.create('appointments', { startsAt: inDays(4), reason: 'Séance', labelIds: [ankle.id] })
