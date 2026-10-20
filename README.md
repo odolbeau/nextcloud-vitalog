@@ -6,6 +6,10 @@ Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rend
 - **Praticiens et lieux** : créés une fois (ou à la volée depuis un rendez-vous), réutilisés partout.
   Un praticien peut être lié à une fiche de l'app **Contacts** (facultatif) : la fiche fait foi pour le nom, la spécialité et le
   téléphone, la copie locale reste utilisable si la fiche disparaît, et le menu des contacts propose « Rendez-vous Vitalog ».
+- **Libellés** : étiquettes (avec couleur facultative) qui réunissent des rendez-vous de manière transverse — quels que soient le
+  praticien et le lieu (« cheville », « don du sang »…). Un rendez-vous peut en porter plusieurs ; la liste se filtre par libellé
+  (cumulables), depuis les puces au-dessus de la liste ou la page « Libellés ». Ils sont écrits dans les catégories de
+  l'événement du calendrier (sens unique : les catégories modifiées dans Calendrier ne reviennent pas).
 - **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
 - **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
   déplacement et suppression sont répercutés.

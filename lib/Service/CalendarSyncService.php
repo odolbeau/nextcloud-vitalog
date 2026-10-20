@@ -8,7 +8,9 @@ use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\IcsBuilder;
 use OCA\Vitalog\Db\Appointment;
+use OCA\Vitalog\Db\AppointmentLabelMapper;
 use OCA\Vitalog\Db\AppointmentMapper;
+use OCA\Vitalog\Db\LabelMapper;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\PractitionerMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -31,6 +33,8 @@ class CalendarSyncService {
 		private AppointmentMapper $appointments,
 		private PractitionerMapper $practitioners,
 		private PlaceMapper $places,
+		private LabelMapper $labels,
+		private AppointmentLabelMapper $labelLinks,
 		private IConfig $config,
 		private IL10N $l,
 		private LoggerInterface $logger,
@@ -96,11 +100,29 @@ class CalendarSyncService {
 			$this->summary($appointment),
 			$this->location($appointment),
 			$appointment->getNotes(),
+			null,
+			$this->categories($appointment),
 		);
 		$this->gateway->put($userId, $target, $uid, $ics);
 		$appointment->setCalendarUid($uid);
 		$appointment->setCalendarUri($target);
 		$this->appointments->update($appointment);
+	}
+
+	/** @return list<string> */
+	private function categories(Appointment $appointment): array {
+		$ids = $this->labelLinks->idsByAppointments([$appointment->getId()])[$appointment->getId()] ?? [];
+		if ($ids === []) {
+			return [];
+		}
+		$names = [];
+		foreach ($this->labels->findAll($appointment->getUserId()) as $label) {
+			if (in_array($label->getId(), $ids, true)) {
+				$names[] = $label->getName();
+			}
+		}
+
+		return $names;
 	}
 
 	private function removeEvent(Appointment $appointment): void {

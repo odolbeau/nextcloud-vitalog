@@ -47,4 +47,10 @@ class IcsBuilderTest extends TestCase {
 		$unfolded = str_replace("\r\n ", '', $ics);
 		self::assertStringContainsString('SUMMARY:' . str_repeat('é', 100) . "\r\n", $unfolded);
 	}
+
+	public function testCategoriesAreEscaped(): void {
+		$ics = $this->builder->build('abc@vitalog', 1_800_000_000, 45, 'Dr Martin', null, null, 1_700_000_000, ['cheville', 'a,b']);
+
+		self::assertStringContainsString("CATEGORIES:cheville,a\\,b\r\n", $ics);
+	}
 }

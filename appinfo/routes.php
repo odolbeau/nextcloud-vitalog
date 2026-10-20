@@ -9,6 +9,7 @@ return [
 	'ocs-resources' => [
 		'practitioner' => ['url' => '/api/practitioners'],
 		'place' => ['url' => '/api/places'],
+		'label' => ['url' => '/api/labels'],
 		'appointment' => ['url' => '/api/appointments'],
 	],
 ];

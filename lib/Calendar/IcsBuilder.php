@@ -14,6 +14,7 @@ class IcsBuilder {
 	/** Suffixe des UID générés par Vitalog : permet d'ignorer ses propres événements à l'import. */
 	public const UID_SUFFIX = '@vitalog';
 
+	/** @param list<string> $categories libellés du rendez-vous (CATEGORIES) */
 	public function build(
 		string $uid,
 		int $startsAt,
@@ -22,6 +23,7 @@ class IcsBuilder {
 		?string $location,
 		?string $description,
 		?int $now = null,
+		array $categories = [],
 	): string {
 		$utc = new DateTimeZone('UTC');
 		$format = static fn (int $ts): string => (new DateTimeImmutable('@' . $ts))->setTimezone($utc)->format('Ymd\THis\Z');
@@ -43,6 +45,9 @@ class IcsBuilder {
 		}
 		if ($description !== null && $description !== '') {
 			$lines[] = 'DESCRIPTION:' . $this->escape($description);
+		}
+		if ($categories !== []) {
+			$lines[] = 'CATEGORIES:' . implode(',', array_map($this->escape(...), $categories));
 		}
 		$lines = array_merge($lines, [
 			'STATUS:CONFIRMED',

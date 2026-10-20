@@ -49,7 +49,7 @@ export async function client(account = ADMIN) {
 		},
 		/** Supprime toutes les données Vitalog du compte. */
 		async reset() {
-			for (const resource of ['appointments', 'practitioners', 'places']) {
+			for (const resource of ['appointments', 'practitioners', 'places', 'labels']) {
 				for (const item of await this.list(resource)) {
 					await context.delete(api(`${resource}/${item.id}`))
 				}

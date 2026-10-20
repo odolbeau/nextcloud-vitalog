@@ -37,16 +37,16 @@ class AppointmentController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null): DataResponse {
+	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = []): DataResponse {
 		return $this->handle(
-			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes),
+			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds),
 			Http::STATUS_CREATED,
 		);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null): DataResponse {
-		return $this->handle(fn () => $this->service->update($id, $this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes));
+	public function update(int $id, int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = []): DataResponse {
+		return $this->handle(fn () => $this->service->update($id, $this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds));
 	}
 
 	#[NoAdminRequired]
@@ -61,8 +61,10 @@ class AppointmentController extends OCSController {
 	private function present(array $appointments): array {
 		$attachments = $this->attachments->describeForAppointments(array_map(static fn (Appointment $a): int => $a->getId(), $appointments), $this->userId);
 
+		$labels = $this->service->labelIdsFor(array_map(static fn (Appointment $a): int => $a->getId(), $appointments));
+
 		return array_map(
-			static fn (Appointment $a): array => $a->jsonSerialize() + ['attachments' => $attachments[$a->getId()]],
+			static fn (Appointment $a): array => $a->jsonSerialize() + ['attachments' => $attachments[$a->getId()], 'labelIds' => $labels[$a->getId()]],
 			$appointments,
 		);
 	}

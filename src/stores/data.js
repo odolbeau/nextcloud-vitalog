@@ -11,6 +11,7 @@ export const useDataStore = defineStore('data', () => {
 	const appointments = ref([])
 	const practitioners = ref([])
 	const places = ref([])
+	const labels = ref([])
 	const settings = ref({ calendarUri: null, importFromCalendar: false, calendarAppEnabled: false, calendars: [] })
 	const loaded = ref(false)
 	const loadError = ref(false)
@@ -28,6 +29,9 @@ export const useDataStore = defineStore('data', () => {
 
 	const practitionerById = (id) => practitioners.value.find((p) => p.id === id) ?? null
 	const placeById = (id) => places.value.find((p) => p.id === id) ?? null
+	const labelById = (id) => labels.value.find((l) => l.id === id) ?? null
+	const labelsOf = (appointment) => (appointment.labelIds ?? []).map(labelById).filter(Boolean)
+	const countForLabel = (id) => appointments.value.filter((a) => a.labelIds?.includes(id)).length
 
 	/**
 	 * Exécute l'action et affiche l'erreur serveur ; renvoie `undefined` en cas d'échec.
@@ -48,15 +52,17 @@ export const useDataStore = defineStore('data', () => {
 	async function load() {
 		loadError.value = false
 		try {
-			const [a, p, l, s] = await Promise.all([
+			const [a, p, l, lb, s] = await Promise.all([
 				api.list('appointments'),
 				api.list('practitioners'),
 				api.list('places'),
+				api.list('labels'),
 				api.getSettings(),
 			])
 			appointments.value = a
 			practitioners.value = p
 			places.value = l
+			labels.value = lb
 			settings.value = s
 		} catch (error) {
 			logger.error('Vitalog could not load data', { error })
@@ -155,6 +161,16 @@ export const useDataStore = defineStore('data', () => {
 		return saved
 	}
 
+	const sortLabels = () => labels.value.sort((a, b) => a.name.localeCompare(b.name))
+	async function saveLabel(form, id = null) {
+		const saved = await saveReference('labels', labels, form, id)
+		if (saved) {
+			sortLabels()
+		}
+		return saved
+	}
+	const deleteLabel = (id) => deleteReference('labels', labels, id)
+
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
 	const deletePlace = (id) => deleteReference('places', places, id)
 
@@ -175,6 +191,7 @@ export const useDataStore = defineStore('data', () => {
 		appointments,
 		practitioners,
 		places,
+		labels,
 		settings,
 		loaded,
 		loadError,
@@ -184,6 +201,9 @@ export const useDataStore = defineStore('data', () => {
 		isPast,
 		practitionerById,
 		placeById,
+		labelById,
+		labelsOf,
+		countForLabel,
 		load,
 		saveAppointment,
 		deleteAppointment,
@@ -194,6 +214,8 @@ export const useDataStore = defineStore('data', () => {
 		deletePractitioner,
 		savePlace,
 		deletePlace,
+		saveLabel,
+		deleteLabel,
 		saveCalendar,
 	}
 })

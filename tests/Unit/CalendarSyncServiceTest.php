@@ -7,7 +7,9 @@ namespace OCA\Vitalog\Tests\Unit;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\IcsBuilder;
 use OCA\Vitalog\Db\Appointment;
+use OCA\Vitalog\Db\AppointmentLabelMapper;
 use OCA\Vitalog\Db\AppointmentMapper;
+use OCA\Vitalog\Db\LabelMapper;
 use OCA\Vitalog\Db\Place;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\Practitioner;
@@ -46,6 +48,8 @@ class CalendarSyncServiceTest extends TestCase {
 			$this->appointments,
 			$this->practitioners,
 			$this->places,
+			$this->createMock(LabelMapper::class),
+			$this->createMock(AppointmentLabelMapper::class),
 			$this->config,
 			$l,
 			$this->logger,

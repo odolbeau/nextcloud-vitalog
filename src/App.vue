@@ -36,6 +36,15 @@
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationItem
+					:name="t('vitalog', 'Labels')"
+					:active="view === 'labels'"
+					data-test="nav-labels"
+					@click="view = 'labels'">
+					<template #icon>
+						<TagMultiple :size="20" />
+					</template>
+				</NcAppNavigationItem>
+				<NcAppNavigationItem
 					:name="t('vitalog', 'Places')"
 					:active="view === 'places'"
 					data-test="nav-places"
@@ -76,11 +85,14 @@
 		</NcAppContent>
 		<PractitionersView v-else-if="view === 'practitioners'" />
 		<PlacesView v-else-if="view === 'places'" />
+		<LabelsView v-else-if="view === 'labels'" @filter="showLabel" />
 		<AppointmentsView
 			v-else
+			v-model:labelIds="labelFilter"
 			:filter="view"
 			:focusId="focusId"
 			:initialQuery="initialQuery"
+			@showLabel="showLabel"
 			@create="openForm()"
 			@edit="openForm" />
 
@@ -95,7 +107,7 @@
 
 <script setup>
 import { t } from '@nextcloud/l10n'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
@@ -113,9 +125,11 @@ import CalendarSync from 'vue-material-design-icons/CalendarSync.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
+import TagMultiple from 'vue-material-design-icons/TagMultiple.vue'
 import AppointmentForm from './components/AppointmentForm.vue'
 import CalendarSettingsDialog from './components/CalendarSettingsDialog.vue'
 import AppointmentsView from './views/AppointmentsView.vue'
+import LabelsView from './views/LabelsView.vue'
 import PlacesView from './views/PlacesView.vue'
 import PractitionersView from './views/PractitionersView.vue'
 import { useDataStore } from './stores/data.js'
@@ -128,6 +142,13 @@ const settingsOpen = ref(false)
 const focusId = ref(null)
 // lien « Rendez-vous Vitalog » du menu des contacts : ?practitioner=ID affiche les rendez-vous de ce praticien
 const initialQuery = ref('')
+// libellés qui filtrent la liste des rendez-vous (conservés en changeant de vue)
+const labelFilter = ref([])
+
+// un libellé supprimé ne doit pas laisser un filtre fantôme
+watch(() => store.labels, (labels) => {
+	labelFilter.value = labelFilter.value.filter((id) => labels.some((l) => l.id === id))
+})
 
 const appointmentViews = computed(() => [
 	{ id: 'upcoming', name: t('vitalog', 'Upcoming'), icon: CalendarArrowRight, count: store.upcoming.length },
@@ -140,8 +161,14 @@ function openForm(appointment = null) {
 	formOpen.value = true
 }
 
+/** Tous les rendez-vous portant ce libellé, passés et à venir. */
+function showLabel(id) {
+	labelFilter.value = [id]
+	view.value = 'all'
+}
+
 function onSaved(appointment) {
-	if (!['practitioners', 'places'].includes(view.value)) {
+	if (!['practitioners', 'places', 'labels'].includes(view.value)) {
 		// l'enregistrement peut faire passer le rendez-vous d'une liste à l'autre : on bascule sur celle qui le contient
 		view.value = store.upcoming.some((a) => a.id === appointment.id) ? 'upcoming' : 'past'
 	} else {
@@ -156,7 +183,12 @@ function onSaved(appointment) {
 
 onMounted(async () => {
 	await store.load()
-	const id = Number(new URLSearchParams(window.location.search).get('practitioner'))
+	const params = new URLSearchParams(window.location.search)
+	const labelId = Number(params.get('label'))
+	if (labelId && store.labelById(labelId)) {
+		showLabel(labelId)
+	}
+	const id = Number(params.get('practitioner'))
 	const practitioner = id ? store.practitionerById(id) : null
 	if (practitioner) {
 		view.value = 'all'

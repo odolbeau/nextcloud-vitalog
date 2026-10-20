@@ -59,6 +59,18 @@
 				</NcButton>
 			</div>
 
+			<NcSelect
+				v-model="labels"
+				inputId="vitalog-labels"
+				:inputLabel="t('vitalog', 'Labels')"
+				:options="labelOptions"
+				:placeholder="t('vitalog', 'Pick or type to create…')"
+				:createOption="(name) => toOption(null, name.trim())"
+				label="label"
+				multiple
+				taggable
+				keepOpen />
+
 			<NcTextField
 				v-model="reason"
 				:maxlength="255"
@@ -112,6 +124,8 @@ const emit = defineEmits(['close', 'saved'])
 const store = useDataStore()
 const toOption = (id, label) => ({ id, label })
 
+const labelOptions = computed(() => store.labels.map((l) => toOption(l.id, l.name)))
+
 const durations = [15, 30, 45, 60, 90, 120].map((minutes) => ({
 	id: minutes,
 	label: minutes >= 60 && minutes % 60 === 0
@@ -125,6 +139,7 @@ const startsAt = ref(props.appointment ? toDate(props.appointment.startsAt) : ne
 const duration = ref(durations.find((d) => d.id === (props.appointment?.duration ?? 30)) ?? toOption(props.appointment?.duration, t('vitalog', '{minutes} min', { minutes: props.appointment?.duration })))
 const practitioner = ref(props.appointment?.practitionerId ? practitionerOptions.value.find((o) => o.id === props.appointment.practitionerId) ?? null : null)
 const place = ref(props.appointment?.placeId ? placeOptions.value.find((o) => o.id === props.appointment.placeId) ?? null : null)
+const labels = ref((props.appointment?.labelIds ?? []).map((id) => labelOptions.value.find((o) => o.id === id)).filter(Boolean))
 const reason = ref(props.appointment?.reason ?? '')
 const notes = ref(props.appointment?.notes ?? '')
 const creating = ref(null)
@@ -132,8 +147,31 @@ const saving = ref(false)
 
 const valid = computed(() => startsAt.value instanceof Date && !Number.isNaN(startsAt.value.getTime()))
 
+/** Les libellés tapés à la volée n'existent pas encore : on les crée (ou on réutilise l'existant du même nom). */
+async function resolveLabelIds() {
+	const ids = []
+	for (const option of labels.value) {
+		let id = option.id
+		if (id === null) {
+			const existing = store.labels.find((l) => l.name.toLowerCase() === option.label.toLowerCase())
+			id = existing?.id ?? (await store.saveLabel({ name: option.label, color: null }))?.id ?? null
+		}
+		if (id === null) {
+			return null
+		}
+		ids.push(id)
+	}
+
+	return [...new Set(ids)]
+}
+
 async function submit() {
 	saving.value = true
+	const labelIds = await resolveLabelIds()
+	if (labelIds === null) {
+		saving.value = false
+		return
+	}
 	const saved = await store.saveAppointment({
 		startsAt: toTimestamp(startsAt.value),
 		duration: duration.value.id,
@@ -141,6 +179,7 @@ async function submit() {
 		placeId: place.value?.id ?? null,
 		reason: reason.value.trim() || null,
 		notes: notes.value.trim() || null,
+		labelIds,
 	}, props.appointment?.id)
 	saving.value = false
 	if (saved) {

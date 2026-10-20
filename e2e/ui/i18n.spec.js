@@ -23,6 +23,7 @@ test('the interface is available in French', async ({ page }) => {
 	await expect(nav(page, 'upcoming')).toContainText('À venir')
 	await expect(nav(page, 'practitioners')).toContainText('Praticiens')
 	await expect(nav(page, 'places')).toContainText('Lieux')
+	await expect(nav(page, 'labels')).toContainText('Libellés')
 	await expect(nav(page, 'settings')).toContainText('Synchro calendrier')
 
 	await page.locator('[data-test^="appointment-"]').first().click()

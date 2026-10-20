@@ -104,6 +104,21 @@ test('renaming a practitioner or a place updates the event', async () => {
 	expect(event).toContain('LOCATION:Clinique\\, Lyon')
 })
 
+test('labels are written as event categories and follow renames and deletion', async () => {
+	await setCalendar('personal')
+	const ankle = await admin.create('labels', { name: 'Cheville' })
+	const other = await admin.create('labels', { name: 'Sport, loisirs' })
+	await admin.create('appointments', { startsAt: inDays(4), reason: 'Entorse', labelIds: [ankle.id, other.id] })
+
+	expect((await events())[0]).toContain('CATEGORIES:Cheville,Sport\\, loisirs')
+
+	await admin.put(`labels/${ankle.id}`, { name: 'Cheville gauche' })
+	expect((await events())[0]).toContain('CATEGORIES:Cheville gauche,Sport\\, loisirs')
+
+	await admin.delete(`labels/${other.id}`)
+	expect((await events())[0]).toContain('CATEGORIES:Cheville gauche\r')
+})
+
 test('deleting a practitioner updates the event summary', async () => {
 	await setCalendar('personal')
 	const practitioner = await admin.create('practitioners', { name: 'Dr Martin' })

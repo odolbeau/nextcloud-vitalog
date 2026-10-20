@@ -6,8 +6,11 @@ namespace OCA\Vitalog\Tests\Unit;
 
 use InvalidArgumentException;
 use OCA\Vitalog\Db\Appointment;
+use OCA\Vitalog\Db\AppointmentLabelMapper;
 use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\AttachmentMapper;
+use OCA\Vitalog\Db\Label;
+use OCA\Vitalog\Db\LabelMapper;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\PractitionerMapper;
 use OCA\Vitalog\Service\AppointmentService;
@@ -22,6 +25,8 @@ class AppointmentServiceTest extends TestCase {
 	private PractitionerMapper&MockObject $practitioners;
 	private AttachmentMapper&MockObject $attachments;
 	private CalendarSyncService&MockObject $sync;
+	private LabelMapper&MockObject $labels;
+	private AppointmentLabelMapper&MockObject $links;
 	private AppointmentService $service;
 
 	protected function setUp(): void {
@@ -29,17 +34,25 @@ class AppointmentServiceTest extends TestCase {
 		$this->practitioners = $this->createMock(PractitionerMapper::class);
 		$this->attachments = $this->createMock(AttachmentMapper::class);
 		$this->sync = $this->createMock(CalendarSyncService::class);
+		$this->labels = $this->createMock(LabelMapper::class);
+		$this->links = $this->createMock(AppointmentLabelMapper::class);
 		$this->service = new AppointmentService(
 			$this->mapper,
 			$this->practitioners,
 			$this->createMock(PlaceMapper::class),
 			$this->attachments,
 			$this->sync,
+			$this->labels,
+			$this->links,
 		);
 	}
 
 	public function testCreateInsertsAndSyncs(): void {
-		$this->mapper->method('insert')->willReturnArgument(0);
+		$this->mapper->method('insert')->willReturnCallback(static function ($a) {
+			$a->setId(1);
+
+			return $a;
+		});
 		$this->sync->expects(self::once())->method('sync');
 
 		$appointment = $this->service->create('alice', 1_800_000_000, 30, null, null, 'Contrôle', null);
@@ -77,5 +90,32 @@ class AppointmentServiceTest extends TestCase {
 	public function testCreateRejectsNonPositiveDuration(): void {
 		$this->expectException(InvalidArgumentException::class);
 		$this->service->create('alice', 1_800_000_000, 0, null, null, null, null);
+	}
+
+	private function label(int $id): Label {
+		$label = new Label();
+		$label->setId($id);
+
+		return $label;
+	}
+
+	public function testCreateStoresLabelsOnce(): void {
+		$this->mapper->method('insert')->willReturnCallback(static function ($a) {
+			$a->setId(5);
+
+			return $a;
+		});
+		$this->labels->method('findAll')->with('alice')->willReturn([$this->label(1), $this->label(2)]);
+		$this->links->expects(self::once())->method('replace')->with(5, [1, 2]);
+
+		$this->service->create('alice', 1_800_000_000, 30, null, null, null, null, [2, 1, 2]);
+	}
+
+	public function testCreateRejectsForeignLabel(): void {
+		$this->labels->method('findAll')->willReturn([$this->label(1)]);
+		$this->mapper->expects(self::never())->method('insert');
+
+		$this->expectException(InvalidArgumentException::class);
+		$this->service->create('alice', 1_800_000_000, 30, null, null, null, null, [1, 99]);
 	}
 }

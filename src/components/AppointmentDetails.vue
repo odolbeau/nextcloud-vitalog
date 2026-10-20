@@ -10,6 +10,16 @@
 			</div>
 		</header>
 
+		<ul v-if="labels.length > 0" class="details__labels" :aria-label="t('vitalog', 'Labels')">
+			<li v-for="label in labels" :key="label.id">
+				<LabelChip
+					:label="label"
+					clickable
+					:title="t('vitalog', 'Show all appointments labelled {name}', { name: label.name })"
+					@click="emit('filterLabel', label.id)" />
+			</li>
+		</ul>
+
 		<div class="details__actions">
 			<NcButton @click="emit('edit')">
 				<template #icon>
@@ -138,13 +148,14 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import DateBadge from './DateBadge.vue'
+import LabelChip from './LabelChip.vue'
 import { formatDateTime } from '../format.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
 	appointment: { type: Object, required: true },
 })
-const emit = defineEmits(['edit', 'deleted'])
+const emit = defineEmits(['edit', 'deleted', 'filterLabel'])
 
 const store = useDataStore()
 const confirmingDelete = ref(false)
@@ -153,6 +164,7 @@ const confirmingDelete = ref(false)
 const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.appointment.calendarUid
 	? generateUrl('/apps/calendar/object/{uid}', { uid: props.appointment.calendarUid })
 	: null)
+const labels = computed(() => store.labelsOf(props.appointment))
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
 const place = computed(() => store.placeById(props.appointment.placeId))
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
@@ -206,6 +218,15 @@ async function pickFiles() {
 </script>
 
 <style scoped lang="scss">
+.details__labels {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
 .details {
 	display: flex;
 	flex-direction: column;

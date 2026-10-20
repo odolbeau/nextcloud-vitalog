@@ -15,6 +15,16 @@
 						:trailingButtonLabel="t('vitalog', 'Clear search')"
 						@trailingButtonClick="query = ''" />
 				</div>
+				<ul v-if="store.labels.length > 0" class="list__filters" :aria-label="t('vitalog', 'Filter by label')">
+					<li v-for="label in store.labels" :key="label.id">
+						<LabelChip
+							:label="label"
+							clickable
+							toggle
+							:active="labelIds.includes(label.id)"
+							@click="toggleLabel(label.id)" />
+					</li>
+				</ul>
 
 				<NcLoadingIcon v-if="!store.loaded" class="list__loading" :size="32" />
 				<ul v-else-if="items.length > 0" class="list" :aria-label="heading">
@@ -45,7 +55,7 @@
 					<template #icon>
 						<CalendarBlank />
 					</template>
-					<template v-if="query === '' && filter !== 'past'" #action>
+					<template v-if="!filtering && filter !== 'past'" #action>
 						<NcButton variant="primary" @click="emit('create')">
 							{{ t('vitalog', 'New appointment') }}
 						</NcButton>
@@ -59,6 +69,7 @@
 			:key="selected.id"
 			:appointment="selected"
 			@edit="emit('edit', selected)"
+			@filterLabel="showLabel"
 			@deleted="selectedId = null" />
 		<NcEmptyContent
 			v-else
@@ -84,6 +95,7 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarBlank from 'vue-material-design-icons/CalendarBlank.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
+import LabelChip from '../components/LabelChip.vue'
 import { formatDate, formatTime } from '../format.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -93,8 +105,10 @@ const props = defineProps({
 	focusId: { type: Number, default: null },
 	// Recherche appliquée à l'ouverture (ex. rendez-vous d'un praticien).
 	initialQuery: { type: String, default: '' },
+	// Libellés qui filtrent la liste (un rendez-vous doit les porter tous).
+	labelIds: { type: Array, default: () => [] },
 })
-const emit = defineEmits(['create', 'edit'])
+const emit = defineEmits(['create', 'edit', 'update:labelIds', 'showLabel'])
 
 const store = useDataStore()
 const query = ref(props.initialQuery)
@@ -109,27 +123,38 @@ const heading = computed(() => ({
 const source = computed(() => store[props.filter])
 const items = computed(() => {
 	const needle = query.value.trim().toLowerCase()
+	const labelled = source.value.filter((a) => props.labelIds.every((id) => a.labelIds?.includes(id)))
 	if (needle === '') {
-		return source.value
+		return labelled
 	}
-	return source.value.filter((a) => [
+	return labelled.filter((a) => [
 		a.reason,
 		a.notes,
 		store.practitionerById(a.practitionerId)?.name,
 		store.practitionerById(a.practitionerId)?.specialty,
 		store.placeById(a.placeId)?.name,
+		...store.labelsOf(a).map((l) => l.name),
 	].some((text) => text?.toLowerCase().includes(needle)))
 })
 const selected = computed(() => store.appointments.find((a) => a.id === selectedId.value) ?? null)
 
-const emptyTitle = computed(() => query.value !== ''
+const filtering = computed(() => query.value !== '' || props.labelIds.length > 0)
+const emptyTitle = computed(() => filtering.value
 	? t('vitalog', 'No match')
 	: { upcoming: t('vitalog', 'Nothing planned'), past: t('vitalog', 'No past appointments'), all: t('vitalog', 'No appointments yet') }[props.filter])
-const emptyDescription = computed(() => query.value !== ''
+const emptyDescription = computed(() => filtering.value
 	? t('vitalog', 'No appointment matches your search.')
 	: props.filter === 'past'
 		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
+
+function toggleLabel(id) {
+	emit('update:labelIds', props.labelIds.includes(id) ? props.labelIds.filter((i) => i !== id) : [...props.labelIds, id])
+}
+
+function showLabel(id) {
+	emit('showLabel', id)
+}
 
 function onShowDetails(show) {
 	if (!show) {
@@ -141,6 +166,7 @@ function subname(item) {
 	const parts = [
 		store.practitionerById(item.practitionerId)?.name,
 		store.placeById(item.placeId)?.name,
+		store.labelsOf(item).map((l) => l.name).join(', '),
 	].filter(Boolean)
 	// la date figure déjà dans la pastille ; sans praticien ni lieu on affiche tout de même la date complète
 	return parts.length > 0 ? parts.join(' · ') : formatDate(item.startsAt)
@@ -172,6 +198,15 @@ watch(() => props.focusId, (id) => {
 
 	&__toolbar {
 		padding: 8px 8px 8px calc(var(--default-clickable-area) + 12px);
+	}
+
+	&__filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin: 0;
+		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
+		list-style: none;
 	}
 
 	&__loading {
