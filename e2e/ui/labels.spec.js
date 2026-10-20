@@ -64,13 +64,19 @@ test('filtering by label brings together appointments of different practitioners
 	await expect(items(page)).toHaveCount(2)
 	await expect(items(page).filter({ hasText: 'Prélèvement' })).toHaveCount(0)
 
-	// le filtre se retire depuis la liste déroulante, et se change pour un autre libellé
-	const filter = page.getByRole('combobox', { name: 'Filter by label' })
-	await expect(page.locator('.list__label-filter')).toContainText('Cheville')
-	await filter.click()
+	// le filtre actif est visible sous la recherche et se retire d'un clic
+	await expect(page.getByText('Cheville', { exact: true }).first()).toBeVisible()
+	await page.getByRole('button', { name: 'Remove the label filter' }).click()
+	await expect(items(page)).toHaveCount(3)
+
+	// ou se change depuis le bouton de filtre
+	await page.locator('[data-test="label-filter-button"]').click()
+	await page.getByRole('combobox', { name: 'Filter by label' }).click()
 	await page.getByRole('option', { name: 'Don du sang' }).click()
 	await expect(items(page)).toHaveCount(1)
-	await page.getByRole('button', { name: /clear/i }).click()
+	// la fenêtre se referme après le choix ; on la rouvre pour réinitialiser
+	await page.locator('[data-test="label-filter-button"]').click()
+	await page.getByRole('button', { name: 'Reset the filter' }).click()
 	await expect(items(page)).toHaveCount(3)
 
 	// la recherche texte trouve aussi les libellés

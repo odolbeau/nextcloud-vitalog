@@ -10,21 +10,48 @@
 				<div class="list__toolbar">
 					<NcTextField
 						v-model="query"
+						class="list__search"
 						:label="t('vitalog', 'Search appointments')"
 						:placeholder="t('vitalog', 'Search…')"
 						trailingButtonIcon="close"
 						:showTrailingButton="query !== ''"
 						:trailingButtonLabel="t('vitalog', 'Clear search')"
 						@trailingButtonClick="query = ''" />
+					<NcPopover v-if="store.labels.length > 0" v-model:shown="filterOpen" popupRole="dialog">
+						<template #trigger="{ attrs }">
+							<NcButton
+								v-bind="attrs"
+								:variant="labelFilter ? 'secondary' : 'tertiary'"
+								:aria-label="t('vitalog', 'Filter by label')"
+								:title="t('vitalog', 'Filter by label')"
+								data-test="label-filter-button">
+								<template #icon>
+									<FilterVariantRemove v-if="labelFilter" :size="20" />
+									<FilterVariant v-else :size="20" />
+								</template>
+							</NcButton>
+						</template>
+						<div class="list__popover">
+							<NcSelect
+								v-model="labelFilter"
+								:options="labelOptions"
+								:inputLabel="t('vitalog', 'Filter by label')"
+								:placeholder="t('vitalog', 'All labels')"
+								label="label" />
+							<NcButton v-if="labelFilter" variant="tertiary" @click="resetLabelFilter">
+								<template #icon>
+									<Close :size="20" />
+								</template>
+								{{ t('vitalog', 'Reset the filter') }}
+							</NcButton>
+						</div>
+					</NcPopover>
 				</div>
-				<div v-if="store.labels.length > 0" class="list__label-filter">
-					<NcSelect
-						v-model="labelFilter"
-						:options="labelOptions"
-						:ariaLabelCombobox="t('vitalog', 'Filter by label')"
-						:placeholder="t('vitalog', 'All labels')"
-						labelOutside
-						label="label" />
+				<div v-if="labelFilter" class="list__active-filter">
+					<NcChip
+						:text="labelFilter.label"
+						:ariaLabelClose="t('vitalog', 'Remove the label filter')"
+						@close="labelFilter = null" />
 				</div>
 
 				<NcLoadingIcon v-if="!store.loaded" class="list__loading" :size="32" />
@@ -89,12 +116,17 @@ import { computed, ref, watch } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppContentList from '@nextcloud/vue/components/NcAppContentList'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcChip from '@nextcloud/vue/components/NcChip'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarBlank from 'vue-material-design-icons/CalendarBlank.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import FilterVariant from 'vue-material-design-icons/FilterVariant.vue'
+import FilterVariantRemove from 'vue-material-design-icons/FilterVariantRemove.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
 import { formatDate, formatTime } from '../format.js'
@@ -114,6 +146,7 @@ const emit = defineEmits(['create', 'edit', 'update:labelId', 'showLabel'])
 const store = useDataStore()
 const query = ref(props.initialQuery)
 const selectedId = ref(null)
+const filterOpen = ref(false)
 const labelOptions = computed(() => store.labels.map((l) => ({ id: l.id, label: l.name })))
 const labelFilter = computed({
 	get: () => labelOptions.value.find((o) => o.id === props.labelId) ?? null,
@@ -153,6 +186,11 @@ const emptyDescription = computed(() => filtering.value
 	: props.filter === 'past'
 		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
+
+function resetLabelFilter() {
+	labelFilter.value = null
+	filterOpen.value = false
+}
 
 function showLabel(id) {
 	emit('showLabel', id)
@@ -199,17 +237,28 @@ watch(() => props.focusId, (id) => {
 	padding: 0 8px 8px;
 
 	&__toolbar {
+		display: flex;
+		align-items: flex-start;
+		gap: 4px;
 		padding: 8px 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
-	&__label-filter {
+	&__search {
+		flex: 1;
+		min-width: 0;
+	}
+
+	&__active-filter {
 		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
-	// NcSelect impose une largeur minimale de 260 px : trop large pour cette colonne
-	&__label-filter :deep(.v-select.select) {
-		width: 100%;
-		min-width: 0;
+	&__popover {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		width: 280px;
+		max-width: 100%;
+		padding: 12px;
 	}
 
 	&__loading {

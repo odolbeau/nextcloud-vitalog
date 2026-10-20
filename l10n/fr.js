@@ -93,6 +93,8 @@ OC.L10N.register(
         "Reason": "Motif",
         "Red": "Rouge",
         "Refreshing failed.": "L’actualisation a échoué.",
+        "Remove the label filter": "Retirer le filtre de libellé",
+        "Reset the filter": "Réinitialiser le filtre",
         "Retry": "Réessayer",
         "Save": "Enregistrer",
         "Saving failed.": "L’enregistrement a échoué.",
