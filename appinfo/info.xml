@@ -25,6 +25,10 @@
 	<website>https://github.com/odolbeau/nextcloud-vitalog</website>
 	<bugs>https://github.com/odolbeau/nextcloud-vitalog/issues</bugs>
 	<repository type="git">https://github.com/odolbeau/nextcloud-vitalog.git</repository>
+	<screenshot small-thumbnail="https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/appointments.png">https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/appointments.png</screenshot>
+	<screenshot small-thumbnail="https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/filter.png">https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/filter.png</screenshot>
+	<screenshot small-thumbnail="https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/labels.png">https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/labels.png</screenshot>
+	<screenshot small-thumbnail="https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/form.png">https://raw.githubusercontent.com/odolbeau/nextcloud-vitalog/main/docs/screenshots/form.png</screenshot>
 	<dependencies>
 		<php min-version="8.2"/>
 		<nextcloud min-version="34" max-version="35"/>

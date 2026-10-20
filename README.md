@@ -69,6 +69,9 @@ and 35.
 
 ### Releasing
 
+Bump `<version>` in `appinfo/info.xml` and `CHANGELOG.md`. The store screenshots in `docs/screenshots` are regenerated with
+`node scripts/screenshots.mjs` (it replaces the dev admin's data with English demo data).
+
 `make package` builds the front end and produces `build/vitalog-<version>.tar.gz`: only what runs on a server, under a top-level
 `vitalog/` folder. Pushing a tag `vX.Y.Z` (matching `<version>` in `appinfo/info.xml`) runs `.github/workflows/release.yml`, which
 builds the same archive and attaches it to a GitHub release.
