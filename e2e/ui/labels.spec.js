@@ -64,16 +64,16 @@ test('filtering by label brings together appointments of different practitioners
 	await expect(items(page)).toHaveCount(2)
 	await expect(items(page).filter({ hasText: 'Prélèvement' })).toHaveCount(0)
 
-	// la puce du filtre se désactive
-	const chip = page.getByRole('list', { name: 'Filter by label' }).getByRole('button', { name: 'Cheville' })
-	await expect(chip).toHaveAttribute('aria-pressed', 'true')
-	await chip.click()
+	// le filtre se retire depuis la liste déroulante, et se change pour un autre libellé
+	const filter = page.getByRole('combobox', { name: 'Filter by label' })
+	await expect(page.locator('.list__label-filter')).toContainText('Cheville')
+	await filter.click()
+	await page.getByRole('option', { name: 'Don du sang' }).click()
+	await expect(items(page)).toHaveCount(1)
+	await page.getByRole('button', { name: /clear/i }).click()
 	await expect(items(page)).toHaveCount(3)
 
-	// les libellés se cumulent (ET) et se retrouvent par la recherche
-	await page.getByRole('list', { name: 'Filter by label' }).getByRole('button', { name: 'Don du sang' }).click()
-	await expect(items(page)).toHaveCount(1)
-	await page.getByRole('list', { name: 'Filter by label' }).getByRole('button', { name: 'Don du sang' }).click()
+	// la recherche texte trouve aussi les libellés
 	await page.getByLabel('Search appointments').fill('cheville')
 	await expect(items(page)).toHaveCount(2)
 	await expectNoViolations(page)

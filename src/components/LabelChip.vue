@@ -2,10 +2,9 @@
 	<component
 		:is="clickable ? 'button' : 'span'"
 		class="chip"
-		:class="{ 'chip--colored': label.color, 'chip--active': active }"
+		:class="{ 'chip--colored': label.color }"
 		:style="label.color ? { '--chip-color': label.color } : null"
 		:type="clickable ? 'button' : null"
-		:aria-pressed="toggle ? String(active) : null"
 		:data-test="`label-${label.id}`">
 		<span class="chip__name">{{ label.name }}</span>
 	</component>
@@ -15,9 +14,6 @@
 defineProps({
 	label: { type: Object, required: true },
 	clickable: { type: Boolean, default: false },
-	// bouton à bascule (filtre) et son état
-	toggle: { type: Boolean, default: false },
-	active: { type: Boolean, default: false },
 })
 </script>
 
@@ -57,11 +53,6 @@ defineProps({
 			outline: 2px solid var(--color-main-text);
 			outline-offset: 1px;
 		}
-	}
-
-	&--active {
-		border-color: var(--color-main-text);
-		font-weight: bold;
 	}
 }
 </style>

@@ -2,6 +2,8 @@
 	<NcAppContent
 		:showDetails="selected !== null"
 		:pageHeading="heading"
+		:listSize="32"
+		:listMaxWidth="50"
 		@update:showDetails="onShowDetails">
 		<template #list>
 			<NcAppContentList>
@@ -15,16 +17,15 @@
 						:trailingButtonLabel="t('vitalog', 'Clear search')"
 						@trailingButtonClick="query = ''" />
 				</div>
-				<ul v-if="store.labels.length > 0" class="list__filters" :aria-label="t('vitalog', 'Filter by label')">
-					<li v-for="label in store.labels" :key="label.id">
-						<LabelChip
-							:label="label"
-							clickable
-							toggle
-							:active="labelIds.includes(label.id)"
-							@click="toggleLabel(label.id)" />
-					</li>
-				</ul>
+				<div v-if="store.labels.length > 0" class="list__label-filter">
+					<NcSelect
+						v-model="labelFilter"
+						:options="labelOptions"
+						:ariaLabelCombobox="t('vitalog', 'Filter by label')"
+						:placeholder="t('vitalog', 'All labels')"
+						labelOutside
+						label="label" />
+				</div>
 
 				<NcLoadingIcon v-if="!store.loaded" class="list__loading" :size="32" />
 				<ul v-else-if="items.length > 0" class="list" :aria-label="heading">
@@ -91,11 +92,11 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarBlank from 'vue-material-design-icons/CalendarBlank.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
-import LabelChip from '../components/LabelChip.vue'
 import { formatDate, formatTime } from '../format.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -105,14 +106,19 @@ const props = defineProps({
 	focusId: { type: Number, default: null },
 	// Recherche appliquée à l'ouverture (ex. rendez-vous d'un praticien).
 	initialQuery: { type: String, default: '' },
-	// Libellés qui filtrent la liste (un rendez-vous doit les porter tous).
-	labelIds: { type: Array, default: () => [] },
+	// Libellé qui filtre la liste (identifiant, ou null).
+	labelId: { type: Number, default: null },
 })
-const emit = defineEmits(['create', 'edit', 'update:labelIds', 'showLabel'])
+const emit = defineEmits(['create', 'edit', 'update:labelId', 'showLabel'])
 
 const store = useDataStore()
 const query = ref(props.initialQuery)
 const selectedId = ref(null)
+const labelOptions = computed(() => store.labels.map((l) => ({ id: l.id, label: l.name })))
+const labelFilter = computed({
+	get: () => labelOptions.value.find((o) => o.id === props.labelId) ?? null,
+	set: (option) => emit('update:labelId', option?.id ?? null),
+})
 
 const heading = computed(() => ({
 	upcoming: t('vitalog', 'Upcoming appointments'),
@@ -123,7 +129,7 @@ const heading = computed(() => ({
 const source = computed(() => store[props.filter])
 const items = computed(() => {
 	const needle = query.value.trim().toLowerCase()
-	const labelled = source.value.filter((a) => props.labelIds.every((id) => a.labelIds?.includes(id)))
+	const labelled = props.labelId === null ? source.value : source.value.filter((a) => a.labelIds?.includes(props.labelId))
 	if (needle === '') {
 		return labelled
 	}
@@ -138,7 +144,7 @@ const items = computed(() => {
 })
 const selected = computed(() => store.appointments.find((a) => a.id === selectedId.value) ?? null)
 
-const filtering = computed(() => query.value !== '' || props.labelIds.length > 0)
+const filtering = computed(() => query.value !== '' || props.labelId !== null)
 const emptyTitle = computed(() => filtering.value
 	? t('vitalog', 'No match')
 	: { upcoming: t('vitalog', 'Nothing planned'), past: t('vitalog', 'No past appointments'), all: t('vitalog', 'No appointments yet') }[props.filter])
@@ -147,10 +153,6 @@ const emptyDescription = computed(() => filtering.value
 	: props.filter === 'past'
 		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
-
-function toggleLabel(id) {
-	emit('update:labelIds', props.labelIds.includes(id) ? props.labelIds.filter((i) => i !== id) : [...props.labelIds, id])
-}
 
 function showLabel(id) {
 	emit('showLabel', id)
@@ -200,13 +202,14 @@ watch(() => props.focusId, (id) => {
 		padding: 8px 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
-	&__filters {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-		margin: 0;
+	&__label-filter {
 		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
-		list-style: none;
+	}
+
+	// NcSelect impose une largeur minimale de 260 px : trop large pour cette colonne
+	&__label-filter :deep(.v-select.select) {
+		width: 100%;
+		min-width: 0;
 	}
 
 	&__loading {
