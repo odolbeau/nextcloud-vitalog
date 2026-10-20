@@ -23,6 +23,14 @@ test.afterAll(async () => {
 test.beforeEach(async () => {
 	await admin.reset()
 })
+// les événements « utilisateur » ajoutés par les tests ne sont rattachés à aucun rendez-vous : on les retire, sinon ils
+// s'accumulent dans le calendrier « personal » du compte de test (et seraient importés au prochain lien de ce calendrier)
+const added = []
+test.afterEach(async () => {
+	for (const [calendar, uid] of added.splice(0)) {
+		await admin.context.delete(`/remote.php/dav/calendars/${ADMIN.user}/${calendar}/user-${uid}.ics`)
+	}
+})
 
 const utc = (timestamp) => new Date(timestamp * 1000).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
 let counter = 0
@@ -51,6 +59,8 @@ async function addEvent(calendar, { startsAt, durationMinutes = 60, summary, loc
 		data: ics,
 	})
 	expect(response.status(), 'add event').toBe(201)
+	added.push([calendar, uid])
+
 	return uid
 }
 
