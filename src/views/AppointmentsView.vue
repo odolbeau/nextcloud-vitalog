@@ -61,7 +61,12 @@
 						<NcChip
 							:text="active.text"
 							:ariaLabelClose="t('vitalog', 'Remove the filter {name}', { name: active.text })"
-							@close="setFilter(active.key, null)" />
+							@close="setFilter(active.key, null)">
+							<template #icon>
+								<Tag v-if="active.key === 'label'" :size="16" />
+								<Stethoscope v-else :size="16" />
+							</template>
+						</NcChip>
 					</li>
 				</ul>
 
@@ -138,6 +143,8 @@ import CalendarBlank from 'vue-material-design-icons/CalendarBlank.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import FilterVariant from 'vue-material-design-icons/FilterVariant.vue'
 import FilterVariantRemove from 'vue-material-design-icons/FilterVariantRemove.vue'
+import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
+import Tag from 'vue-material-design-icons/Tag.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
 import { formatDate, formatTime } from '../format.js'
@@ -278,7 +285,12 @@ watch(() => props.focusId, (id) => {
 	}
 
 	&__active-filter {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 6px;
+		margin: 0;
 		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
+		list-style: none;
 	}
 
 	&__group h3 {
