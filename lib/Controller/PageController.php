@@ -22,7 +22,7 @@ class PageController extends Controller {
 	public function index(): TemplateResponse {
 		Util::addTranslations(Application::APP_ID);
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-main');
-		Util::addStyle(Application::APP_ID, Application::APP_ID . '-main');
+		// pas de feuille de style séparée : le CSS est injecté depuis le JS (voir vite.config.js)
 		return new TemplateResponse(Application::APP_ID, 'main');
 	}
 }

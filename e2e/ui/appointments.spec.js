@@ -235,7 +235,8 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	// lié : on ne peut plus choisir un autre calendrier, seulement délier
 	await nav(page, 'settings').click()
 	const linked = dialog(page)
-	await expect(linked).toContainText('Your appointments are written to the calendar Personal')
+	await expect(linked).toContainText('Linked calendar')
+	await expect(linked).toContainText('Personal')
 	await expect(linked.getByRole('combobox', { name: 'Calendar' })).toHaveCount(0)
 	await linked.getByRole('button', { name: 'Unlink calendar' }).click()
 	await expect(linked.getByRole('heading', { name: 'Unlink the calendar' })).toBeVisible()
@@ -295,10 +296,9 @@ test('importing events from the calendar can be enabled from the settings, with 
 	await openApp(page)
 	await nav(page, 'settings').click()
 	const settings = dialog(page)
-	const toggle = settings.getByRole('switch', { name: /Create an appointment when I add an event/ })
+	const toggle = settings.getByRole('checkbox', { name: /Create an appointment for each event I add later/ })
 	await expect(toggle).toBeDisabled()
-	await expect(settings).toContainText('Recurring events are not supported')
-	await expect(settings).toContainText('not reflected in Vitalog')
+	await expect(settings).toContainText('Recurring events are ignored')
 
 	await choose(page, 'Calendar', 'Personal')
 	await expect(toggle).toBeEnabled()
@@ -308,9 +308,16 @@ test('importing events from the calendar can be enabled from the settings, with 
 	await expect(dialog(page)).toHaveCount(0)
 	expect(await admin.data(await admin.get('settings'))).toMatchObject({ calendarUri: 'personal', importFromCalendar: true })
 
-	// l'état est restitué à la réouverture
+	// l'état est restitué à la réouverture ; une fois lié, l'option s'applique tout de suite (pas de bouton « Enregistrer »)
 	await nav(page, 'settings').click()
-	await expect(dialog(page).getByRole('switch', { name: /Create an appointment when I add an event/ })).toBeChecked()
+	const linkedToggle = dialog(page).getByRole('switch', { name: /Create an appointment for each event I add to this calendar/ })
+	await expect(linkedToggle).toBeChecked()
+	await expect(dialog(page).getByRole('button', { name: 'Save' })).toHaveCount(0)
+	await linkedToggle.click({ force: true })
+	await expect(linkedToggle).not.toBeChecked()
+	await expect.poll(async () => (await admin.data(await admin.get('settings'))).importFromCalendar).toBe(false)
+	await dialog(page).getByRole('button', { name: 'Close' }).last().click()
+	await expect(dialog(page)).toHaveCount(0)
 })
 
 test('selecting a calendar can import the events it already contains', async ({ page }) => {
@@ -325,7 +332,7 @@ test('selecting a calendar can import the events it already contains', async ({ 
 	await openApp(page)
 	await nav(page, 'settings').click()
 	const settings = dialog(page)
-	const existing = settings.getByRole('checkbox', { name: /Also create appointments from the events already/ })
+	const existing = settings.getByRole('checkbox', { name: /Create appointments from the events already in this calendar/ })
 	await expect(existing).toBeDisabled()
 	await choose(page, 'Calendar', calendar)
 	await expect(existing).toBeEnabled()
