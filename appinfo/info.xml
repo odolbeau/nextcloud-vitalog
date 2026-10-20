@@ -3,24 +3,39 @@
 	xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>vitalog</id>
 	<name>Vitalog</name>
-	<summary>Journal de vos rendez-vous médicaux</summary>
-	<description><![CDATA[Gardez une trace de tous vos rendez-vous médicaux : praticiens, lieux, pièces jointes et synchronisation avec votre calendrier.]]></description>
+	<summary>Keep track of your medical appointments</summary>
+	<summary lang="fr">Journal de vos rendez-vous médicaux</summary>
+	<description><![CDATA[Keep a private record of your medical appointments: date, reason and notes, with the practitioner and the place, labels to group appointments across practitioners (an ankle injury, a blood donation…), and documents attached from your Nextcloud files.
+
+* **Practitioners and places** are created once and reused, optionally linked to your Contacts.
+* **Labels** gather appointments whatever the practitioner or place, and the list can be filtered by label or practitioner.
+* **Calendar**: appointments are mirrored to the calendar of your choice (with a reminder the day before), and events can optionally be imported as appointments.
+* **Private**: your data stays on your instance and is strictly private to each user.]]></description>
+	<description lang="fr"><![CDATA[Gardez une trace privée de vos rendez-vous médicaux : date, motif et notes, avec le praticien et le lieu, des libellés pour réunir des rendez-vous quel que soit le praticien (une cheville, un don du sang…), et des documents joints depuis vos fichiers Nextcloud.
+
+* **Praticiens et lieux** : créés une fois et réutilisés, avec un lien facultatif vers vos Contacts.
+* **Libellés** : ils réunissent des rendez-vous quel que soit le praticien ou le lieu ; la liste se filtre par libellé ou par praticien.
+* **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec un rappel la veille), et les événements peuvent être importés comme rendez-vous.
+* **Privé** : vos données restent sur votre instance et sont strictement privées à chaque utilisateur.]]></description>
 	<version>0.1.0</version>
 	<licence>agpl</licence>
 	<author>Olivier Dolbeau</author>
 	<namespace>Vitalog</namespace>
 	<category>organization</category>
+	<website>https://github.com/odolbeau/nextcloud-vitalog</website>
+	<bugs>https://github.com/odolbeau/nextcloud-vitalog/issues</bugs>
+	<repository type="git">https://github.com/odolbeau/nextcloud-vitalog.git</repository>
 	<dependencies>
 		<php min-version="8.2"/>
 		<nextcloud min-version="34" max-version="35"/>
 	</dependencies>
-	<contactsmenu>
-		<provider>OCA\Vitalog\ContactsMenu\AppointmentsProvider</provider>
-	</contactsmenu>
 	<navigations>
 		<navigation>
 			<name>Vitalog</name>
 			<route>vitalog.page.index</route>
 		</navigation>
 	</navigations>
+	<contactsmenu>
+		<provider>OCA\Vitalog\ContactsMenu\AppointmentsProvider</provider>
+	</contactsmenu>
 </info>

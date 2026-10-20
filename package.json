@@ -2,7 +2,7 @@
 	"name": "vitalog",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Journal de rendez-vous médicaux pour Nextcloud",
+	"description": "Keep track of your medical appointments in Nextcloud",
 	"license": "AGPL-3.0-or-later",
 	"type": "module",
 	"scripts": {

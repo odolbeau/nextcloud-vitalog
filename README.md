@@ -1,85 +1,104 @@
 # Vitalog
 
-Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rendez-vous médicaux.
+A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointments.
 
-- **Rendez-vous** : date, durée, motif, notes, praticien et lieu. Pas de statut : « à venir » et « passé » ne dépendent que de la date.
-- **Praticiens et lieux** : créés une fois (ou à la volée depuis un rendez-vous), réutilisés partout.
-  Un praticien peut être lié à une fiche de l'app **Contacts** (facultatif) : la fiche fait foi pour le nom, la spécialité et le
-  téléphone, la copie locale reste utilisable si la fiche disparaît, et le menu des contacts propose « Rendez-vous Vitalog ».
-- **Libellés** : étiquettes (avec couleur facultative) qui réunissent des rendez-vous de manière transverse — quels que soient le
-  praticien et le lieu (« cheville », « don du sang »…). Un rendez-vous peut en porter plusieurs ; la liste se filtre par libellé
-  ; la liste se filtre aussi par praticien, et les deux filtres se cumulent (bouton de filtre à côté de la recherche, ou page « Libellés »). Ils sont écrits dans les catégories de
-  l'événement du calendrier (sens unique : les catégories modifiées dans Calendrier ne reviennent pas).
-- **Navigation** : la vue, le rendez-vous sélectionné et les filtres sont dans l'URL (`?view=…&appointment=…&label=…&practitioner=…`) ; précédent / suivant, rechargement et liens partagés fonctionnent, et « précédent » ferme une fenêtre ouverte.
-- **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
-- **Calendrier** : les rendez-vous sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
-  déplacement et suppression sont répercutés.
-  En option (désactivée par défaut), un événement ajouté à ce calendrier crée aussi un rendez-vous.
-  À la sélection du calendrier, on peut aussi importer d'un coup les événements déjà présents (passés compris).
-  Sens unique : les modifications ultérieures de l'événement ne sont pas répercutées, et les événements récurrents sont ignorés.
-- Interface en anglais et en français. Les données restent sur votre instance et sont strictement privées à chaque utilisateur.
+- **Appointments**: date, duration, reason, notes, practitioner and place. There is no status: "upcoming" and "past" only depend on the date.
+- **Practitioners and places**: created once (or on the fly from an appointment) and reused everywhere.
+  A practitioner can optionally be linked to a card of the **Contacts** app: the card is the source of truth for the name, specialty
+  and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
+- **Labels**: tags (with an optional colour) that bring appointments together across practitioners and places ("ankle", "blood
+  donation"…). An appointment can carry several of them. The list can be filtered by label and by practitioner, and both filters
+  combine (filter button next to the search field, or the "Labels" page). Labels are written to the calendar event's categories (one
+  way: categories edited in Calendar do not come back).
+- **Navigation**: the view, the selected appointment and the filters live in the URL
+  (`?view=…&appointment=…&label=…&practitioner=…`); back / forward, reload and shared links work, and "back" closes an open dialog.
+- **Documents**: prescriptions, reports, results… attached from your Nextcloud files.
+- **Calendar**: appointments are mirrored to the calendar of your choice (with a reminder the day before); moving or deleting one is
+  propagated. Optionally (off by default), an event added to that calendar also creates an appointment. When you pick the calendar you
+  can also import the events it already contains in one go (past ones included).
+  One way only: later changes to the event are not propagated back, and recurring events are ignored.
+- English and French interface. Your data stays on your instance and is strictly private to each user.
 
-Compatible Nextcloud **34 et 35** (PHP 8.2+ ; PHP 8.3+ pour Nextcloud 35). Nextcloud 33 n'est volontairement pas supporté :
-fin de vie le 2027-02-18.
+Compatible with Nextcloud **34 and 35** (PHP 8.2+; PHP 8.3+ for Nextcloud 35). Nextcloud 33 is deliberately not supported: its end of
+life is 2027-02-18.
 
-## Développement
+## Installation
 
-Prérequis : PHP ≥ 8.2, Composer, Node ≥ 20, Docker.
+Until the app is on the Nextcloud App Store, install a release archive by hand:
+
+```sh
+tar -xzf vitalog-X.Y.Z.tar.gz -C /path/to/nextcloud/custom_apps/
+chown -R www-data:www-data /path/to/nextcloud/custom_apps/vitalog
+sudo -u www-data php occ app:enable vitalog
+```
+
+`custom_apps` must be one of the `apps_paths` of your `config.php` (the default). The first activation creates the `vitalog_*` tables.
+Back up your database beforehand, as for any app installation.
+
+## Development
+
+Requirements: PHP ≥ 8.2, Composer, Node ≥ 20, Docker.
 
 ```sh
 composer install && npm install
-npm run dev          # build du front en mode watch
-dev/up.sh            # instance Nextcloud 35 sur http://localhost:8480 (admin / admin), app activée
-dev/up.sh 34         # idem avec Nextcloud 34
+npm run dev          # front-end build in watch mode
+dev/up.sh            # Nextcloud 35 instance on http://localhost:8480 (admin / admin), app enabled
+dev/up.sh 34         # same with Nextcloud 34
 NC_PORT=8500 dev/up.sh
-docker compose -f dev/docker-compose.yml down -v   # tout supprimer
+docker compose -f dev/docker-compose.yml down -v   # remove everything
 ```
 
-`dev/up.sh` démarre une pile isolée (`vitalog-dev` : Nextcloud + PostgreSQL, ports et noms de conteneurs préfixés) : elle ne touche
-pas à vos autres conteneurs. Le dépôt est monté dans `custom_apps/vitalog` : après `npm run build`, rechargez la page (Ctrl+Maj+R,
-Nextcloud met les assets en cache). Le script désactive le *first run wizard* et les limitations de débit pour faciliter les tests ;
-il installe aussi l'app Calendrier.
+`dev/up.sh` starts an isolated stack (`vitalog-dev`: Nextcloud + PostgreSQL, prefixed ports and container names): it does not touch
+your other containers. The repository is mounted in `custom_apps/vitalog`: after `npm run build`, reload the page with a hard refresh
+(Ctrl+Shift+R, Nextcloud caches assets). The script disables the *first run wizard* and rate limiting to ease testing, and installs
+the Calendar and Contacts apps.
 
-### Tests et qualité
+### Tests and quality
 
-| Commande | Contenu |
+| Command | Content |
 | --- | --- |
-| `composer test` | PHPUnit : tests unitaires des services (sync calendrier, pièces jointes, cascades, validation) |
+| `composer test` | PHPUnit: unit tests of the services (calendar sync, attachments, cascades, validation) |
 | `composer lint` / `composer cs:fix` | php-cs-fixer |
-| `composer psalm` | analyse statique |
+| `composer psalm` | static analysis |
 | `npm run lint` | ESLint (src, e2e, scripts) |
-| `npm run l10n:check` | toutes les chaînes ont leur traduction française (et pas de clé obsolète) ; `npm run l10n:build` régénère `l10n/fr.js` |
-| `npm run e2e` | Playwright contre `dev/up.sh` : API (CRUD, isolation entre utilisateurs, pièces jointes, événements CalDAV), interface (parcours complets, FR, accessibilité axe, mobile) |
+| `npm run l10n:check` | every string has its French translation (and no stale key); `npm run l10n:build` regenerates `l10n/fr.js` |
+| `npm run e2e` | Playwright against `dev/up.sh`: API (CRUD, isolation between users, attachments, CalDAV events), UI (full journeys, French, axe accessibility, mobile) |
 
-La CI GitHub (`.github/workflows/ci.yml`) exécute le lint, Psalm, PHPUnit sur PHP 8.2 à 8.5, le build et la suite e2e sur Nextcloud 34 et 35.
+GitHub CI (`.github/workflows/ci.yml`) runs the lint, Psalm, PHPUnit on PHP 8.2 to 8.5, the build and the e2e suite on Nextcloud 34
+and 35.
+
+### Releasing
+
+`make package` builds the front end and produces `build/vitalog-<version>.tar.gz`: only what runs on a server, under a top-level
+`vitalog/` folder. Pushing a tag `vX.Y.Z` (matching `<version>` in `appinfo/info.xml`) runs `.github/workflows/release.yml`, which
+builds the same archive and attaches it to a GitHub release.
 
 ### Architecture
 
-- `lib/Db` : entités et mappers (tables `vitalog_*`, migration dans `lib/Migration`). Toute requête est filtrée par `user_id`.
-- `lib/Service` : logique métier. `CalendarSyncService` reflète un rendez-vous dans le calendrier cible ; un échec de synchronisation
-  est journalisé mais n'empêche jamais l'enregistrement.
-- `lib/Calendar` : `CalendarGateway` (interface) et `DavCalendarGateway`. L'API publique `OCP\Calendar` ne permet que de **créer** un
-  événement ; la mise à jour et la suppression passent donc par `OCA\DAV\CalDAV\CalDavBackend` (classe interne mais utilisée par les
-  apps officielles), isolée derrière l'interface.
-- `lib/Contacts` : `ContactGateway` et `ManagerContactGateway` (API publique `OCP\Contacts\IManager`, carnets de l'utilisateur
-  connecté) ; `lib/ContactsMenu` : action « Rendez-vous Vitalog » sur les fiches liées.
-- `lib/Controller` : API OCS sous `/ocs/v2.php/apps/vitalog/api/` (`appointments`, `practitioners`, `places`, `settings`,
-  `appointments/{id}/attachments`). `PUT` remplace l'objet entier.
-- `src` : Vue 3 + `@nextcloud/vue` 9 + Pinia (`stores/data.js`), build Vite (`@nextcloud/vite-config`).
+- `lib/Db`: entities and mappers (`vitalog_*` tables, migration in `lib/Migration`). Every query is filtered by `user_id`.
+- `lib/Service`: business logic. `CalendarSyncService` mirrors an appointment into the target calendar; a synchronisation failure is
+  logged but never prevents saving.
+- `lib/Calendar`: `CalendarGateway` (interface) and `DavCalendarGateway`. The public `OCP\Calendar` API can only **create** an event,
+  so updating and deleting go through `OCA\DAV\CalDAV\CalDavBackend` (an internal class, though used by the official apps), isolated
+  behind the interface.
+- `lib/Contacts`: `ContactGateway` and `ManagerContactGateway` (public `OCP\Contacts\IManager` API, address books of the signed-in
+  user); `lib/ContactsMenu`: the "Vitalog appointments" action on linked cards.
+- `lib/Controller`: OCS API under `/ocs/v2.php/apps/vitalog/api/` (`appointments`, `practitioners`, `places`, `labels`, `settings`,
+  `appointments/{id}/attachments`). `PUT` replaces the whole object.
+- `src`: Vue 3 + `@nextcloud/vue` 9 + Pinia (`stores/data.js`), Vite build (`@nextcloud/vite-config`).
 
-## Limites connues (dépendances)
+## Known limitations (dependencies)
 
-Constatées avec `@nextcloud/vue` 9.13.1 ; non corrigées dans ce dépôt :
+Observed with `@nextcloud/vue` 9.13.1; not fixed in this repository:
 
-- le titre de l'onglet affiche `[object Object]` : `NcContent` fournit `appName` sous forme de `computed` alors que `useAppName()`
-  attend une chaîne ;
-- le séparateur `splitpanes` de `NcAppContent` est focalisable avec `role="separator"` mais sans `aria-valuenow` (axe : `aria-required-attr`) ;
-- `NcSelect` grise la valeur sélectionnée avec `opacity` (contraste 2,4:1) et son spinner est un `role="img"` sans nom (axe :
-  `color-contrast`, `role-img-alt`) : corrigé upstream par
-  [nextcloud-vue#9098](https://github.com/nextcloud-libraries/nextcloud-vue/pull/9098). Contournements ici à retirer avec la
-  version qui l'embarque : bloc `<style>` global de `src/App.vue`, et `.exclude('.loading-icon')` dans `e2e/ui/contacts.spec.js` ;
-- `NcModal` ignore Échap quand le focus est dans un champ de saisie : un formulaire ne se ferme pas avec Échap depuis un champ.
+- the tab title shows `[object Object]`: `NcContent` provides `appName` as a `computed` while `useAppName()` expects a string;
+- the `splitpanes` separator of `NcAppContent` is focusable with `role="separator"` but has no `aria-valuenow` (axe: `aria-required-attr`);
+- `NcSelect` dims the selected value with `opacity` (2.4:1 contrast) and its spinner is an unnamed `role="img"` (axe: `color-contrast`,
+  `role-img-alt`). Fixed upstream by [nextcloud-vue#9098](https://github.com/nextcloud-libraries/nextcloud-vue/pull/9098).
+  Workarounds here, to remove once a release containing it is installed: the global `<style>` block in `src/App.vue`, and
+  `.exclude('.loading-icon')` in `e2e/ui/contacts.spec.js`;
+- `NcModal` ignores Escape when the focus is in an input field: a form does not close with Escape from a field.
 
-## Licence
+## License
 
 AGPL-3.0-or-later

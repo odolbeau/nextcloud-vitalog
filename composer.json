@@ -1,6 +1,6 @@
 {
 	"name": "odolbeau/vitalog",
-	"description": "Journal de rendez-vous médicaux pour Nextcloud",
+	"description": "Keep track of your medical appointments in Nextcloud",
 	"type": "project",
 	"license": "AGPL-3.0-or-later",
 	"require": {
