@@ -51,12 +51,11 @@ class PractitionerContactTest extends TestCase {
 	public function testCreateLinkedCopiesTheContact(): void {
 		$this->contacts->method('find')->with('uid-1')->willReturn(self::CONTACT);
 
-		$practitioner = $this->service->create('alice', 'Ignoré', null, null, 'Note', 'uid-1');
+		$practitioner = $this->service->create('alice', 'Ignoré', null, null, 'uid-1');
 
 		self::assertSame('Dr Spike', $practitioner->getName());
 		self::assertSame('Cardiologue', $practitioner->getSpecialty());
 		self::assertSame('0102030405', $practitioner->getPhone());
-		self::assertSame('Note', $practitioner->getNotes());
 		self::assertSame('uid-1', $practitioner->getContactUid());
 		self::assertSame('contacts', $practitioner->getContactBook());
 		self::assertSame(Practitioner::CONTACT_LINKED, $practitioner->getContactStatus());
@@ -67,7 +66,7 @@ class PractitionerContactTest extends TestCase {
 		$this->mapper->expects(self::never())->method('insert');
 
 		$this->expectException(InvalidArgumentException::class);
-		$this->service->create('alice', 'X', null, null, null, 'nope');
+		$this->service->create('alice', 'X', null, null, 'nope');
 	}
 
 	public function testReadingRefreshesTheLocalCopyAndResyncsCalendar(): void {
@@ -106,23 +105,22 @@ class PractitionerContactTest extends TestCase {
 		self::assertSame(Practitioner::CONTACT_UNAVAILABLE, $service->find(5, 'alice')->getContactStatus());
 	}
 
-	public function testLinkedFieldsAreLockedButNotesAreEditable(): void {
+	public function testLinkedFieldsAreLocked(): void {
 		$this->practitioner('uid-1');
 		$this->contacts->method('find')->willReturn(self::CONTACT);
 
-		$updated = $this->service->update(5, 'alice', 'Autre nom', 'Autre', '999', 'Nouvelle note', 'uid-1');
+		$updated = $this->service->update(5, 'alice', 'Autre nom', 'Autre', '999', 'uid-1');
 
 		self::assertSame('Dr Spike', $updated->getName());
 		self::assertSame('Cardiologue', $updated->getSpecialty());
 		self::assertSame('0102030405', $updated->getPhone());
-		self::assertSame('Nouvelle note', $updated->getNotes());
 	}
 
 	public function testUnlinkingKeepsTheDataAndUnlocksIt(): void {
 		$practitioner = $this->practitioner('uid-1');
 		$practitioner->setContactBook('contacts');
 
-		$updated = $this->service->update(5, 'alice', 'Nom libre', null, null, null, null);
+		$updated = $this->service->update(5, 'alice', 'Nom libre', null, null, null);
 
 		self::assertSame('Nom libre', $updated->getName());
 		self::assertNull($updated->getContactUid());
@@ -134,7 +132,7 @@ class PractitionerContactTest extends TestCase {
 		$this->practitioner('uid-1');
 		$this->contacts->method('find')->willReturn(null);
 
-		$updated = $this->service->update(5, 'alice', 'Nom corrigé', null, null, null, 'uid-1');
+		$updated = $this->service->update(5, 'alice', 'Nom corrigé', null, null, 'uid-1');
 
 		self::assertSame('Nom corrigé', $updated->getName());
 		self::assertSame('uid-1', $updated->getContactUid());

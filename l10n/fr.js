@@ -48,7 +48,6 @@ OC.L10N.register(
         "Keep track of your medical appointments in one place.": "Gardez la trace de vos rendez-vous médicaux au même endroit.",
         "Medical appointment": "Rendez-vous médical",
         "Name": "Nom",
-        "Name, specialty and phone come from the contact.": "Le nom, la spécialité et le téléphone viennent du contact.",
         "New appointment": "Nouveau rendez-vous",
         "New place": "Nouveau lieu",
         "New practitioner": "Nouveau praticien",

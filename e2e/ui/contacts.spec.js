@@ -31,7 +31,7 @@ test.beforeEach(async () => {
 
 const nameField = (page) => dialog(page).getByLabel('Name', { exact: true })
 
-test('a practitioner can be picked from the contacts, is locked, and stays editable once the contact is gone', async ({ page }) => {
+test('a practitioner picked from the contacts shows only the contact, and becomes editable once the contact is gone', async ({ page }) => {
 	const tag = `Ui${Date.now()}`
 	const uid = `vitalog-ui-${tag}`
 	await putContact(uid, `Dr ${tag}`, 'Cardiologue', '0102030405')
@@ -44,10 +44,12 @@ test('a practitioner can be picked from the contacts, is locked, and stays edita
 	await contact.pressSequentially(tag)
 	await page.locator('[role="option"]').filter({ hasText: `Dr ${tag}` }).first().click()
 
-	await expect(nameField(page)).toHaveValue(`Dr ${tag}`)
-	await expect(nameField(page)).toBeDisabled()
-	await expect(dialog(page).getByLabel('Specialty')).toHaveValue('Cardiologue')
-	await expect(dialog(page)).toContainText('come from the contact')
+	// lié : les champs de la fiche disparaissent, il ne reste que le contact choisi
+	await expect(contact).toBeVisible()
+	await expect(nameField(page)).toHaveCount(0)
+	await expect(dialog(page).getByLabel('Specialty')).toHaveCount(0)
+	await expect(dialog(page).getByLabel('Phone')).toHaveCount(0)
+	await expect(dialog(page).getByLabel('Notes')).toHaveCount(0)
 
 	// accessibilité du formulaire lié
 	const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
@@ -58,12 +60,20 @@ test('a practitioner can be picked from the contacts, is locked, and stays edita
 	await expect(page.locator('[data-test^="practitioner-"]')).toContainText(`Dr ${tag}`)
 	expect((await admin.list('practitioners'))[0]).toMatchObject({ contactUid: uid, contactStatus: 'linked' })
 
+	// rouvert : seul le lien vers la fiche reste, sans champs ni notes
+	await page.locator('[data-test^="practitioner-"]').click()
+	await expect(dialog(page).getByRole('link', { name: 'Edit in Contacts' })).toHaveAttribute('href', new RegExp(`/apps/contacts/direct/contact/${uid}`))
+	await expect(nameField(page)).toHaveCount(0)
+	await expect(dialog(page).getByLabel('Notes')).toHaveCount(0)
+	await dialog(page).getByRole('button', { name: 'Cancel' }).click()
+
 	// la fiche est supprimée : le praticien reste, signale le lien rompu et redevient modifiable
 	await admin.context.delete(`${BOOK}/${uid}.vcf`)
 	await page.reload()
 	await nav(page, 'practitioners').click()
 	await page.locator('[data-test^="practitioner-"]').click()
 	await expect(dialog(page)).toContainText('no longer exists')
+	await expect(nameField(page)).toBeVisible()
 	await expect(nameField(page)).toBeEnabled()
 	await expect(nameField(page)).toHaveValue(`Dr ${tag}`)
 })

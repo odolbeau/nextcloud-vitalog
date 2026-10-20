@@ -36,10 +36,10 @@ class PractitionerService {
 		return $this->resolve($this->get($id, $userId));
 	}
 
-	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $notes, ?string $contactUid = null): Practitioner {
+	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null): Practitioner {
 		$practitioner = new Practitioner();
 		$practitioner->setUserId($userId);
-		$this->fill($practitioner, $name, $specialty, $phone, $notes);
+		$this->fill($practitioner, $name, $specialty, $phone);
 		if ($contactUid !== null && $contactUid !== '') {
 			$this->link($practitioner, $this->contact($contactUid));
 		}
@@ -51,23 +51,19 @@ class PractitionerService {
 	 * Remplace le praticien. `$contactUid` null le délie ; un autre UID le relie ; le même UID le garde lié
 	 * (nom, spécialité et téléphone proviennent alors de la fiche et les valeurs reçues sont ignorées).
 	 */
-	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $notes, ?string $contactUid = null): Practitioner {
+	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null): Practitioner {
 		$practitioner = $this->get($id, $userId);
 		$contactUid = $contactUid === '' ? null : $contactUid;
-		$notes = Validator::optionalText($notes, Validator::NOTES_MAX, 'notes');
 
 		if ($contactUid === null) {
 			$practitioner->setContactUid(null);
 			$practitioner->setContactBook(null);
-			$this->fill($practitioner, $name, $specialty, $phone, $notes);
+			$this->fill($practitioner, $name, $specialty, $phone);
 		} elseif ($contactUid !== $practitioner->getContactUid()) {
-			$practitioner->setNotes($notes);
 			$this->link($practitioner, $this->contact($contactUid));
 		} elseif ($this->contacts->find($contactUid) === null) {
 			// lien conservé mais fiche introuvable (supprimée, ou Contacts indisponible) : on garde la copie locale éditable
-			$this->fill($practitioner, $name, $specialty, $phone, $notes);
-		} else {
-			$practitioner->setNotes($notes);
+			$this->fill($practitioner, $name, $specialty, $phone);
 		}
 		$this->mapper->update($practitioner);
 		$this->resync($id, $userId);
@@ -115,11 +111,10 @@ class PractitionerService {
 		}
 	}
 
-	private function fill(Practitioner $practitioner, string $name, ?string $specialty, ?string $phone, ?string $notes): void {
+	private function fill(Practitioner $practitioner, string $name, ?string $specialty, ?string $phone): void {
 		$practitioner->setName(Validator::requiredText($name, Validator::NAME_MAX, 'name'));
 		$practitioner->setSpecialty(Validator::optionalText($specialty, Validator::NAME_MAX, 'specialty'));
 		$practitioner->setPhone(Validator::optionalText($phone, Validator::PHONE_MAX, 'phone'));
-		$practitioner->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
 	}
 
 	private function get(int $id, string $userId): Practitioner {

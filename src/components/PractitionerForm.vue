@@ -17,11 +17,8 @@
 					label="label"
 					@search="onSearch"
 					@update:modelValue="onPick" />
-				<p v-if="linked" class="form__hint">
-					{{ t('vitalog', 'Name, specialty and phone come from the contact.') }}
-					<a
-						v-if="practitioner?.contactUrl"
-						:href="practitioner.contactUrl">{{ t('vitalog', 'Edit in Contacts') }}</a>
+				<p v-if="linked && practitioner?.contactUrl" class="form__hint">
+					<a :href="practitioner.contactUrl">{{ t('vitalog', 'Edit in Contacts') }}</a>
 				</p>
 				<NcNoteCard v-else-if="contact && practitioner?.contactStatus === 'missing'" type="warning">
 					{{ t('vitalog', 'The linked contact no longer exists. The details below are kept; clear the contact field to unlink.') }}
@@ -30,25 +27,23 @@
 					{{ t('vitalog', 'The Contacts app is not available right now. The saved details are shown.') }}
 				</NcNoteCard>
 			</template>
-			<NcTextField
-				v-model="form.name"
-				:maxlength="255"
-				:label="t('vitalog', 'Name')"
-				:disabled="linked"
-				required
-				autofocus />
-			<NcTextField
-				v-model="form.specialty"
-				:maxlength="255"
-				:disabled="linked"
-				:label="t('vitalog', 'Specialty')" />
-			<NcTextField
-				v-model="form.phone"
-				:maxlength="64"
-				:disabled="linked"
-				:label="t('vitalog', 'Phone')"
-				type="tel" />
-			<NcTextArea v-model="form.notes" :label="t('vitalog', 'Notes')" rows="3" />
+			<template v-if="!linked">
+				<NcTextField
+					v-model="form.name"
+					:maxlength="255"
+					:label="t('vitalog', 'Name')"
+					required
+					autofocus />
+				<NcTextField
+					v-model="form.specialty"
+					:maxlength="255"
+					:label="t('vitalog', 'Specialty')" />
+				<NcTextField
+					v-model="form.phone"
+					:maxlength="64"
+					:label="t('vitalog', 'Phone')"
+					type="tel" />
+			</template>
 		</div>
 		<template #actions>
 			<NcButton
@@ -77,7 +72,6 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import * as api from '../api.js'
 import { useDataStore } from '../stores/data.js'
@@ -93,7 +87,6 @@ const form = reactive({
 	name: props.practitioner?.name ?? '',
 	specialty: props.practitioner?.specialty ?? '',
 	phone: props.practitioner?.phone ?? '',
-	notes: props.practitioner?.notes ?? '',
 })
 
 const toOption = (c) => ({ uid: c.uid, label: c.specialty ? `${c.name} · ${c.specialty}` : c.name, contact: c })
@@ -155,7 +148,6 @@ async function submit() {
 		name: form.name.trim(),
 		specialty: form.specialty.trim() || null,
 		phone: form.phone.trim() || null,
-		notes: form.notes.trim() || null,
 		contactUid: contact.value?.uid ?? null,
 	}, props.practitioner?.id)
 	saving.value = false

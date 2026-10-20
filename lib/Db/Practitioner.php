@@ -16,8 +16,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setSpecialty(?string $specialty)
  * @method string|null getPhone()
  * @method void setPhone(?string $phone)
- * @method string|null getNotes()
- * @method void setNotes(?string $notes)
  * @method string|null getContactUid()
  * @method void setContactUid(?string $contactUid)
  * @method string|null getContactBook()
@@ -37,7 +35,6 @@ class Practitioner extends Entity implements JsonSerializable {
 	protected ?string $name = null;
 	protected ?string $specialty = null;
 	protected ?string $phone = null;
-	protected ?string $notes = null;
 	protected ?string $contactUid = null;
 	protected ?string $contactBook = null;
 
@@ -60,7 +57,6 @@ class Practitioner extends Entity implements JsonSerializable {
 			'name' => $this->name,
 			'specialty' => $this->specialty,
 			'phone' => $this->phone,
-			'notes' => $this->notes,
 			'contactUid' => $this->contactUid,
 			'contactStatus' => $this->contactStatus,
 			'contactUrl' => $this->contactUrl,

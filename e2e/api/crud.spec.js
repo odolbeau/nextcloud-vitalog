@@ -22,8 +22,8 @@ test.beforeEach(async () => {
 
 test.describe('practitioners', () => {
 	test('create, read, update, delete', async () => {
-		const created = await admin.create('practitioners', { name: 'Dr Martin', specialty: 'Dentiste', phone: '0102030405', notes: 'Rue du Port' })
-		expect(created).toMatchObject({ name: 'Dr Martin', specialty: 'Dentiste', phone: '0102030405', notes: 'Rue du Port' })
+		const created = await admin.create('practitioners', { name: 'Dr Martin', specialty: 'Dentiste', phone: '0102030405' })
+		expect(created).toMatchObject({ name: 'Dr Martin', specialty: 'Dentiste', phone: '0102030405' })
 
 		expect(await admin.list('practitioners')).toHaveLength(1)
 		expect(await admin.data(await admin.get(`practitioners/${created.id}`))).toMatchObject({ id: created.id })

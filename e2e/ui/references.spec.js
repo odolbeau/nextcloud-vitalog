@@ -27,7 +27,8 @@ test.describe('practitioners', () => {
 		await fill(form.getByLabel('Name'), 'Dr Durand')
 		await fill(form.getByLabel('Specialty'), 'Cardiologue')
 		await fill(form.getByLabel('Phone'), '04 05 06 07 08')
-		await fill(form.getByLabel('Notes'), 'Parking à gauche')
+		// plus de notes propres à Vitalog sur un praticien
+		await expect(form.getByLabel('Notes')).toHaveCount(0)
 		await form.getByRole('button', { name: 'Save' }).click()
 
 		const row = page.locator('[data-test^="practitioner-"]')
@@ -37,7 +38,6 @@ test.describe('practitioners', () => {
 
 		await row.first().click()
 		await expect(dialog(page).getByRole('heading', { name: 'Edit practitioner' })).toBeVisible()
-		await expect(dialog(page).getByLabel('Notes')).toHaveValue('Parking à gauche')
 		await fill(dialog(page).getByLabel('Specialty'), 'Cardiologie')
 		await dialog(page).getByRole('button', { name: 'Save' }).click()
 		await expect(row.first()).toContainText('Cardiologie')

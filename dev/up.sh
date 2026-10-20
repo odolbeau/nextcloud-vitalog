@@ -25,6 +25,8 @@ occ config:system:set debug --value=true --type=boolean >/dev/null
 # environnement de test : pas de limitation de débit ni d’anti brute-force (les suites e2e enchaînent des centaines d’appels)
 occ config:system:set ratelimit.protection.enabled --value=false --type=boolean >/dev/null
 occ config:system:set auth.bruteforce.protection.enabled --value=false --type=boolean >/dev/null
+# pas de corbeille pour les calendriers : les tests en créent beaucoup, et les calendriers supprimés comptent dans la limite de 30 par utilisateur
+occ config:app:set dav calendarRetentionObligation --value=0 >/dev/null
 occ app:disable firstrunwizard >/dev/null 2>&1 || true
 occ app:enable vitalog
 # custom_apps appartient à root dans l'image : www-data doit pouvoir y installer des apps

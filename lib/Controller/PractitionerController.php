@@ -35,13 +35,13 @@ class PractitionerController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null, ?string $contactUid = null): DataResponse {
-		return $this->handle(fn () => $this->service->create($this->userId, $name, $specialty, $phone, $notes, $contactUid), Http::STATUS_CREATED);
+	public function create(string $name, ?string $specialty = null, ?string $phone = null, ?string $contactUid = null): DataResponse {
+		return $this->handle(fn () => $this->service->create($this->userId, $name, $specialty, $phone, $contactUid), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, string $name, ?string $specialty = null, ?string $phone = null, ?string $notes = null, ?string $contactUid = null): DataResponse {
-		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $specialty, $phone, $notes, $contactUid));
+	public function update(int $id, string $name, ?string $specialty = null, ?string $phone = null, ?string $contactUid = null): DataResponse {
+		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $specialty, $phone, $contactUid));
 	}
 
 	/** Ajoute le praticien aux contacts de l'utilisateur et le lie à la fiche créée. */

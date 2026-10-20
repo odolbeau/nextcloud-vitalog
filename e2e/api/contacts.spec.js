@@ -60,8 +60,8 @@ test('a practitioner linked to a contact follows the contact, then keeps its dat
 	const uid = `vitalog-${tag}`
 	await putContact(uid, { name: `Dr ${tag}`, title: 'ORL', tel: '0102030405' })
 
-	const created = await admin.create('practitioners', { name: 'ignoré', notes: 'Ma note', contactUid: uid })
-	expect(created).toMatchObject({ name: `Dr ${tag}`, specialty: 'ORL', phone: '0102030405', notes: 'Ma note', contactUid: uid, contactStatus: 'linked' })
+	const created = await admin.create('practitioners', { name: 'ignoré', contactUid: uid })
+	expect(created).toMatchObject({ name: `Dr ${tag}`, specialty: 'ORL', phone: '0102030405', contactUid: uid, contactStatus: 'linked' })
 	expect(created.contactUrl).toContain('/apps/contacts/direct/contact/')
 
 	// la fiche change : le praticien suit
@@ -69,9 +69,10 @@ test('a practitioner linked to a contact follows the contact, then keeps its dat
 	const [followed] = await admin.list('practitioners')
 	expect(followed).toMatchObject({ name: `Dr ${tag} Renommé`, phone: '0999999999', contactStatus: 'linked' })
 
-	// champs verrouillés : seules les notes se modifient
-	const edited = await admin.data(await admin.put(`practitioners/${created.id}`, { name: 'Autre', specialty: 'Autre', phone: '1', notes: 'Nouvelle note', contactUid: uid }))
-	expect(edited).toMatchObject({ name: `Dr ${tag} Renommé`, specialty: 'ORL', notes: 'Nouvelle note' })
+	// champs verrouillés : les valeurs reçues sont ignorées
+	const edited = await admin.data(await admin.put(`practitioners/${created.id}`, { name: 'Autre', specialty: 'Autre', phone: '1', contactUid: uid }))
+	expect(edited).toMatchObject({ name: `Dr ${tag} Renommé`, specialty: 'ORL' })
+	expect(edited).not.toHaveProperty('notes')
 
 	// la fiche disparaît : la copie reste, le lien est signalé, les champs redeviennent modifiables
 	await admin.context.delete(`${BOOK}/${uid}.vcf`)
