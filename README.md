@@ -103,6 +103,20 @@ builds the same archive and attaches it to a GitHub release.
   `appointments/{id}/attachments`). `PUT` replaces the whole object.
 - `src`: Vue 3 + `@nextcloud/vue` 9 + Pinia (`stores/data.js`), Vite build (`@nextcloud/vite-config`).
 
+## Calendar integration and Nextcloud's public API
+
+Vitalog writes to the user's calendar: it creates an event when an appointment is created (only once a target calendar is chosen),
+updates it when the appointment, or the practitioner, place or labels it shows, change, and deletes it when the appointment is
+deleted, when the target calendar changes or when the synchronisation is turned off. For an appointment imported from the calendar,
+it is the user's own event that gets updated.
+
+The App Store guidelines say apps should use only Nextcloud's public API. The public `OCP\Calendar` API can only **create** an event
+(creating one whose UID already exists fails), and can neither update nor delete one. Updating and deleting therefore go through
+`OCA\DAV\CalDAV\CalDavBackend`, an internal class of the DAV app that the official apps also use. This is the only non-public API
+Vitalog uses; it is isolated behind `lib/Calendar/CalendarGateway.php` (implemented by `DavCalendarGateway`), which is the one file to
+adapt if a Nextcloud release changes it. A calendar failure is logged and never prevents an appointment from being saved. The CI
+exercises this integration against Nextcloud 34 and 35.
+
 ## Known limitations (dependencies)
 
 Observed with `@nextcloud/vue` 9.13.1; not fixed in this repository:
