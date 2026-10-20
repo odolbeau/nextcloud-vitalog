@@ -4,13 +4,13 @@ import { chromium } from '@playwright/test'
 
 const BASE = process.env.NC_URL ?? 'http://localhost:8480'
 const AUTH = 'Basic ' + Buffer.from('admin:admin').toString('base64')
-const api = async (method, path, body) => {
+async function api(method, path, body) {
 	const response = await fetch(`${BASE}/ocs/v2.php/${path}?format=json`, {
 		method,
 		headers: { Authorization: AUTH, 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 		body: body && JSON.stringify(body),
 	})
-	if (!response.ok) throw new Error(`${method} ${path}: ${response.status} ${await response.text()}`)
+	if (!response.ok) { throw new Error(`${method} ${path}: ${response.status} ${await response.text()}`) }
 	return (await response.json()).ocs.data
 }
 const vitalog = (path) => `apps/vitalog/api/${path}`
@@ -19,10 +19,10 @@ for (const key of ['language', 'locale']) {
 	await api('PUT', 'cloud/users/admin', { key, value: key === 'locale' ? 'en_US' : 'en' })
 }
 for (const kind of ['appointments', 'practitioners', 'places', 'labels']) {
-	for (const item of await api('GET', vitalog(kind))) await api('DELETE', vitalog(`${kind}/${item.id}`))
+	for (const item of await api('GET', vitalog(kind))) { await api('DELETE', vitalog(`${kind}/${item.id}`)) }
 }
 
-const at = (days, hour, minute = 0) => {
+function at(days, hour, minute = 0) {
 	const date = new Date()
 	date.setDate(date.getDate() + days)
 	date.setHours(hour, minute, 0, 0)
