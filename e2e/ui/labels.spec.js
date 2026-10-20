@@ -71,8 +71,7 @@ test('filtering by label brings together appointments of different practitioners
 
 	// ou se change depuis le bouton de filtre
 	await page.locator('[data-test="label-filter-button"]').click()
-	await page.getByRole('combobox', { name: 'Filter by label' }).click()
-	await page.getByRole('option', { name: 'Don du sang' }).click()
+	await page.getByRole('radiogroup').getByText('Don du sang').click()
 	await expect(items(page)).toHaveCount(1)
 	// la fenêtre se referme après le choix ; on la rouvre pour réinitialiser
 	await page.locator('[data-test="label-filter-button"]').click()

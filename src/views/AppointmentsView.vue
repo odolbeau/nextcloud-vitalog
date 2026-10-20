@@ -32,12 +32,18 @@
 							</NcButton>
 						</template>
 						<div class="list__popover">
-							<NcSelect
-								v-model="labelFilter"
-								:options="labelOptions"
-								:inputLabel="t('vitalog', 'Filter by label')"
-								:placeholder="t('vitalog', 'All labels')"
-								label="label" />
+							<div role="radiogroup" :aria-label="t('vitalog', 'Filter by label')" class="list__choices">
+								<NcCheckboxRadioSwitch
+									v-for="label in store.labels"
+									:key="label.id"
+									:modelValue="labelId"
+									type="radio"
+									name="vitalog-label-filter"
+									:value="label.id"
+									@update:modelValue="chooseLabel(label.id)">
+									{{ label.name }}
+								</NcCheckboxRadioSwitch>
+							</div>
 							<NcButton v-if="labelFilter" variant="tertiary" @click="resetLabelFilter">
 								<template #icon>
 									<Close :size="20" />
@@ -116,12 +122,12 @@ import { computed, ref, watch } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppContentList from '@nextcloud/vue/components/NcAppContentList'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcChip from '@nextcloud/vue/components/NcChip'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
-import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarBlank from 'vue-material-design-icons/CalendarBlank.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -187,6 +193,11 @@ const emptyDescription = computed(() => filtering.value
 		? t('vitalog', 'Appointments that are over will show up here.')
 		: t('vitalog', 'Keep track of your medical appointments in one place.'))
 
+function chooseLabel(id) {
+	emit('update:labelId', id)
+	filterOpen.value = false
+}
+
 function resetLabelFilter() {
 	labelFilter.value = null
 	filterOpen.value = false
@@ -243,20 +254,27 @@ watch(() => props.focusId, (id) => {
 		padding: 8px 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
-	&__search {
+	&__search.input-field {
 		flex: 1;
 		min-width: 0;
+		margin-block-start: 0;
 	}
 
 	&__active-filter {
 		padding: 0 8px 8px calc(var(--default-clickable-area) + 12px);
 	}
 
+	&__choices {
+		max-height: 300px;
+		overflow-y: auto;
+	}
+
+	// le champ de recherche aligné sur les boutons voisins (NcTextField réserve 6 px au-dessus pour son libellé)
 	&__popover {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		width: 280px;
+		width: 260px;
 		max-width: 100%;
 		padding: 12px;
 	}
