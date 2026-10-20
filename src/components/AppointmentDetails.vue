@@ -67,6 +67,7 @@
 					</div>
 					<NcButton
 						v-if="practitioner.contactUrl"
+						class="details__contact"
 						variant="tertiary"
 						:href="practitioner.contactUrl"
 						target="_blank"
@@ -303,7 +304,19 @@ async function pickFiles() {
 	&__person {
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
+		padding-inline-end: 0;
+
+		// le glyphe (20 px) s'aligne sur le bord droit du bloc, pas sur celui de la zone cliquable
+		.details__contact {
+			margin-inline-end: calc((20px - var(--default-clickable-area)) / 2);
+		}
+
+		> :first-child {
+			flex: 1;
+			min-width: 0;
+		}
 	}
 
 	&__notes {
