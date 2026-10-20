@@ -23,6 +23,7 @@ use Throwable;
  */
 class CalendarSyncService {
 	public const CONFIG_KEY = 'calendar_uri';
+	public const IMPORT_KEY = 'import_from_calendar';
 
 	public function __construct(
 		private CalendarGateway $gateway,
@@ -42,8 +43,15 @@ class CalendarSyncService {
 		return $uri === '' ? null : $uri;
 	}
 
-	public function setTargetCalendar(string $userId, ?string $uri): void {
+	/** Faut-il créer un rendez-vous quand un événement est ajouté au calendrier cible ? */
+	public function isImportEnabled(string $userId): bool {
+		return $this->getTargetCalendar($userId) !== null
+			&& $this->config->getUserValue($userId, Application::APP_ID, self::IMPORT_KEY, '0') === '1';
+	}
+
+	public function setTargetCalendar(string $userId, ?string $uri, bool $import = false): void {
 		$this->config->setUserValue($userId, Application::APP_ID, self::CONFIG_KEY, $uri ?? '');
+		$this->config->setUserValue($userId, Application::APP_ID, self::IMPORT_KEY, $uri !== null && $import ? '1' : '0');
 		foreach ($this->appointments->findAll($userId) as $appointment) {
 			$this->sync($appointment);
 		}
@@ -80,7 +88,7 @@ class CalendarSyncService {
 			return;
 		}
 
-		$uid = $appointment->getCalendarUid() ?? bin2hex(random_bytes(16)) . '@vitalog';
+		$uid = $appointment->getCalendarUid() ?? bin2hex(random_bytes(16)) . IcsBuilder::UID_SUFFIX;
 		$ics = $this->icsBuilder->build(
 			$uid,
 			$appointment->getStartsAt(),
@@ -89,7 +97,7 @@ class CalendarSyncService {
 			$this->location($appointment),
 			$appointment->getNotes(),
 		);
-		$this->gateway->put($userId, $target, $uid . '.ics', $ics);
+		$this->gateway->put($userId, $target, $uid, $ics);
 		$appointment->setCalendarUid($uid);
 		$appointment->setCalendarUri($target);
 		$this->appointments->update($appointment);
@@ -99,7 +107,7 @@ class CalendarSyncService {
 		if ($appointment->getCalendarUri() === null || $appointment->getCalendarUid() === null) {
 			return;
 		}
-		$this->gateway->delete($appointment->getUserId(), $appointment->getCalendarUri(), $appointment->getCalendarUid() . '.ics');
+		$this->gateway->delete($appointment->getUserId(), $appointment->getCalendarUri(), $appointment->getCalendarUid());
 		$appointment->setCalendarUri(null);
 	}
 

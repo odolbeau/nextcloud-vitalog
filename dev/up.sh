@@ -27,5 +27,7 @@ occ config:system:set ratelimit.protection.enabled --value=false --type=boolean 
 occ config:system:set auth.bruteforce.protection.enabled --value=false --type=boolean >/dev/null
 occ app:disable firstrunwizard >/dev/null 2>&1 || true
 occ app:enable vitalog
-occ app:install calendar >/dev/null 2>&1 || occ app:enable calendar >/dev/null 2>&1 || true
+# custom_apps appartient à root dans l'image : www-data doit pouvoir y installer des apps
+docker compose exec -T nextcloud chown www-data:www-data /var/www/html/custom_apps
+for a in calendar contacts; do occ app:install $a || occ app:enable $a; done
 echo "Prêt : http://localhost:${NC_PORT}  (admin / admin)"

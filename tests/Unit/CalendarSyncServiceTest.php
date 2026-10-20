@@ -87,7 +87,7 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->gateway->expects(self::once())->method('put')->with(
 			'alice',
 			'personal',
-			self::matchesRegularExpression('/^[0-9a-f]{32}@vitalog\.ics$/'),
+			self::matchesRegularExpression('/^[0-9a-f]{32}@vitalog$/'),
 			self::callback(static fn (string $ics): bool => str_contains($ics, 'SUMMARY:Dr Martin – Contrôle') && str_contains($ics, 'LOCATION:Cabinet\, 1 rue de la Paix')),
 		);
 		$this->appointments->expects(self::once())->method('update')->with($appointment);
@@ -103,7 +103,7 @@ class CalendarSyncServiceTest extends TestCase {
 		$appointment->setCalendarUid('fixed@vitalog');
 		$appointment->setCalendarUri('personal');
 
-		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog.ics', self::anything());
+		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog', self::anything());
 		$this->gateway->expects(self::never())->method('delete');
 
 		$this->service->sync($appointment);
@@ -114,7 +114,7 @@ class CalendarSyncServiceTest extends TestCase {
 		$appointment->setCalendarUid('fixed@vitalog');
 		$appointment->setCalendarUri('personal');
 
-		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog.ics');
+		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog');
 		$this->gateway->expects(self::never())->method('put');
 
 		$this->service->sync($appointment);
@@ -127,8 +127,8 @@ class CalendarSyncServiceTest extends TestCase {
 		$appointment->setCalendarUid('fixed@vitalog');
 		$appointment->setCalendarUri('old');
 
-		$this->gateway->expects(self::once())->method('delete')->with('alice', 'old', 'fixed@vitalog.ics');
-		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog.ics', self::anything());
+		$this->gateway->expects(self::once())->method('delete')->with('alice', 'old', 'fixed@vitalog');
+		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog', self::anything());
 
 		$this->service->sync($appointment);
 
@@ -150,16 +150,33 @@ class CalendarSyncServiceTest extends TestCase {
 		$appointment->setCalendarUid('fixed@vitalog');
 		$appointment->setCalendarUri('personal');
 
-		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog.ics');
+		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog');
 
 		$this->service->remove($appointment);
 	}
 
 	public function testSetTargetCalendarResyncsAllAppointments(): void {
-		$this->config->expects(self::once())->method('setUserValue')->with('alice', 'vitalog', 'calendar_uri', 'personal');
+		$calls = [];
+		$this->config->method('setUserValue')->willReturnCallback(function (string $user, string $app, string $key, string $value) use (&$calls): void {
+			$calls[$key] = $value;
+		});
 		$this->appointments->method('findAll')->with('alice')->willReturn([$this->appointment(), $this->appointment()]);
 		$this->gateway->expects(self::exactly(2))->method('put');
 
-		$this->service->setTargetCalendar('alice', 'personal');
+		$this->service->setTargetCalendar('alice', 'personal', true);
+
+		self::assertSame(['calendar_uri' => 'personal', 'import_from_calendar' => '1'], $calls);
+	}
+
+	public function testImportIsDroppedWithoutTargetCalendar(): void {
+		$calls = [];
+		$this->config->method('setUserValue')->willReturnCallback(function (string $user, string $app, string $key, string $value) use (&$calls): void {
+			$calls[$key] = $value;
+		});
+		$this->appointments->method('findAll')->willReturn([]);
+
+		$this->service->setTargetCalendar('alice', null, true);
+
+		self::assertSame(['calendar_uri' => '', 'import_from_calendar' => '0'], $calls);
 	}
 }

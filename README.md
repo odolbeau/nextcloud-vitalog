@@ -7,6 +7,8 @@ Application [Nextcloud](https://nextcloud.com) pour garder une trace de ses rend
 - **Documents** : ordonnances, comptes rendus, résultats… joints depuis vos fichiers Nextcloud.
 - **Calendrier** : les rendez-vous planifiés sont reflétés dans le calendrier de votre choix (avec rappel la veille) ;
   déplacement, annulation et suppression sont répercutés.
+  En option (désactivée par défaut), un événement ajouté à ce calendrier crée aussi un rendez-vous (« effectué » s'il est déjà
+  passé). Sens unique : les modifications ultérieures de l'événement ne sont pas répercutées, et les événements récurrents sont ignorés.
 - Interface en anglais et en français. Les données restent sur votre instance et sont strictement privées à chaque utilisateur.
 
 Compatible Nextcloud **34 et 35** (PHP 8.2+ ; PHP 8.3+ pour Nextcloud 35). Nextcloud 33 n'est volontairement pas supporté :

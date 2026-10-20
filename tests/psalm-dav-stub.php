@@ -23,6 +23,10 @@ namespace OCA\DAV\CalDAV {
 			return null;
 		}
 
+		public function getCalendarObjectByUID($principalUri, $uid, $calendarUri = null) {
+			return null;
+		}
+
 		public function createCalendarObject($calendarId, $objectUri, $calendarData, $calendarType = self::CALENDAR_TYPE_CALENDAR) {
 			return '';
 		}

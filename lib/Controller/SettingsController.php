@@ -30,15 +30,18 @@ class SettingsController extends OCSController {
 		return new DataResponse($this->payload());
 	}
 
-	/** @param string|null $calendarUri URI du calendrier cible, null ou vide pour désactiver la synchro */
+	/**
+	 * @param string|null $calendarUri URI du calendrier cible, null ou vide pour désactiver la synchro
+	 * @param bool $importFromCalendar créer un rendez-vous pour chaque événement ajouté au calendrier cible
+	 */
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/settings')]
-	public function update(?string $calendarUri = null): DataResponse {
+	public function update(?string $calendarUri = null, bool $importFromCalendar = false): DataResponse {
 		$calendarUri = $calendarUri === '' ? null : $calendarUri;
 		if ($calendarUri !== null && !in_array($calendarUri, array_column($this->calendars->listWritable($this->userId), 'uri'), true)) {
 			return new DataResponse(['message' => 'Unknown calendar'], Http::STATUS_BAD_REQUEST);
 		}
-		$this->sync->setTargetCalendar($this->userId, $calendarUri);
+		$this->sync->setTargetCalendar($this->userId, $calendarUri, $importFromCalendar);
 
 		return new DataResponse($this->payload());
 	}
@@ -46,6 +49,7 @@ class SettingsController extends OCSController {
 	private function payload(): array {
 		return [
 			'calendarUri' => $this->sync->getTargetCalendar($this->userId),
+			'importFromCalendar' => $this->sync->isImportEnabled($this->userId),
 			'calendars' => $this->calendars->listWritable($this->userId),
 		];
 	}

@@ -11,7 +11,7 @@ export const useDataStore = defineStore('data', () => {
 	const appointments = ref([])
 	const practitioners = ref([])
 	const places = ref([])
-	const settings = ref({ calendarUri: null, calendars: [] })
+	const settings = ref({ calendarUri: null, importFromCalendar: false, calendars: [] })
 	const loaded = ref(false)
 	const loadError = ref(false)
 
@@ -164,8 +164,8 @@ export const useDataStore = defineStore('data', () => {
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
 	const deletePlace = (id) => deleteReference('places', places, id)
 
-	async function saveCalendar(calendarUri) {
-		const saved = await guard(() => api.saveSettings(calendarUri), t('vitalog', 'The calendar setting could not be saved.'))
+	async function saveCalendar(calendarUri, importFromCalendar = false) {
+		const saved = await guard(() => api.saveSettings(calendarUri, importFromCalendar), t('vitalog', 'The calendar setting could not be saved.'))
 		if (saved) {
 			settings.value = saved
 			await refreshAppointments()

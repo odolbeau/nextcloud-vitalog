@@ -11,6 +11,9 @@ use DateTimeZone;
  * Construit un VCALENDAR minimal (un VEVENT + un rappel la veille).
  */
 class IcsBuilder {
+	/** Suffixe des UID générés par Vitalog : permet d'ignorer ses propres événements à l'import. */
+	public const UID_SUFFIX = '@vitalog';
+
 	public function build(
 		string $uid,
 		int $startsAt,

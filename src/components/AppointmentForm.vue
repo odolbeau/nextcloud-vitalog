@@ -157,7 +157,8 @@ async function submit() {
 		placeId: place.value?.id ?? null,
 		reason: reason.value.trim() || null,
 		notes: notes.value.trim() || null,
-		status: status.value.id,
+		// un rendez-vous créé à une date passée a déjà eu lieu
+		status: !props.appointment && startsAt.value < new Date() ? 'done' : status.value.id,
 	}, props.appointment?.id)
 	saving.value = false
 	if (saved) {

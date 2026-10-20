@@ -16,7 +16,7 @@ export function addAttachment(appointmentId, fileId) {
 export const removeAttachment = (id) => axios.delete(url(`attachments/${id}`), config).then(unwrap)
 
 export const getSettings = () => axios.get(url('settings'), config).then(unwrap)
-export const saveSettings = (calendarUri) => axios.put(url('settings'), { calendarUri }, config).then(unwrap)
+export const saveSettings = (calendarUri, importFromCalendar) => axios.put(url('settings'), { calendarUri, importFromCalendar }, config).then(unwrap)
 
 /**
  * Message d'erreur renvoyé par le serveur, le cas échéant.

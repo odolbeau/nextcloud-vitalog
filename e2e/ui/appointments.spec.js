@@ -253,3 +253,37 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	await expect(page.getByRole('article')).toContainText('Calendar sync is off')
 	expect((await admin.list('appointments'))[0]).toMatchObject({ id: appointment.id, synced: false })
 })
+
+test('an appointment created at a past date is marked as done', async ({ page }) => {
+	await openApp(page)
+	await page.getByRole('button', { name: 'New appointment' }).first().click()
+	const form = dialog(page)
+	await fill(form.getByLabel('Date and time'), '2020-03-15T09:30')
+	await fill(form.getByLabel('Reason'), 'Vaccin')
+	await form.getByRole('button', { name: 'Save' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+
+	await expect.poll(async () => (await admin.list('appointments'))[0]?.status).toBe('done')
+})
+
+test('importing events from the calendar can be enabled from the settings, with its limits explained', async ({ page }) => {
+	await openApp(page)
+	await nav(page, 'settings').click()
+	const settings = dialog(page)
+	const toggle = settings.getByRole('switch', { name: /Create an appointment when I add an event/ })
+	await expect(toggle).toBeDisabled()
+	await expect(settings).toContainText('Recurring events are not supported')
+	await expect(settings).toContainText('one-way')
+
+	await choose(page, 'Calendar', 'Personal')
+	await expect(toggle).toBeEnabled()
+	await expect(toggle).not.toBeChecked()
+	await toggle.click({ force: true })
+	await settings.getByRole('button', { name: 'Save' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+	expect(await admin.data(await admin.get('settings'))).toMatchObject({ calendarUri: 'personal', importFromCalendar: true })
+
+	// l'état est restitué à la réouverture
+	await nav(page, 'settings').click()
+	await expect(dialog(page).getByRole('switch', { name: /Create an appointment when I add an event/ })).toBeChecked()
+})

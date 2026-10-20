@@ -43,6 +43,20 @@ class AppointmentMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/** @throws Exception */
+	public function findByCalendarUid(string $uid, string $userId): ?Appointment {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('calendar_uid', $qb->createNamedParameter($uid)))
+			->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		try {
+			return $this->findEntity($qb);
+		} catch (DoesNotExistException) {
+			return null;
+		}
+	}
+
 	/**
 	 * @return list<Appointment>
 	 * @throws Exception
