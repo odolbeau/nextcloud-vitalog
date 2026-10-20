@@ -112,19 +112,6 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->service->sync($appointment);
 	}
 
-	public function testChangingCalendarMovesEvent(): void {
-		$appointment = $this->appointment();
-		$appointment->setCalendarUid('fixed@vitalog');
-		$appointment->setCalendarUri('old');
-
-		$this->gateway->expects(self::once())->method('delete')->with('alice', 'old', 'fixed@vitalog');
-		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog', self::anything());
-
-		$this->service->sync($appointment);
-
-		self::assertSame('personal', $appointment->getCalendarUri());
-	}
-
 	public function testGatewayFailureIsLoggedNotThrown(): void {
 		$this->gateway->method('put')->willThrowException(new RuntimeException('boom'));
 		$this->logger->expects(self::once())->method('error');
@@ -145,7 +132,7 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->service->remove($appointment);
 	}
 
-	public function testSetTargetCalendarResyncsAllAppointments(): void {
+	public function testLinkWritesTheSettingsAndCreatesEveryEvent(): void {
 		$calls = [];
 		$this->config->method('setUserValue')->willReturnCallback(function (string $user, string $app, string $key, string $value) use (&$calls): void {
 			$calls[$key] = $value;
@@ -153,20 +140,96 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->appointments->method('findAll')->with('alice')->willReturn([$this->appointment(), $this->appointment()]);
 		$this->gateway->expects(self::exactly(2))->method('put');
 
-		$this->service->setTargetCalendar('alice', 'personal', true);
+		$this->service->link('alice', 'personal', true);
 
 		self::assertSame(['calendar_uri' => 'personal', 'import_from_calendar' => '1'], $calls);
 	}
 
-	public function testImportIsDroppedWithoutTargetCalendar(): void {
+	public function testLinkingAgainFindsTheEventsOfTheSameUid(): void {
+		$appointment = $this->appointment();
+		$appointment->setCalendarUid('fixed@vitalog');
+		$this->appointments->method('findAll')->willReturn([$appointment]);
+		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'fixed@vitalog', self::anything());
+
+		$this->service->link('alice', 'personal');
+
+		self::assertSame('personal', $appointment->getCalendarUri());
+		self::assertSame('fixed@vitalog', $appointment->getCalendarUid());
+	}
+
+	public function testUnlinkKeepingTheEventsTouchesNothingInTheCalendar(): void {
 		$calls = [];
 		$this->config->method('setUserValue')->willReturnCallback(function (string $user, string $app, string $key, string $value) use (&$calls): void {
 			$calls[$key] = $value;
 		});
-		$this->appointments->method('findAll')->willReturn([]);
+		$linked = $this->appointment();
+		$linked->setCalendarUid('fixed@vitalog');
+		$linked->setCalendarUri('personal');
+		$never = $this->appointment();
+		$this->appointments->method('findAll')->willReturn([$linked, $never]);
+		$this->appointments->expects(self::once())->method('update')->with($linked);
+		$this->gateway->expects(self::never())->method('delete');
+		$this->gateway->expects(self::never())->method('put');
 
-		$this->service->setTargetCalendar('alice', null, true);
+		$this->service->unlink('alice', false);
 
+		self::assertNull($linked->getCalendarUri());
+		self::assertSame('fixed@vitalog', $linked->getCalendarUid());
 		self::assertSame(['calendar_uri' => '', 'import_from_calendar' => '0'], $calls);
+	}
+
+	public function testUnlinkDeletingTheEventsKeepsTheUid(): void {
+		$linked = $this->appointment();
+		$linked->setCalendarUid('fixed@vitalog');
+		$linked->setCalendarUri('personal');
+		$this->appointments->method('findAll')->willReturn([$linked]);
+		$this->gateway->expects(self::once())->method('delete')->with('alice', 'personal', 'fixed@vitalog');
+
+		$this->service->unlink('alice', true);
+
+		self::assertNull($linked->getCalendarUri());
+		self::assertSame('fixed@vitalog', $linked->getCalendarUid());
+	}
+
+	public function testAFailedDeletionDoesNotStopTheUnlink(): void {
+		$first = $this->appointment();
+		$first->setCalendarUid('a@vitalog');
+		$first->setCalendarUri('personal');
+		$second = $this->appointment();
+		$second->setCalendarUid('b@vitalog');
+		$second->setCalendarUri('personal');
+		$this->appointments->method('findAll')->willReturn([$first, $second]);
+		$this->gateway->method('delete')->willThrowException(new RuntimeException('boom'));
+		$this->logger->expects(self::exactly(2))->method('error');
+
+		$this->service->unlink('alice', true);
+
+		self::assertNull($first->getCalendarUri());
+		self::assertNull($second->getCalendarUri());
+	}
+
+	public function testAnUnlinkedAppointmentIsNotWrittenToTheCalendarAnymore(): void {
+		$this->target = null;
+		$appointment = $this->appointment();
+		$appointment->setCalendarUid('fixed@vitalog');
+		$this->gateway->expects(self::never())->method('put');
+		$this->gateway->expects(self::never())->method('delete');
+
+		$this->service->sync($appointment);
+		$this->service->remove($appointment);
+	}
+
+	public function testTheImportOptionOnlyAppliesToALinkedCalendar(): void {
+		$calls = [];
+		$this->config->method('setUserValue')->willReturnCallback(function (string $user, string $app, string $key, string $value) use (&$calls): void {
+			$calls[$key] = $value;
+		});
+
+		$this->service->setImportEnabled('alice', true);
+		self::assertSame(['import_from_calendar' => '1'], $calls);
+
+		$this->target = null;
+		$this->service->setImportEnabled('alice', true);
+		self::assertSame(['import_from_calendar' => '0'], $calls);
 	}
 }

@@ -187,6 +187,16 @@ export const useDataStore = defineStore('data', () => {
 		return saved
 	}
 
+	async function unlinkCalendar(deleteEvents) {
+		const saved = await guard(() => api.unlinkCalendar(deleteEvents), t('vitalog', 'The calendar could not be unlinked.'))
+		if (saved) {
+			settings.value = saved
+			await refreshAppointments()
+			showSuccess(t('vitalog', 'Calendar unlinked.'))
+		}
+		return saved
+	}
+
 	return {
 		appointments,
 		practitioners,
@@ -217,5 +227,6 @@ export const useDataStore = defineStore('data', () => {
 		saveLabel,
 		deleteLabel,
 		saveCalendar,
+		unlinkCalendar,
 	}
 })

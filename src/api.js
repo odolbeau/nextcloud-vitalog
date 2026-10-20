@@ -19,7 +19,9 @@ export const searchContacts = (search) => axios.get(url('contacts'), { ...config
 export const createContact = (practitionerId) => axios.post(url(`practitioners/${practitionerId}/contact`), {}, config).then(unwrap)
 
 export const getSettings = () => axios.get(url('settings'), config).then(unwrap)
+/** Lie un calendrier, ou met à jour l'option d'import du calendrier déjà lié (changer de calendrier est refusé : il faut le délier). */
 export const saveSettings = (calendarUri, importFromCalendar, importExisting) => axios.put(url('settings'), { calendarUri, importFromCalendar, importExisting }, config).then(unwrap)
+export const unlinkCalendar = (deleteEvents) => axios.post(url('settings/unlink'), { deleteEvents }, config).then(unwrap)
 
 /**
  * Message d'erreur renvoyé par le serveur, le cas échéant.

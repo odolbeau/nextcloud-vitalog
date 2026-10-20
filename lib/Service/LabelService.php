@@ -6,7 +6,6 @@ namespace OCA\Vitalog\Service;
 
 use InvalidArgumentException;
 use OCA\Vitalog\Db\AppointmentLabelMapper;
-use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Label;
 use OCA\Vitalog\Db\LabelMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -15,8 +14,6 @@ class LabelService {
 	public function __construct(
 		private LabelMapper $mapper,
 		private AppointmentLabelMapper $links,
-		private AppointmentMapper $appointments,
-		private CalendarSyncService $calendarSync,
 	) {
 	}
 
@@ -44,36 +41,14 @@ class LabelService {
 	public function update(int $id, string $userId, string $name, ?string $color): Label {
 		$label = $this->find($id, $userId);
 		$this->fill($label, $userId, $name, $color);
-		$label = $this->mapper->update($label);
-		$this->resync($id, $userId);
-
-		return $label;
+		return $this->mapper->update($label);
 	}
 
 	public function delete(int $id, string $userId): Label {
 		$label = $this->find($id, $userId);
-		$affected = $this->links->appointmentIdsByLabel($id);
 		$this->links->deleteByLabel($id);
-		$label = $this->mapper->delete($label);
-		$this->resyncAppointments($affected, $userId);
 
-		return $label;
-	}
-
-	/** Les événements du calendrier embarquent les libellés (CATEGORIES) : on les met à jour. */
-	private function resync(int $id, string $userId): void {
-		$this->resyncAppointments($this->links->appointmentIdsByLabel($id), $userId);
-	}
-
-	/** @param list<int> $appointmentIds */
-	private function resyncAppointments(array $appointmentIds, string $userId): void {
-		foreach ($appointmentIds as $appointmentId) {
-			try {
-				$this->calendarSync->sync($this->appointments->find($appointmentId, $userId));
-			} catch (DoesNotExistException) {
-				// lien orphelin : rien à resynchroniser
-			}
-		}
+		return $this->mapper->delete($label);
 	}
 
 	private function fill(Label $label, string $userId, string $name, ?string $color): void {

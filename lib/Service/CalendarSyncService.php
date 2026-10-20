@@ -53,15 +53,44 @@ class CalendarSyncService {
 			&& $this->config->getUserValue($userId, Application::APP_ID, self::IMPORT_KEY, '0') === '1';
 	}
 
-	public function setTargetCalendar(string $userId, ?string $uri, bool $import = false): void {
-		$this->config->setUserValue($userId, Application::APP_ID, self::CONFIG_KEY, $uri ?? '');
-		$this->config->setUserValue($userId, Application::APP_ID, self::IMPORT_KEY, $uri !== null && $import ? '1' : '0');
+	/**
+	 * Lie un calendrier et y crée l'événement de chaque rendez-vous. Un seul calendrier à la fois : pour en changer,
+	 * il faut d'abord le délier. Les événements déjà présents (UID conservé par les rendez-vous) sont retrouvés et mis à jour.
+	 */
+	public function link(string $userId, string $uri, bool $import = false): void {
+		$this->config->setUserValue($userId, Application::APP_ID, self::CONFIG_KEY, $uri);
+		$this->config->setUserValue($userId, Application::APP_ID, self::IMPORT_KEY, $import ? '1' : '0');
 		foreach ($this->appointments->findAll($userId) as $appointment) {
 			$this->sync($appointment);
 		}
 	}
 
-	/** Aligne le calendrier sur l'état du rendez-vous (création, déplacement, suppression de l'événement). */
+	/** Option « créer un rendez-vous quand un événement est ajouté » du calendrier lié. */
+	public function setImportEnabled(string $userId, bool $import): void {
+		$this->config->setUserValue($userId, Application::APP_ID, self::IMPORT_KEY, $this->getTargetCalendar($userId) !== null && $import ? '1' : '0');
+	}
+
+	/**
+	 * Délie le calendrier. Les rendez-vous gardent leur UID d'événement, pour retrouver leurs événements si on relie le même calendrier.
+	 *
+	 * @param bool $deleteEvents supprimer du calendrier les événements écrits par Vitalog (sinon ils y restent)
+	 */
+	public function unlink(string $userId, bool $deleteEvents): void {
+		foreach ($this->appointments->findAll($userId) as $appointment) {
+			if ($appointment->getCalendarUri() === null) {
+				continue;
+			}
+			if ($deleteEvents) {
+				$this->remove($appointment);
+			}
+			$appointment->setCalendarUri(null);
+			$this->appointments->update($appointment);
+		}
+		$this->config->setUserValue($userId, Application::APP_ID, self::CONFIG_KEY, '');
+		$this->config->setUserValue($userId, Application::APP_ID, self::IMPORT_KEY, '0');
+	}
+
+	/** Écrit l'état du rendez-vous dans son événement (créé s'il n'existe pas) ; sans calendrier lié, ne fait rien. */
 	public function sync(Appointment $appointment): void {
 		try {
 			$this->doSync($appointment);
@@ -82,13 +111,7 @@ class CalendarSyncService {
 	private function doSync(Appointment $appointment): void {
 		$userId = $appointment->getUserId();
 		$target = $this->getTargetCalendar($userId);
-		$wanted = $target !== null;
-
-		if ($appointment->getCalendarUri() !== null && (!$wanted || $appointment->getCalendarUri() !== $target)) {
-			$this->removeEvent($appointment);
-			$this->appointments->update($appointment);
-		}
-		if (!$wanted) {
+		if ($target === null) {
 			return;
 		}
 

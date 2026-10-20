@@ -22,7 +22,6 @@ class PractitionerService {
 	public function __construct(
 		private PractitionerMapper $mapper,
 		private AppointmentMapper $appointments,
-		private CalendarSyncService $calendarSync,
 		private ContactGateway $contacts,
 	) {
 	}
@@ -66,7 +65,6 @@ class PractitionerService {
 			$this->fill($practitioner, $name, $specialty, $phone);
 		}
 		$this->mapper->update($practitioner);
-		$this->resync($id, $userId);
 
 		return $this->resolve($practitioner);
 	}
@@ -96,19 +94,7 @@ class PractitionerService {
 			$appointment->setPractitionerId(null);
 			$this->appointments->update($appointment);
 		}
-		$practitioner = $this->mapper->delete($practitioner);
-		foreach ($affected as $appointment) {
-			$this->calendarSync->sync($appointment);
-		}
-
-		return $practitioner;
-	}
-
-	/** Les événements du calendrier embarquent le nom du praticien / lieu : on les met à jour. */
-	private function resync(int $id, string $userId): void {
-		foreach ($this->appointments->findByPractitioner($id, $userId) as $appointment) {
-			$this->calendarSync->sync($appointment);
-		}
+		return $this->mapper->delete($practitioner);
 	}
 
 	private function fill(Practitioner $practitioner, string $name, ?string $specialty, ?string $phone): void {
@@ -167,7 +153,6 @@ class PractitionerService {
 		$practitioner->setContactBook($contact['book']);
 		if ($previous !== [$practitioner->getName(), $practitioner->getSpecialty(), $practitioner->getPhone(), $practitioner->getContactBook()]) {
 			$this->mapper->update($practitioner);
-			$this->resync($practitioner->getId(), $practitioner->getUserId());
 		}
 		$practitioner->setContactState(Practitioner::CONTACT_LINKED, $this->contacts->url($uid, $contact['book']));
 

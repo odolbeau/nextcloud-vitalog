@@ -13,7 +13,6 @@ class PlaceService {
 	public function __construct(
 		private PlaceMapper $mapper,
 		private AppointmentMapper $appointments,
-		private CalendarSyncService $calendarSync,
 	) {
 	}
 
@@ -41,10 +40,7 @@ class PlaceService {
 	public function update(int $id, string $userId, string $name, ?string $address): Place {
 		$place = $this->find($id, $userId);
 		$this->fill($place, $name, $address);
-		$place = $this->mapper->update($place);
-		$this->resync($id, $userId);
-
-		return $place;
+		return $this->mapper->update($place);
 	}
 
 	public function delete(int $id, string $userId): Place {
@@ -54,19 +50,7 @@ class PlaceService {
 			$appointment->setPlaceId(null);
 			$this->appointments->update($appointment);
 		}
-		$place = $this->mapper->delete($place);
-		foreach ($affected as $appointment) {
-			$this->calendarSync->sync($appointment);
-		}
-
-		return $place;
-	}
-
-	/** Les événements du calendrier embarquent le nom du praticien / lieu : on les met à jour. */
-	private function resync(int $id, string $userId): void {
-		foreach ($this->appointments->findByPlace($id, $userId) as $appointment) {
-			$this->calendarSync->sync($appointment);
-		}
+		return $this->mapper->delete($place);
 	}
 
 	private function fill(Place $place, string $name, ?string $address): void {

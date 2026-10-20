@@ -54,7 +54,13 @@ export async function client(account = ADMIN) {
 					await context.delete(api(`${resource}/${item.id}`))
 				}
 			}
-			await context.put(api('settings'), { data: { calendarUri: null } })
+			await context.post(api('settings/unlink'), { data: { deleteEvents: true } })
+			// des événements gardés à la déliaison ne sont plus rattachés à aucun rendez-vous : on les retire du calendrier par défaut
+			const calendar = `/remote.php/dav/calendars/${this.account.user}/personal/`
+			const exported = await (await context.get(`${calendar}?export`)).text()
+			for (const [, uid] of exported.replace(/\r?\n[ \t]/g, '').matchAll(/^UID:(\S+@vitalog)\r?$/gm)) {
+				await context.delete(`${calendar}${uid}.ics`)
+			}
 		},
 		dispose: () => context.dispose(),
 	}

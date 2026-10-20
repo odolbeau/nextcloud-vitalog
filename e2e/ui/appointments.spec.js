@@ -215,8 +215,9 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	await nav(page, 'settings').click()
 	const settings = dialog(page)
 	await expect(settings.getByRole('heading', { name: 'Calendar sync' })).toBeVisible()
+	await expect(settings.getByRole('button', { name: 'Link calendar' })).toBeDisabled()
 	await choose(page, 'Calendar', 'Personal')
-	await settings.getByRole('button', { name: 'Save' }).click()
+	await settings.getByRole('button', { name: 'Link calendar' }).click()
 
 	await expect(page.getByRole('article')).toContainText('Added to your calendar')
 	const events = vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))
@@ -231,13 +232,47 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	const redirect = await admin.context.get(href, { maxRedirects: 0 })
 	expect(redirect.headers().location).toContain('/apps/calendar/edit/')
 
-	// désactivation
+	// lié : on ne peut plus choisir un autre calendrier, seulement délier
 	await nav(page, 'settings').click()
-	await expect(selected(page, 'Calendar')).toContainText('Personal')
-	await choose(page, 'Calendar', 'Sync disabled')
-	await dialog(page).getByRole('button', { name: 'Save' }).click()
+	const linked = dialog(page)
+	await expect(linked).toContainText('Your appointments are written to the calendar Personal')
+	await expect(linked.getByRole('combobox', { name: 'Calendar' })).toHaveCount(0)
+	await linked.getByRole('button', { name: 'Unlink calendar' }).click()
+	await expect(linked.getByRole('heading', { name: 'Unlink the calendar' })).toBeVisible()
+	// le choix par défaut est de garder les événements
+	await expect(linked.getByRole('radio', { name: 'Keep the events in the calendar' })).toBeChecked()
+	await linked.getByRole('button', { name: 'Unlink', exact: true }).click()
+
+	await expect(dialog(page)).toHaveCount(0)
 	await expect(page.getByRole('article')).toContainText('Calendar sync is off')
 	expect((await admin.list('appointments'))[0]).toMatchObject({ id: appointment.id, synced: false })
+	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(1)
+})
+
+test('unlinking from the settings can delete the events, and the calendar can be linked again', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
+	await admin.put('settings', { calendarUri: 'personal' })
+	await openApp(page)
+	await nav(page, 'settings').click()
+	await dialog(page).getByRole('button', { name: 'Unlink calendar' }).click()
+
+	// « Annuler » revient aux réglages sans rien délier
+	await dialog(page).getByRole('button', { name: 'Cancel' }).click()
+	await expect(dialog(page).getByRole('button', { name: 'Unlink calendar' })).toBeVisible()
+	expect((await admin.data(await admin.get('settings'))).calendarUri).toBe('personal')
+
+	await dialog(page).getByRole('button', { name: 'Unlink calendar' }).click()
+	await dialog(page).getByText('Delete the events from the calendar').click()
+	await dialog(page).getByRole('button', { name: 'Unlink', exact: true }).click()
+	await expect(dialog(page)).toHaveCount(0)
+	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(0)
+
+	// et on peut lier de nouveau
+	await nav(page, 'settings').click()
+	await choose(page, 'Calendar', 'Personal')
+	await dialog(page).getByRole('button', { name: 'Link calendar' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(1)
 })
 
 test('an appointment created at a past date shows up in Past', async ({ page }) => {
@@ -263,13 +298,13 @@ test('importing events from the calendar can be enabled from the settings, with 
 	const toggle = settings.getByRole('switch', { name: /Create an appointment when I add an event/ })
 	await expect(toggle).toBeDisabled()
 	await expect(settings).toContainText('Recurring events are not supported')
-	await expect(settings).toContainText('one-way')
+	await expect(settings).toContainText('not reflected in Vitalog')
 
 	await choose(page, 'Calendar', 'Personal')
 	await expect(toggle).toBeEnabled()
 	await expect(toggle).not.toBeChecked()
 	await toggle.click({ force: true })
-	await settings.getByRole('button', { name: 'Save' }).click()
+	await settings.getByRole('button', { name: 'Link calendar' }).click()
 	await expect(dialog(page)).toHaveCount(0)
 	expect(await admin.data(await admin.get('settings'))).toMatchObject({ calendarUri: 'personal', importFromCalendar: true })
 
@@ -295,7 +330,7 @@ test('selecting a calendar can import the events it already contains', async ({ 
 	await choose(page, 'Calendar', calendar)
 	await expect(existing).toBeEnabled()
 	await existing.check({ force: true })
-	await settings.getByRole('button', { name: 'Save' }).click()
+	await settings.getByRole('button', { name: 'Link calendar' }).click()
 	await expect(dialog(page)).toHaveCount(0)
 
 	await expect(items(page)).toHaveCount(1)

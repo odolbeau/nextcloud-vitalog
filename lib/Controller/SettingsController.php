@@ -35,22 +35,50 @@ class SettingsController extends OCSController {
 	}
 
 	/**
-	 * @param string|null $calendarUri URI du calendrier cible, null ou vide pour désactiver la synchro
-	 * @param bool $importFromCalendar créer un rendez-vous pour chaque événement ajouté au calendrier cible
-	 * @param bool $importExisting créer, une fois, un rendez-vous pour chaque événement déjà présent dans le calendrier cible
+	 * Lie un calendrier, ou modifie l'option d'import du calendrier déjà lié. On ne change pas de calendrier directement :
+	 * il faut d'abord le délier (POST /api/settings/unlink).
+	 *
+	 * @param string|null $calendarUri URI du calendrier à lier ; une fois lié, seul le même URI est accepté
+	 * @param bool $importFromCalendar créer un rendez-vous pour chaque événement ajouté au calendrier lié
+	 * @param bool $importExisting à la liaison seulement : créer, une fois, un rendez-vous pour chaque événement déjà présent dans le calendrier
 	 */
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/settings')]
 	public function update(?string $calendarUri = null, bool $importFromCalendar = false, bool $importExisting = false): DataResponse {
 		$calendarUri = $calendarUri === '' ? null : $calendarUri;
-		if ($calendarUri !== null && !in_array($calendarUri, array_column($this->calendars->listWritable($this->userId), 'uri'), true)) {
+		$linked = $this->sync->getTargetCalendar($this->userId);
+
+		if ($linked !== null) {
+			if ($calendarUri !== $linked) {
+				return new DataResponse(['message' => 'Unlink the calendar first'], Http::STATUS_CONFLICT);
+			}
+			$this->sync->setImportEnabled($this->userId, $importFromCalendar);
+
+			return new DataResponse($this->payload() + ['imported' => 0]);
+		}
+
+		if ($calendarUri === null) {
+			return new DataResponse($this->payload() + ['imported' => 0]);
+		}
+		if (!in_array($calendarUri, array_column($this->calendars->listWritable($this->userId), 'uri'), true)) {
 			return new DataResponse(['message' => 'Unknown calendar'], Http::STATUS_BAD_REQUEST);
 		}
-		$this->sync->setTargetCalendar($this->userId, $calendarUri, $importFromCalendar);
+		$this->sync->link($this->userId, $calendarUri, $importFromCalendar);
 		// ponctuel : n'est pas mémorisé ; fait après la synchro des rendez-vous (dont les événements sont ignorés par l'import)
-		$imported = $calendarUri !== null && $importExisting ? $this->import->importExisting($this->userId, $calendarUri) : 0;
+		$imported = $importExisting ? $this->import->importExisting($this->userId, $calendarUri) : 0;
 
 		return new DataResponse($this->payload() + ['imported' => $imported]);
+	}
+
+	/**
+	 * @param bool $deleteEvents supprimer du calendrier les événements écrits par Vitalog (sinon ils y restent)
+	 */
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/settings/unlink')]
+	public function unlink(bool $deleteEvents = false): DataResponse {
+		$this->sync->unlink($this->userId, $deleteEvents);
+
+		return new DataResponse($this->payload());
 	}
 
 	private function payload(): array {

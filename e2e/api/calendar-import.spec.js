@@ -54,6 +54,11 @@ async function addEvent(calendar, { startsAt, durationMinutes = 60, summary, loc
 	return uid
 }
 
+async function unlink(deleteEvents = false) {
+	const response = await admin.post('settings/unlink', { deleteEvents })
+	expect(response.status()).toBe(200)
+}
+
 async function configure(calendarUri, importFromCalendar, importExisting = false) {
 	const response = await admin.put('settings', { calendarUri, importFromCalendar, importExisting })
 	expect(response.status()).toBe(200)
@@ -147,6 +152,8 @@ test('choosing a calendar can import the events it already contains, once', asyn
 	expect(settings.imported).toBe(0)
 	expect(await admin.list('appointments')).toHaveLength(1)
 
+	// l'import ponctuel se demande à la liaison : il faut délier (en gardant les événements) puis relier
+	await unlink()
 	settings = await configure(EXISTING, false, true)
 	expect(settings.imported).toBe(2)
 	// l'import ponctuel n'est pas mémorisé, ni l'import à chaque ajout
@@ -156,6 +163,7 @@ test('choosing a calendar can import the events it already contains, once', asyn
 	expect((await admin.list('appointments')).find((a) => a.reason === 'Futur')).toMatchObject({ placeId: place.id, synced: true })
 
 	// rejouer ne crée rien de plus
+	await unlink()
 	expect((await configure(EXISTING, false, true)).imported).toBe(0)
 	expect(await admin.list('appointments')).toHaveLength(3)
 })

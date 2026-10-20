@@ -13,8 +13,8 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
 - **Navigation**: the view, the selected appointment and the filters live in the URL
   (`?view=…&appointment=…&label=…&practitioner=…`); back / forward, reload and shared links work, and "back" closes an open dialog.
 - **Documents**: prescriptions, reports, results… attached from your Nextcloud files.
-- **Calendar**: appointments are mirrored to the calendar of your choice (with a reminder the day before); moving or deleting one is
-  propagated. Optionally (off by default), an event added to that calendar also creates an appointment. When you pick the calendar you
+- **Calendar**: appointments are mirrored to the calendar you link (with a reminder the day before); moving or deleting one is
+  propagated. Optionally (off by default), an event added to that calendar also creates an appointment. When you link the calendar you
   can also import the events it already contains in one go (past ones included).
   One way only: later changes to the event are not propagated back, and recurring events are ignored.
 - English and French interface. Your data stays on your instance and is strictly private to each user.
@@ -105,10 +105,16 @@ builds the same archive and attaches it to a GitHub release.
 
 ## Calendar integration and Nextcloud's public API
 
-Vitalog writes to the user's calendar: it creates an event when an appointment is created (only once a target calendar is chosen),
-updates it when the appointment, or the practitioner, place or labels it shows, change, and deletes it when the appointment is
-deleted, when the target calendar changes or when the synchronisation is turned off. For an appointment imported from the calendar,
-it is the user's own event that gets updated.
+In the settings, the user **links** one calendar (and chooses the import options). Once linked, the calendar cannot be changed
+directly: the user must **unlink** it first, and chooses at that point whether the events Vitalog wrote stay in the calendar or are
+deleted. Appointments are never deleted by unlinking, and they keep the UID of their event: linking the same calendar again finds the
+events that were kept and updates them instead of duplicating them.
+
+While a calendar is linked, Vitalog writes to it only when an **appointment** is created, changed or deleted: it creates the event,
+updates it, or deletes it (for an appointment imported from the calendar, it is the user's own event that gets updated). Renaming or
+deleting a practitioner, a place or a label does **not** touch the events already written; they show the new values the next time the
+appointment itself is saved. Unlinking with "delete" removes the events of the appointments still linked; an event kept earlier, whose
+appointment was deleted while unlinked, stays in the calendar.
 
 The App Store guidelines say apps should use only Nextcloud's public API. The public `OCP\Calendar` API can only **create** an event
 (creating one whose UID already exists fails), and can neither update nor delete one. Updating and deleting therefore go through

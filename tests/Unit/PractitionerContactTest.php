@@ -7,11 +7,9 @@ namespace OCA\Vitalog\Tests\Unit;
 use InvalidArgumentException;
 use OCA\Vitalog\Contacts\ContactException;
 use OCA\Vitalog\Contacts\ContactGateway;
-use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Practitioner;
 use OCA\Vitalog\Db\PractitionerMapper;
-use OCA\Vitalog\Service\CalendarSyncService;
 use OCA\Vitalog\Service\PractitionerService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +17,6 @@ use PHPUnit\Framework\TestCase;
 class PractitionerContactTest extends TestCase {
 	private PractitionerMapper&MockObject $mapper;
 	private AppointmentMapper&MockObject $appointments;
-	private CalendarSyncService&MockObject $sync;
 	private ContactGateway&MockObject $contacts;
 	private PractitionerService $service;
 
@@ -30,11 +27,10 @@ class PractitionerContactTest extends TestCase {
 		$this->mapper->method('insert')->willReturnArgument(0);
 		$this->mapper->method('update')->willReturnArgument(0);
 		$this->appointments = $this->createMock(AppointmentMapper::class);
-		$this->sync = $this->createMock(CalendarSyncService::class);
 		$this->contacts = $this->createMock(ContactGateway::class);
 		$this->contacts->method('isAvailable')->willReturn(true);
 		$this->contacts->method('url')->willReturn('/contacts/uid-1');
-		$this->service = new PractitionerService($this->mapper, $this->appointments, $this->sync, $this->contacts);
+		$this->service = new PractitionerService($this->mapper, $this->appointments, $this->contacts);
 	}
 
 	private function practitioner(?string $contactUid = null): Practitioner {
@@ -69,12 +65,10 @@ class PractitionerContactTest extends TestCase {
 		$this->service->create('alice', 'X', null, null, 'nope');
 	}
 
-	public function testReadingRefreshesTheLocalCopyAndResyncsCalendar(): void {
+	public function testReadingRefreshesTheLocalCopy(): void {
 		$practitioner = $this->practitioner('uid-1');
 		$this->mapper->method('findAll')->willReturn([$practitioner]);
 		$this->contacts->method('find')->willReturn(self::CONTACT);
-		$this->appointments->method('findByPractitioner')->willReturn([new Appointment()]);
-		$this->sync->expects(self::once())->method('sync');
 
 		[$read] = $this->service->findAll('alice');
 
@@ -99,7 +93,7 @@ class PractitionerContactTest extends TestCase {
 		$contacts = $this->createMock(ContactGateway::class);
 		$contacts->method('isAvailable')->willReturn(false);
 		$contacts->expects(self::never())->method('find');
-		$service = new PractitionerService($this->mapper, $this->appointments, $this->sync, $contacts);
+		$service = new PractitionerService($this->mapper, $this->appointments, $contacts);
 		$this->practitioner('uid-1');
 
 		self::assertSame(Practitioner::CONTACT_UNAVAILABLE, $service->find(5, 'alice')->getContactStatus());
@@ -165,6 +159,6 @@ class PractitionerContactTest extends TestCase {
 		$linked->setContactUid('uid-1');
 		$mapper->method('find')->willReturn($linked);
 		$this->expectException(InvalidArgumentException::class);
-		(new PractitionerService($mapper, $this->appointments, $this->sync, $this->contacts))->createContact(5, 'alice');
+		(new PractitionerService($mapper, $this->appointments, $this->contacts))->createContact(5, 'alice');
 	}
 }
