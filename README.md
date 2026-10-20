@@ -74,6 +74,10 @@ Constatées avec `@nextcloud/vue` 9.13.1 ; non corrigées dans ce dépôt :
 - le titre de l'onglet affiche `[object Object]` : `NcContent` fournit `appName` sous forme de `computed` alors que `useAppName()`
   attend une chaîne ;
 - le séparateur `splitpanes` de `NcAppContent` est focalisable avec `role="separator"` mais sans `aria-valuenow` (axe : `aria-required-attr`) ;
+- `NcSelect` grise la valeur sélectionnée avec `opacity` (contraste 2,4:1) et son spinner est un `role="img"` sans nom (axe :
+  `color-contrast`, `role-img-alt`) : corrigé upstream par
+  [nextcloud-vue#9098](https://github.com/nextcloud-libraries/nextcloud-vue/pull/9098). Contournements ici à retirer avec la
+  version qui l'embarque : bloc `<style>` global de `src/App.vue`, et `.exclude('.loading-icon')` dans `e2e/ui/contacts.spec.js` ;
 - `NcModal` ignore Échap quand le focus est dans un champ de saisie : un formulaire ne se ferme pas avec Échap depuis un champ.
 
 ## Licence

@@ -192,3 +192,15 @@ onMounted(() => store.load())
 	padding: 4px;
 }
 </style>
+
+<style lang="scss">
+// @nextcloud/vue 9.13.1 dims the selected value with `opacity` while a NcSelect is open or loading,
+// which drops it to a 2.4:1 contrast. Fixed upstream in nextcloud-libraries/nextcloud-vue#9098:
+// remove this block once a release containing it is installed.
+.v-select.select.vs--open .vs__selected,
+.v-select.select.vs--loading .vs__selected {
+	// !important : la règle de la bibliothèque est scopée (data-v-…) donc plus spécifique
+	opacity: 1 !important;
+	color: var(--color-text-maxcontrast) !important;
+}
+</style>
