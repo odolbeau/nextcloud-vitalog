@@ -11,7 +11,7 @@ export const useDataStore = defineStore('data', () => {
 	const appointments = ref([])
 	const practitioners = ref([])
 	const places = ref([])
-	const settings = ref({ calendarUri: null, importFromCalendar: false, calendars: [] })
+	const settings = ref({ calendarUri: null, importFromCalendar: false, calendarAppEnabled: false, calendars: [] })
 	const loaded = ref(false)
 	const loadError = ref(false)
 

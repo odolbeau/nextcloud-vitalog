@@ -7,6 +7,7 @@ namespace OCA\Vitalog\Controller;
 use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Service\CalendarSyncService;
+use OCP\App\IAppManager;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -19,6 +20,7 @@ class SettingsController extends OCSController {
 		IRequest $request,
 		private CalendarSyncService $sync,
 		private CalendarGateway $calendars,
+		private IAppManager $apps,
 		private ?string $userId,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -50,6 +52,8 @@ class SettingsController extends OCSController {
 		return [
 			'calendarUri' => $this->sync->getTargetCalendar($this->userId),
 			'importFromCalendar' => $this->sync->isImportEnabled($this->userId),
+			// permet de proposer un lien vers l'événement dans l'app Calendrier
+			'calendarAppEnabled' => $this->apps->isEnabledForUser('calendar'),
 			'calendars' => $this->calendars->listWritable($this->userId),
 		];
 	}

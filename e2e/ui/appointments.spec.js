@@ -245,6 +245,14 @@ test('calendar sync can be enabled from the settings', async ({ page }) => {
 	expect(events).toHaveLength(1)
 	expect(events[0]).toContain('SUMMARY:Bilan')
 
+	// lien permanent vers l'événement dans l'app Calendrier
+	const link = page.getByRole('article').getByRole('link', { name: 'Open in Calendar' })
+	await expect(link).toHaveAttribute('target', '_blank')
+	const href = await link.getAttribute('href')
+	expect(href).toMatch(/\/apps\/calendar\/object\/.+(@|%40)vitalog$/)
+	const redirect = await admin.context.get(href, { maxRedirects: 0 })
+	expect(redirect.headers().location).toContain('/apps/calendar/edit/')
+
 	// désactivation
 	await nav(page, 'settings').click()
 	await expect(selected(page, 'Calendar')).toContainText('Personal')

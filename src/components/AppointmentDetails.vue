@@ -59,7 +59,7 @@
 		<dl class="details__facts">
 			<template v-if="practitioner">
 				<dt>{{ t('vitalog', 'Practitioner') }}</dt>
-				<dd class="details__person">
+				<dd class="details__row">
 					<div>
 						<strong>{{ practitioner.name }}</strong>
 						<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
@@ -67,7 +67,7 @@
 					</div>
 					<NcButton
 						v-if="practitioner.contactUrl"
-						class="details__contact"
+						class="details__open"
 						variant="tertiary"
 						:href="practitioner.contactUrl"
 						target="_blank"
@@ -98,9 +98,21 @@
 				</dd>
 			</template>
 			<dt>{{ t('vitalog', 'Calendar') }}</dt>
-			<dd>
+			<dd class="details__row">
 				<span v-if="appointment.synced" class="details__synced"><CalendarCheck :size="18" /> {{ t('vitalog', 'Added to your calendar') }}</span>
 				<span v-else class="details__muted">{{ calendarHint }}</span>
+				<NcButton
+					v-if="calendarUrl"
+					class="details__open"
+					variant="tertiary"
+					:href="calendarUrl"
+					target="_blank"
+					:title="t('vitalog', 'Open in Calendar')"
+					:aria-label="t('vitalog', 'Open in Calendar')">
+					<template #icon>
+						<CalendarMonth :size="20" />
+					</template>
+				</NcButton>
 			</dd>
 		</dl>
 
@@ -157,6 +169,7 @@ import NcChip from '@nextcloud/vue/components/NcChip'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
+import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -177,6 +190,10 @@ const emit = defineEmits(['edit', 'deleted'])
 const store = useDataStore()
 const confirmingDelete = ref(false)
 
+// lien permanent de l'app Calendrier vers l'événement (par son UID)
+const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.appointment.calendarUid
+	? generateUrl('/apps/calendar/object/{uid}', { uid: props.appointment.calendarUid })
+	: null)
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
 const place = computed(() => store.placeById(props.appointment.placeId))
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
@@ -309,7 +326,7 @@ async function pickFiles() {
 		padding-inline-end: 0;
 
 		// le glyphe (20 px) s'aligne sur le bord droit du bloc, pas sur celui de la zone cliquable
-		.details__contact {
+		.details__open {
 			margin-inline-end: calc((20px - var(--default-clickable-area)) / 2);
 		}
 

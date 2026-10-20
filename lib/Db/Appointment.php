@@ -64,6 +64,7 @@ class Appointment extends Entity implements JsonSerializable {
 			'notes' => $this->notes,
 			'status' => $this->status,
 			'synced' => $this->calendarUri !== null,
+			'calendarUid' => $this->calendarUri !== null ? $this->calendarUid : null,
 		];
 	}
 }
