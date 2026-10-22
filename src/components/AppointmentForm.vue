@@ -15,6 +15,7 @@
 
 			<NcSelect
 				v-model="duration"
+				:filterBy="filterByText"
 				inputId="vitalog-duration"
 				:inputLabel="t('vitalog', 'Duration')"
 				:options="durations"
@@ -24,6 +25,7 @@
 			<div class="form__row">
 				<NcSelect
 					v-model="practitioner"
+					:filterBy="filterByText"
 					class="form__grow"
 					inputId="vitalog-practitioner"
 					:inputLabel="t('vitalog', 'Practitioner')"
@@ -43,6 +45,7 @@
 			<div class="form__row">
 				<NcSelect
 					v-model="place"
+					:filterBy="filterByText"
 					class="form__grow"
 					inputId="vitalog-place"
 					:inputLabel="t('vitalog', 'Place')"
@@ -61,6 +64,7 @@
 
 			<NcSelect
 				v-model="labels"
+				:filterBy="filterByText"
 				inputId="vitalog-labels"
 				:inputLabel="t('vitalog', 'Labels')"
 				:options="labelOptions"
@@ -115,6 +119,7 @@ import PlaceForm from './PlaceForm.vue'
 import PractitionerForm from './PractitionerForm.vue'
 import { nextHalfHour, toDate, toTimestamp } from '../format.js'
 import { useDialogHistory } from '../navigation.js'
+import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -149,27 +154,9 @@ const saving = ref(false)
 
 const valid = computed(() => startsAt.value instanceof Date && !Number.isNaN(startsAt.value.getTime()))
 
-/** Les libellés tapés à la volée n'existent pas encore : on les crée (ou on réutilise l'existant du même nom). */
-async function resolveLabelIds() {
-	const ids = []
-	for (const option of labels.value) {
-		let id = option.id
-		if (id === null) {
-			const existing = store.labels.find((l) => l.name.toLowerCase() === option.label.toLowerCase())
-			id = existing?.id ?? (await store.saveLabel({ name: option.label, color: null }))?.id ?? null
-		}
-		if (id === null) {
-			return null
-		}
-		ids.push(id)
-	}
-
-	return [...new Set(ids)]
-}
-
 async function submit() {
 	saving.value = true
-	const labelIds = await resolveLabelIds()
+	const labelIds = await store.resolveLabelIds(labels.value)
 	if (labelIds === null) {
 		saving.value = false
 		return

@@ -92,6 +92,24 @@ export const useDataStore = defineStore('data', () => {
 		return saved
 	}
 
+	/** Les libellés tapés à la volée n'existent pas encore : on les crée (ou on réutilise l'existant du même nom). `null` en cas d'échec. */
+	async function resolveLabelIds(options) {
+		const ids = []
+		for (const option of options) {
+			let id = option.id
+			if (id === null) {
+				const existing = labels.value.find((l) => l.name.toLowerCase() === option.label.toLowerCase())
+				id = existing?.id ?? (await saveLabel({ name: option.label, color: null }))?.id ?? null
+			}
+			if (id === null) {
+				return null
+			}
+			ids.push(id)
+		}
+
+		return [...new Set(ids)]
+	}
+
 	/** Modifie quelques champs d'un rendez-vous : l'API remplace tout, on renvoie donc les autres valeurs telles quelles. */
 	function updateAppointment(appointment, changes) {
 		const { startsAt, duration, practitionerId, placeId, reason, notes, labelIds } = appointment
@@ -223,6 +241,7 @@ export const useDataStore = defineStore('data', () => {
 		load,
 		saveAppointment,
 		updateAppointment,
+		resolveLabelIds,
 		deleteAppointment,
 		addAttachment,
 		removeAttachment,

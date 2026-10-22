@@ -8,6 +8,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - The practitioner, place and notes of an appointment can be set or changed straight from its details, without opening the edit dialog.
 - The specialty of a practitioner is picked among the ones already used, or typed to add a new one.
+- Searching the appointment list and the selects ignores accents and case ("helene" finds "Hélène").
+- The labels of an appointment can be added, created and removed from its details.
+- The label color is picked with Nextcloud's color picker (the one of the Calendar app), with any color allowed; the label text turns black or white to stay readable.
 
 ## 0.1.0
 

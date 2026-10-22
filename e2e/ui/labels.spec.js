@@ -45,6 +45,37 @@ test('a label typed in the appointment form is created and attached', async ({ p
 	await expect(page.getByRole('article').getByRole('list', { name: 'Labels' })).toContainText('Cheville')
 })
 
+test('labels can be added, created and removed from the details', async ({ page }) => {
+	const ankle = await admin.create('labels', { name: 'Cheville', color: null })
+	await admin.create('labels', { name: 'Dentaire', color: null })
+	await admin.create('appointments', { startsAt: inDays(3), reason: 'Contrôle' })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+	const labels = details.getByRole('list', { name: 'Labels' }).getByRole('listitem')
+
+	// un libellé existant, sans ouvrir le formulaire
+	await details.getByRole('button', { name: 'Add labels' }).click()
+	await page.locator('[role="option"]').filter({ hasText: 'Cheville' }).click()
+	// un libellé tapé est créé à la volée
+	await page.keyboard.type('Radio')
+	await page.locator('[role="option"]').filter({ hasText: 'Radio' }).click()
+	await details.getByRole('button', { name: 'Done' }).click()
+
+	await expect(labels).toHaveText(['Cheville', 'Radio'])
+	const [stored] = await admin.list('appointments')
+	expect(stored.labelIds).toHaveLength(2)
+	expect(stored.labelIds).toContain(ankle.id)
+	expect((await admin.list('labels')).map((l) => l.name).sort()).toEqual(['Cheville', 'Dentaire', 'Radio'])
+
+	// retirer un libellé
+	await details.getByRole('button', { name: 'Edit the labels' }).click()
+	await details.getByRole('button', { name: 'Deselect Cheville' }).click()
+	await details.getByRole('button', { name: 'Done' }).click()
+	await expect(labels).toHaveText(['Radio'])
+	expect((await admin.list('appointments'))[0].labelIds).toHaveLength(1)
+})
+
 test('filtering by label brings together appointments of different practitioners, past and upcoming', async ({ page }) => {
 	const ankle = await admin.create('labels', { name: 'Cheville', color: '#1565c0' })
 	const blood = await admin.create('labels', { name: 'Don du sang' })
@@ -133,11 +164,18 @@ test('labels can be renamed, coloured and deleted from their page', async ({ pag
 
 	await row.click()
 	await fill(dialog(page).getByLabel('Name'), 'Cheville gauche')
-	await dialog(page).getByText('Blue', { exact: true }).click()
+	// même sélecteur de couleur que l'app Calendrier
+	await dialog(page).getByRole('button', { name: 'Color' }).click()
+	// le popover s'anime à l'ouverture : on réessaie tant que le clic n'a pas pris
+	await expect(async () => {
+		await page.locator('label', { has: page.getByRole('radio', { name: 'Boston Blue' }) }).click()
+		await expect(page.getByRole('radio', { name: 'Boston Blue' })).toBeChecked({ timeout: 500 })
+	}).toPass({ timeout: 10_000 })
+	await page.getByRole('button', { name: 'Choose' }).click()
 	await expectNoViolations(page)
 	await dialog(page).getByRole('button', { name: 'Save' }).click()
 	await expect(row).toContainText('Cheville gauche')
-	expect(await admin.list('labels')).toMatchObject([{ name: 'Cheville gauche', color: '#1565c0' }])
+	expect(await admin.list('labels')).toMatchObject([{ name: 'Cheville gauche', color: expect.stringMatching(/^#3794ac$/i) }])
 
 	await page.getByRole('button', { name: 'Show appointments labelled Cheville gauche' }).click()
 	await expect(items(page)).toHaveCount(1)

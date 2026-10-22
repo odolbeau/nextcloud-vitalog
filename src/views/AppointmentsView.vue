@@ -149,6 +149,7 @@ import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
 import { formatDate, formatTime } from '../format.js'
 import { go, nav } from '../navigation.js'
+import { contains } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -196,7 +197,7 @@ const heading = computed(() => ({
 
 const source = computed(() => store[props.filter])
 const items = computed(() => {
-	const needle = query.value.trim().toLowerCase()
+	const needle = query.value.trim()
 	const labelled = source.value.filter((a) => (props.labelId === null || a.labelIds?.includes(props.labelId))
 		&& (props.practitionerId === null || a.practitionerId === props.practitionerId))
 	if (needle === '') {
@@ -209,7 +210,7 @@ const items = computed(() => {
 		store.practitionerById(a.practitionerId)?.specialty,
 		store.placeById(a.placeId)?.name,
 		...store.labelsOf(a).map((l) => l.name),
-	].some((text) => text?.toLowerCase().includes(needle)))
+	].some((text) => contains(text, needle)))
 })
 const selected = computed(() => store.appointments.find((a) => a.id === selectedId.value) ?? null)
 

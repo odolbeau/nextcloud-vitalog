@@ -56,6 +56,7 @@
 			<p>{{ t('vitalog', 'Add your appointments to one of your calendars, with a reminder the day before.') }}</p>
 			<NcSelect
 				v-model="selected"
+				:filterBy="filterByText"
 				inputId="vitalog-calendar"
 				:inputLabel="t('vitalog', 'Calendar')"
 				:placeholder="t('vitalog', 'Choose a calendar')"
@@ -112,6 +113,7 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import CalendarSync from 'vue-material-design-icons/CalendarSync.vue'
 import { useDialogHistory } from '../navigation.js'
+import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
 const emit = defineEmits(['close'])

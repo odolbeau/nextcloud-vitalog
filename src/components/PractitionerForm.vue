@@ -36,6 +36,7 @@
 					autofocus />
 				<NcSelect
 					v-model="specialty"
+					:filterBy="filterByText"
 					inputId="vitalog-specialty"
 					:inputLabel="t('vitalog', 'Specialty')"
 					:options="specialties"
@@ -78,6 +79,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import * as api from '../api.js'
 import { useDialogHistory } from '../navigation.js'
+import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({

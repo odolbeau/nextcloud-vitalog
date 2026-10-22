@@ -3,7 +3,7 @@
 		:is="clickable ? 'button' : 'span'"
 		class="chip"
 		:class="{ 'chip--colored': label.color }"
-		:style="label.color ? { '--chip-color': label.color } : null"
+		:style="label.color ? { '--chip-color': label.color, '--chip-text': readableTextColor(label.color) } : null"
 		:type="clickable ? 'button' : null"
 		:data-test="`label-${label.id}`">
 		<span class="chip__name">{{ label.name }}</span>
@@ -11,6 +11,8 @@
 </template>
 
 <script setup>
+import { readableTextColor } from '../labels.js'
+
 defineProps({
 	label: { type: Object, required: true },
 	clickable: { type: Boolean, default: false },
@@ -33,7 +35,7 @@ defineProps({
 
 	&--colored {
 		background: var(--chip-color);
-		color: #fff;
+		color: var(--chip-text);
 	}
 
 	&__name {

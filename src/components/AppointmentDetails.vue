@@ -10,15 +10,59 @@
 			</div>
 		</header>
 
-		<ul v-if="labels.length > 0" class="details__labels" :aria-label="t('vitalog', 'Labels')">
-			<li v-for="label in labels" :key="label.id">
-				<LabelChip
-					:label="label"
-					clickable
-					:title="t('vitalog', 'Show all appointments labelled {name}', { name: label.name })"
-					@click="emit('filterLabel', label.id)" />
-			</li>
-		</ul>
+		<div class="details__labels-row" @keydown.esc="editing = null">
+			<template v-if="editing === 'labels'">
+				<NcSelect
+					v-model="labelSelection"
+					class="details__grow"
+					inputId="vitalog-details-labels"
+					:ariaLabelCombobox="t('vitalog', 'Labels')"
+					:filterBy="filterByText"
+					:options="labelOptions"
+					:placeholder="t('vitalog', 'Pick or type to create…')"
+					:createOption="(name) => ({ id: null, label: name.trim() })"
+					label="label"
+					multiple
+					taggable
+					keepOpen />
+				<NcButton
+					variant="tertiary"
+					:aria-label="t('vitalog', 'Done')"
+					:title="t('vitalog', 'Done')"
+					@click="editing = null">
+					<template #icon>
+						<Check :size="20" />
+					</template>
+				</NcButton>
+			</template>
+			<template v-else>
+				<ul v-if="labels.length > 0" class="details__labels" :aria-label="t('vitalog', 'Labels')">
+					<li v-for="label in labels" :key="label.id">
+						<LabelChip
+							:label="label"
+							clickable
+							:title="t('vitalog', 'Show all appointments labelled {name}', { name: label.name })"
+							@click="emit('filterLabel', label.id)" />
+					</li>
+				</ul>
+				<NcButton
+					v-if="labels.length > 0"
+					variant="tertiary"
+					:title="t('vitalog', 'Edit the labels')"
+					:aria-label="t('vitalog', 'Edit the labels')"
+					@click="startEditing('labels')">
+					<template #icon>
+						<Pencil :size="20" />
+					</template>
+				</NcButton>
+				<NcButton v-else variant="tertiary" @click="startEditing('labels')">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('vitalog', 'Add labels') }}
+				</NcButton>
+			</template>
+		</div>
 
 		<div class="details__actions">
 			<NcButton @click="emit('edit')">
@@ -40,6 +84,7 @@
 			<dd class="details__row" @keydown.esc="editing = null">
 				<template v-if="editing === 'practitioner'">
 					<NcSelect
+						:filterBy="filterByText"
 						class="details__grow"
 						inputId="vitalog-details-practitioner"
 						:ariaLabelCombobox="t('vitalog', 'Practitioner')"
@@ -93,6 +138,7 @@
 			<dd class="details__row" @keydown.esc="editing = null">
 				<template v-if="editing === 'place'">
 					<NcSelect
+						:filterBy="filterByText"
 						class="details__grow"
 						inputId="vitalog-details-place"
 						:ariaLabelCombobox="t('vitalog', 'Place')"
@@ -246,6 +292,7 @@ import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
@@ -255,6 +302,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import DateBadge from './DateBadge.vue'
 import LabelChip from './LabelChip.vue'
 import { formatDateTime } from '../format.js'
+import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
 const props = defineProps({
@@ -275,6 +323,17 @@ const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.ap
 const labels = computed(() => store.labelsOf(props.appointment))
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
 const place = computed(() => store.placeById(props.appointment.placeId))
+const labelOptions = computed(() => store.labels.map((l) => ({ id: l.id, label: l.name })))
+// chaque ajout ou retrait est enregistré aussitôt ; la sélection se déduit du rendez-vous
+const labelSelection = computed({
+	get: () => labels.value.map((l) => ({ id: l.id, label: l.name })),
+	async set(options) {
+		const labelIds = await store.resolveLabelIds(options)
+		if (labelIds !== null) {
+			await store.updateAppointment(props.appointment, { labelIds })
+		}
+	},
+})
 const practitionerOptions = computed(() => store.practitioners.map((p) => ({ id: p.id, label: p.specialty ? `${p.name} (${p.specialty})` : p.name })))
 const placeOptions = computed(() => store.places.map((p) => ({ id: p.id, label: p.name })))
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
@@ -370,9 +429,11 @@ async function pickFiles() {
 <style scoped lang="scss">
 .details__labels {
 	display: flex;
+	flex: 1;
 	flex-wrap: wrap;
 	gap: 6px;
-	margin: 0 0 12px;
+	min-width: 0;
+	margin: 0;
 	padding: 0;
 	list-style: none;
 }
@@ -383,6 +444,12 @@ async function pickFiles() {
 	gap: 20px;
 	max-width: 760px;
 	padding: 20px 20px 20px calc(var(--default-clickable-area) + 12px);
+
+	&__labels-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
 
 	&__header {
 		display: flex;

@@ -233,6 +233,34 @@ test('search narrows the list by reason, practitioner or place', async ({ page }
 	await expect(items(page)).toHaveCount(3)
 })
 
+test('search ignores accents and case, in the list and in the selects', async ({ page }) => {
+	const practitioner = await admin.create('practitioners', { name: 'Dr Hélène Müller', specialty: 'Généraliste' })
+	await admin.create('practitioners', { name: 'Dr Durand' })
+	await admin.create('appointments', { startsAt: inDays(2), reason: 'Détartrage', practitionerId: practitioner.id })
+	await admin.create('appointments', { startsAt: inDays(4), reason: 'Prise de sang' })
+	await openApp(page)
+	const search = page.getByLabel('Search appointments')
+
+	await fill(search, 'detartrage')
+	await expect(items(page)).toHaveCount(1)
+	await fill(search, 'HELENE muller')
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Détartrage')
+	// et l'inverse : des accents dans la saisie, pas dans les données
+	await fill(search, 'prisé')
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Prise de sang')
+	await fill(search, 'zzz')
+	await expect(page.getByText('No match')).toBeVisible()
+	await page.getByRole('button', { name: 'Clear search' }).click()
+
+	await items(page).last().click()
+	await page.getByRole('button', { name: 'Choose a practitioner' }).click()
+	await page.keyboard.type('helene')
+	await expect(page.locator('[role="option"]')).toHaveCount(1)
+	await expect(page.locator('[role="option"]').first()).toContainText('Hélène Müller')
+})
+
 test('upcoming is sorted soonest first, past most recent first', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(9), reason: 'Plus tard' })
 	await admin.create('appointments', { startsAt: inDays(1), reason: 'Bientôt' })
