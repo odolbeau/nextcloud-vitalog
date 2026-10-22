@@ -31,6 +31,8 @@ class CalendarSyncServiceTest extends TestCase {
 	private LoggerInterface&MockObject $logger;
 	private CalendarSyncService $service;
 	private ?string $target = 'personal';
+	private string $userTimezone = '';
+	private string $serverTimezone = 'UTC';
 
 	protected function setUp(): void {
 		$this->gateway = $this->createMock(CalendarGateway::class);
@@ -38,7 +40,8 @@ class CalendarSyncServiceTest extends TestCase {
 		$this->practitioners = $this->createMock(PractitionerMapper::class);
 		$this->places = $this->createMock(PlaceMapper::class);
 		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getUserValue')->willReturnCallback(fn () => $this->target ?? '');
+		$this->config->method('getUserValue')->willReturnCallback(fn (string $user, string $app) => $app === 'core' ? $this->userTimezone : ($this->target ?? ''));
+		$this->config->method('getSystemValue')->willReturnCallback(fn (string $key) => $key === 'default_timezone' ? $this->serverTimezone : null);
 		$l = $this->createMock(IL10N::class);
 		$l->method('t')->willReturnArgument(0);
 		$this->logger = $this->createMock(LoggerInterface::class);
@@ -99,6 +102,69 @@ class CalendarSyncServiceTest extends TestCase {
 
 		self::assertSame('personal', $appointment->getCalendarUri());
 		self::assertNotNull($appointment->getCalendarUid());
+	}
+
+	public function testWritesTheEventInTheUserTimezoneOtherwiseTheServerOne(): void {
+		$written = [];
+		$this->gateway->method('put')->willReturnCallback(function (string $user, string $calendar, string $uid, string $ics) use (&$written): void {
+			$written[] = $ics;
+		});
+
+		$this->userTimezone = 'America/Montreal';
+		$this->serverTimezone = 'Europe/Paris';
+		$this->service->sync($this->appointment());
+		$this->userTimezone = '';
+		$this->service->sync($this->appointment());
+		$this->serverTimezone = 'UTC';
+		$this->service->sync($this->appointment());
+
+		self::assertStringContainsString('DTSTART;TZID=America/Montreal:20270115T030000', $written[0]);
+		self::assertStringContainsString('DTSTART;TZID=Europe/Paris:20270115T090000', $written[1]);
+		self::assertStringContainsString('DTSTART:20270115T080000Z', $written[2]);
+	}
+
+	public function testAnExistingEventIsUpdatedInPlaceNotReplaced(): void {
+		$existing = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//other//EN\r\nBEGIN:VEVENT\r\nUID:orig\r\nDTSTAMP:20260101T100000Z\r\n"
+			. "DTSTART;TZID=Europe/Paris:20270115T090000\r\nDTEND;TZID=Europe/Paris:20270115T093000\r\nSUMMARY:Titre d'origine\r\nX-KEEP:yes\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+		$appointment = $this->appointment();
+		$appointment->setCalendarUid('orig');
+		$appointment->setCalendarUri('personal');
+		$appointment->setNotes('Apporter la carte');
+		$this->gateway->method('find')->with('alice', 'personal', 'orig')->willReturn($existing);
+
+		$this->gateway->expects(self::once())->method('put')->with(
+			'alice',
+			'personal',
+			'orig',
+			self::callback(static fn (string $ics): bool => str_contains($ics, 'X-KEEP:yes')
+				&& str_contains($ics, 'DTSTART;TZID=Europe/Paris:20270115T090000')
+				&& str_contains($ics, 'DESCRIPTION:Apporter la carte')
+				&& str_contains($ics, 'PRODID:-//other//EN')),
+		);
+
+		$this->service->sync($appointment);
+	}
+
+	public function testAnEventAlreadyUpToDateIsNotWrittenAgain(): void {
+		$appointment = $this->appointment();
+		$appointment->setCalendarUid('orig');
+		$appointment->setCalendarUri('personal');
+		$existing = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//other//EN\r\nBEGIN:VEVENT\r\nUID:orig\r\nDTSTAMP:20260101T100000Z\r\n"
+			. "DTSTART:20270115T080000Z\r\nDTEND:20270115T083000Z\r\nSUMMARY:Medical appointment\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+		$this->gateway->method('find')->willReturn($existing);
+		$this->gateway->expects(self::never())->method('put');
+
+		$this->service->sync($appointment);
+	}
+
+	public function testAnEventDeletedFromTheCalendarIsCreatedAgain(): void {
+		$appointment = $this->appointment();
+		$appointment->setCalendarUid('gone@vitalog');
+		$appointment->setCalendarUri('personal');
+		$this->gateway->method('find')->willReturn(null);
+		$this->gateway->expects(self::once())->method('put')->with('alice', 'personal', 'gone@vitalog', self::stringContains('BEGIN:VEVENT'));
+
+		$this->service->sync($appointment);
 	}
 
 	public function testReusesUidOnUpdate(): void {

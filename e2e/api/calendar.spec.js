@@ -192,6 +192,30 @@ test('unlinking can keep or delete the events, and linking the same calendar aga
 	expect((await admin.list('appointments')).every((a) => a.synced)).toBe(true)
 })
 
+test('events are written in the timezone of the user, like the Calendar app does', async () => {
+	const setTimezone = async (value) => {
+		const response = await admin.context.put(`/ocs/v2.php/cloud/users/${ADMIN.user}`, { data: { key: 'timezone', value } })
+		expect(response.status(), await response.text()).toBe(200)
+	}
+	await setTimezone('Europe/Paris')
+	try {
+		await setCalendar('personal')
+		// 14:00 à Paris, quelle que soit la saison
+		const startsAt = inDays(5, 14)
+		await admin.create('appointments', { startsAt, duration: 45, reason: 'Contrôle' })
+
+		const [event] = await events()
+		const local = (timestamp) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'medium' }).format(timestamp * 1000).replace(/[-: ]/g, '').replace(/^(\d{8})/, '$1T')
+		expect(event).toContain(`DTSTART;TZID=Europe/Paris:${local(startsAt)}`)
+		expect(event).toContain(`DTEND;TZID=Europe/Paris:${local(startsAt + 45 * 60)}`)
+		// le VTIMEZONE est un composant du calendrier, à côté du VEVENT
+		expect(await exportCalendar(ADMIN, 'personal')).toContain('BEGIN:VTIMEZONE')
+		expect(event).not.toMatch(/DTSTART:/)
+	} finally {
+		await setTimezone('UTC')
+	}
+})
+
 test('unlinking deletes nothing but the events, and a calendar already unlinked can be unlinked again', async () => {
 	const appointment = await admin.create('appointments', { startsAt: inDays(3), reason: 'A' })
 	await setCalendar('personal')

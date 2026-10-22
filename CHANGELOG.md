@@ -5,6 +5,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Calendar events are no longer rewritten from scratch: only the title, location, description, labels and time Vitalog manages are updated, so an event's own time zone, reminders, attendees and other properties are kept. Events are written in the user's time zone instead of UTC (the Calendar app showed two times for each of them), and events written in UTC by an earlier version move to that time zone the next time they are saved.
+
 ### Added
 - The practitioner, place and notes of an appointment can be set or changed straight from its details, without opening the edit dialog.
 - The specialty of a practitioner is picked among the ones already used, or typed to add a new one.

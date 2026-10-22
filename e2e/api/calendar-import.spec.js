@@ -177,3 +177,60 @@ test('choosing a calendar can import the events it already contains, once', asyn
 	expect((await configure(EXISTING, false, true)).imported).toBe(0)
 	expect(await admin.list('appointments')).toHaveLength(3)
 })
+
+test('editing an imported event changes only what Vitalog manages', async () => {
+	const startsAt = inDays(5, 14)
+	// heure de Paris telle qu'une app Calendrier l'écrit
+	const local = (timestamp) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'medium' }).format(timestamp * 1000).replace(/[-: ]/g, '').replace(/^(\d{8})/, '$1T')
+	const uid = `import-tz-${Date.now()}`
+	const ics = [
+		'BEGIN:VCALENDAR',
+		'VERSION:2.0',
+		'PRODID:-//Vitalog e2e//EN',
+		'BEGIN:VTIMEZONE',
+		'TZID:Europe/Paris',
+		'BEGIN:DAYLIGHT',
+		'TZOFFSETFROM:+0100',
+		'TZOFFSETTO:+0200',
+		'TZNAME:CEST',
+		'DTSTART:19700329T020000',
+		'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+		'END:DAYLIGHT',
+		'BEGIN:STANDARD',
+		'TZOFFSETFROM:+0200',
+		'TZOFFSETTO:+0100',
+		'TZNAME:CET',
+		'DTSTART:19701025T030000',
+		'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+		'END:STANDARD',
+		'END:VTIMEZONE',
+		'BEGIN:VEVENT',
+		`UID:${uid}`,
+		`DTSTAMP:${utc(Math.floor(Date.now() / 1000))}`,
+		`DTSTART;TZID=Europe/Paris:${local(startsAt)}`,
+		`DTEND;TZID=Europe/Paris:${local(startsAt + 1800)}`,
+		'SUMMARY:Contrôle',
+		'ATTENDEE:mailto:dr@example.org',
+		'X-KEEP:yes',
+		'END:VEVENT',
+		'END:VCALENDAR',
+		'',
+	].join('\r\n')
+	const response = await admin.context.put(`/remote.php/dav/calendars/${ADMIN.user}/${EXISTING}/user-${uid}.ics`, { headers: { 'Content-Type': 'text/calendar' }, data: ics })
+	expect(response.status(), 'add event').toBe(201)
+	added.push([EXISTING, uid])
+
+	expect((await configure(EXISTING, false, true)).imported).toBe(1)
+	const [appointment] = await admin.list('appointments')
+	await admin.put(`appointments/${appointment.id}`, { startsAt: appointment.startsAt, duration: appointment.duration, reason: 'Contrôle', notes: 'Apporter la carte' })
+
+	const event = (await exportCalendar(ADMIN, EXISTING)).replace(/\r?\n[ \t]/g, '')
+	// ce que Vitalog gère est à jour...
+	expect(event).toContain('DESCRIPTION:Apporter la carte')
+	expect(event).toContain('SEQUENCE:1')
+	// ... et le reste est resté tel quel : fuseau d'origine, participant, propriété d'une autre application
+	expect(event).toContain(`DTSTART;TZID=Europe/Paris:${local(startsAt)}`)
+	expect(event).toContain('ATTENDEE:mailto:dr@example.org')
+	expect(event).toContain('X-KEEP:yes')
+	expect(event).not.toContain('@vitalog')
+})

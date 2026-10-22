@@ -42,6 +42,14 @@ class DavCalendarGateway implements CalendarGateway {
 		}
 	}
 
+	public function find(string $userId, string $calendarUri, string $uid): ?string {
+		$calendarId = $this->calendarId($userId, $calendarUri);
+		$objectUri = $this->objectUri($userId, $calendarUri, $uid);
+		$object = $objectUri === null ? null : $this->backend->getCalendarObject($calendarId, $objectUri);
+
+		return is_array($object) && is_string($object['calendardata'] ?? null) ? $object['calendardata'] : null;
+	}
+
 	public function listEvents(string $userId, string $calendarUri): iterable {
 		$calendarId = $this->calendarId($userId, $calendarUri);
 		$uris = [];

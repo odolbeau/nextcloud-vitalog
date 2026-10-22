@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Service;
 
+use DateTimeZone;
+use Exception;
 use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\IcsBuilder;
@@ -116,20 +118,59 @@ class CalendarSyncService {
 		}
 
 		$uid = $appointment->getCalendarUid() ?? bin2hex(random_bytes(16)) . IcsBuilder::UID_SUFFIX;
-		$ics = $this->icsBuilder->build(
-			$uid,
+		$summary = $this->summary($appointment);
+		$location = $this->location($appointment);
+		$categories = $this->categories($appointment);
+		$timezone = $this->timezone($userId);
+
+		// l'événement existe déjà (créé par Vitalog ou importé) : on n'y modifie que ce qui nous concerne
+		$existing = $appointment->getCalendarUid() === null ? null : $this->gateway->find($userId, $target, $uid);
+		$ics = $existing === null ? null : $this->icsBuilder->update(
+			$existing,
 			$appointment->getStartsAt(),
 			$appointment->getDuration(),
-			$this->summary($appointment),
-			$this->location($appointment),
+			$summary,
+			$location,
 			$appointment->getNotes(),
-			null,
-			$this->categories($appointment),
+			$categories,
+			$timezone,
 		);
-		$this->gateway->put($userId, $target, $uid, $ics);
+		if ($ics === null) {
+			$ics = $this->icsBuilder->build(
+				$uid,
+				$appointment->getStartsAt(),
+				$appointment->getDuration(),
+				$summary,
+				$location,
+				$appointment->getNotes(),
+				null,
+				$categories,
+				$timezone,
+			);
+		}
+		if ($ics !== $existing) {
+			$this->gateway->put($userId, $target, $uid, $ics);
+		}
 		$appointment->setCalendarUid($uid);
 		$appointment->setCalendarUri($target);
 		$this->appointments->update($appointment);
+	}
+
+	/** Fuseau de l'utilisateur (réglage personnel de Nextcloud), à défaut celui du serveur. */
+	private function timezone(string $userId): string {
+		foreach ([$this->config->getUserValue($userId, 'core', 'timezone', ''), $this->config->getSystemValue('default_timezone', 'UTC')] as $timezone) {
+			if (!is_string($timezone) || $timezone === '') {
+				continue;
+			}
+			try {
+				new DateTimeZone($timezone);
+
+				return $timezone;
+			} catch (Exception) {
+			}
+		}
+
+		return 'UTC';
 	}
 
 	/** @return list<string> */
