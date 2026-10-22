@@ -4,14 +4,14 @@
 		isForm
 		@submit="submit"
 		@closing="emit('close')">
-		<div class="form">
+		<div ref="formElement" class="form">
 			<NcTextField
 				v-model="form.name"
 				:maxlength="255"
 				:label="t('vitalog', 'Name')"
 				required
 				autofocus />
-			<NcColorPicker v-model="color" clearable>
+			<NcColorPicker v-model="color" :container="pickerContainer" clearable>
 				<NcButton>
 					<template #icon>
 						<span
@@ -56,6 +56,10 @@ const emit = defineEmits(['close', 'saved'])
 useDialogHistory(() => emit('close'))
 const store = useDataStore()
 const saving = ref(false)
+// Téléporté dans <body>, le sélecteur serait hors du piège à focus de la boîte de dialogue, qui reprend le focus et fait
+// parfois perdre le clic sur une couleur : on l'ouvre dans le fond du modal (piégé aussi, mais sans rogner le popover)
+const formElement = ref(null)
+const pickerContainer = computed(() => formElement.value?.closest('.modal-mask') ?? 'body')
 const form = reactive({
 	name: props.label?.name ?? '',
 	color: props.label?.color ?? null,
