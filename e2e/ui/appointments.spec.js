@@ -101,6 +101,74 @@ test('editing an appointment updates the details', async ({ page }) => {
 	await expect(items(page).first()).toContainText('Suivi orthodontie')
 })
 
+test('a missing practitioner and place can be chosen from the details', async ({ page }) => {
+	const practitioner = await admin.create('practitioners', { name: 'Dr Martin', specialty: 'Dentiste' })
+	const place = await admin.create('places', { name: 'Cabinet Rivoli' })
+	await admin.create('appointments', { startsAt: inDays(5), reason: 'Contrôle' })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+
+	await details.getByRole('button', { name: 'Choose a practitioner' }).click()
+	await page.getByRole('option').filter({ hasText: 'Dr Martin' }).click()
+	await expect(details).toContainText('Dr Martin')
+	await expect(details).toContainText('Dentiste')
+
+	await details.getByRole('button', { name: 'Choose a place' }).click()
+	await page.getByRole('option').filter({ hasText: 'Cabinet Rivoli' }).click()
+	await expect(details).toContainText('Cabinet Rivoli')
+
+	const [stored] = await admin.list('appointments')
+	expect(stored).toMatchObject({ practitionerId: practitioner.id, placeId: place.id, reason: 'Contrôle' })
+})
+
+test('the practitioner can be changed from the details', async ({ page }) => {
+	const first = await admin.create('practitioners', { name: 'Dr Martin' })
+	await admin.create('practitioners', { name: 'Dr Durand' })
+	await admin.create('appointments', { startsAt: inDays(5), practitionerId: first.id })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+
+	await details.getByRole('button', { name: 'Change the practitioner' }).click()
+	await page.getByRole('option').filter({ hasText: 'Dr Durand' }).click()
+
+	await expect(details).toContainText('Dr Durand')
+	await expect(details).not.toContainText('Dr Martin')
+})
+
+test('the notes can be added, edited and cleared from the details', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(5), reason: 'Contrôle' })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+
+	await details.getByRole('button', { name: 'Add notes' }).click()
+	await details.getByLabel('Notes').fill('Apporter la carte vitale')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details).toContainText('Apporter la carte vitale')
+	expect((await admin.list('appointments'))[0].notes).toBe('Apporter la carte vitale')
+
+	await details.getByRole('button', { name: 'Edit the notes' }).click()
+	await expect(details.getByLabel('Notes')).toHaveValue('Apporter la carte vitale')
+	await details.getByLabel('Notes').fill('Apporter les radios')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details).toContainText('Apporter les radios')
+
+	// annuler ne change rien
+	await details.getByRole('button', { name: 'Edit the notes' }).click()
+	await details.getByLabel('Notes').fill('Brouillon')
+	await details.getByRole('button', { name: 'Cancel' }).click()
+	await expect(details).toContainText('Apporter les radios')
+
+	// vider les notes les supprime
+	await details.getByRole('button', { name: 'Edit the notes' }).click()
+	await details.getByLabel('Notes').fill('')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details.getByRole('button', { name: 'Add notes' })).toBeVisible()
+	expect((await admin.list('appointments'))[0].notes).toBeNull()
+})
+
 test('Upcoming and Past depend only on the date', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
 	await admin.create('appointments', { startsAt: inDays(-3), reason: 'Radio' })

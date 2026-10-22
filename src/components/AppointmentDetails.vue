@@ -36,43 +36,145 @@
 		</div>
 
 		<dl class="details__facts">
-			<template v-if="practitioner">
-				<dt>{{ t('vitalog', 'Practitioner') }}</dt>
-				<dd class="details__row">
-					<div>
+			<dt>{{ t('vitalog', 'Practitioner') }}</dt>
+			<dd class="details__row" @keydown.esc="editing = null">
+				<template v-if="editing === 'practitioner'">
+					<NcSelect
+						class="details__grow"
+						inputId="vitalog-details-practitioner"
+						:ariaLabelCombobox="t('vitalog', 'Practitioner')"
+						:modelValue="null"
+						:options="practitionerOptions"
+						:placeholder="t('vitalog', 'Choose a practitioner')"
+						label="label"
+						@update:modelValue="(option) => pick('practitionerId', option)" />
+					<NcButton variant="tertiary" :aria-label="t('vitalog', 'Cancel')" @click="editing = null">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+					</NcButton>
+				</template>
+				<template v-else>
+					<div v-if="practitioner">
 						<strong>{{ practitioner.name }}</strong>
 						<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
 						<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
 					</div>
-					<NcButton
-						v-if="practitioner.contactUrl"
-						class="details__open"
-						variant="tertiary"
-						:href="practitioner.contactUrl"
-						:title="t('vitalog', 'Open in Contacts')"
-						:aria-label="t('vitalog', 'Open in Contacts')">
+					<NcButton v-else variant="tertiary" @click="startEditing('practitioner')">
 						<template #icon>
-							<CardAccountDetails :size="20" />
+							<Plus :size="20" />
+						</template>
+						{{ t('vitalog', 'Choose a practitioner') }}
+					</NcButton>
+					<span v-if="practitioner" class="details__tools">
+						<NcButton
+							v-if="practitioner.contactUrl"
+							variant="tertiary"
+							:href="practitioner.contactUrl"
+							:title="t('vitalog', 'Open in Contacts')"
+							:aria-label="t('vitalog', 'Open in Contacts')">
+							<template #icon>
+								<CardAccountDetails :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
+							variant="tertiary"
+							:title="t('vitalog', 'Change the practitioner')"
+							:aria-label="t('vitalog', 'Change the practitioner')"
+							@click="startEditing('practitioner')">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+						</NcButton>
+					</span>
+				</template>
+			</dd>
+			<dt>{{ t('vitalog', 'Place') }}</dt>
+			<dd class="details__row" @keydown.esc="editing = null">
+				<template v-if="editing === 'place'">
+					<NcSelect
+						class="details__grow"
+						inputId="vitalog-details-place"
+						:ariaLabelCombobox="t('vitalog', 'Place')"
+						:modelValue="null"
+						:options="placeOptions"
+						:placeholder="t('vitalog', 'Choose a place')"
+						label="label"
+						@update:modelValue="(option) => pick('placeId', option)" />
+					<NcButton variant="tertiary" :aria-label="t('vitalog', 'Cancel')" @click="editing = null">
+						<template #icon>
+							<Close :size="20" />
 						</template>
 					</NcButton>
-				</dd>
-			</template>
-			<template v-if="place">
-				<dt>{{ t('vitalog', 'Place') }}</dt>
-				<dd>
-					<strong>{{ place.name }}</strong>
-					<a
-						v-if="place.address"
-						class="details__block"
-						:href="mapUrl">{{ place.address }}</a>
-				</dd>
-			</template>
-			<template v-if="appointment.notes">
-				<dt>{{ t('vitalog', 'Notes') }}</dt>
-				<dd class="details__notes">
+				</template>
+				<template v-else>
+					<div v-if="place">
+						<strong>{{ place.name }}</strong>
+						<a
+							v-if="place.address"
+							class="details__block"
+							:href="mapUrl">{{ place.address }}</a>
+					</div>
+					<NcButton v-else variant="tertiary" @click="startEditing('place')">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('vitalog', 'Choose a place') }}
+					</NcButton>
+					<span v-if="place" class="details__tools">
+						<NcButton
+							variant="tertiary"
+							:title="t('vitalog', 'Change the place')"
+							:aria-label="t('vitalog', 'Change the place')"
+							@click="startEditing('place')">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+						</NcButton>
+					</span>
+				</template>
+			</dd>
+			<dt>{{ t('vitalog', 'Notes') }}</dt>
+			<dd v-if="editing === 'notes'" class="details__notes-editor">
+				<NcTextArea
+					v-model="notesDraft"
+					:aria-label="t('vitalog', 'Notes')"
+					labelOutside
+					rows="5"
+					@keydown.esc="editing = null"
+					@keydown.ctrl.enter="saveNotes"
+					@keydown.meta.enter="saveNotes" />
+				<div class="details__notes-actions">
+					<NcButton @click="editing = null">
+						{{ t('vitalog', 'Cancel') }}
+					</NcButton>
+					<NcButton variant="primary" :disabled="saving" @click="saveNotes">
+						{{ t('vitalog', 'Save') }}
+					</NcButton>
+				</div>
+			</dd>
+			<dd v-else class="details__row">
+				<div v-if="appointment.notes" class="details__notes">
 					{{ appointment.notes }}
-				</dd>
-			</template>
+				</div>
+				<NcButton v-else variant="tertiary" @click="startEditing('notes')">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('vitalog', 'Add notes') }}
+				</NcButton>
+				<span v-if="appointment.notes" class="details__tools">
+					<NcButton
+						variant="tertiary"
+						:title="t('vitalog', 'Edit the notes')"
+						:aria-label="t('vitalog', 'Edit the notes')"
+						@click="startEditing('notes')">
+						<template #icon>
+							<Pencil :size="20" />
+						</template>
+					</NcButton>
+				</span>
+			</dd>
 			<dt>{{ t('vitalog', 'Calendar') }}</dt>
 			<dd class="details__row">
 				<span v-if="appointment.synced" class="details__synced"><CalendarCheck :size="18" /> {{ t('vitalog', 'Added to your calendar') }}</span>
@@ -136,9 +238,11 @@
 import { getFilePickerBuilder } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
+import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
@@ -147,6 +251,7 @@ import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import DateBadge from './DateBadge.vue'
 import LabelChip from './LabelChip.vue'
 import { formatDateTime } from '../format.js'
@@ -159,6 +264,9 @@ const emit = defineEmits(['edit', 'deleted', 'filterLabel'])
 
 const store = useDataStore()
 const confirmingDelete = ref(false)
+const editing = ref(null)
+const notesDraft = ref('')
+const saving = ref(false)
 
 // lien permanent de l'app Calendrier vers l'événement (par son UID)
 const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.appointment.calendarUid
@@ -167,6 +275,8 @@ const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.ap
 const labels = computed(() => store.labelsOf(props.appointment))
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
 const place = computed(() => store.placeById(props.appointment.placeId))
+const practitionerOptions = computed(() => store.practitioners.map((p) => ({ id: p.id, label: p.specialty ? `${p.name} (${p.specialty})` : p.name })))
+const placeOptions = computed(() => store.places.map((p) => ({ id: p.id, label: p.name })))
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
 const mapUrl = computed(() => 'https://www.openstreetmap.org/search?query=' + encodeURIComponent(place.value?.address ?? ''))
 
@@ -180,6 +290,46 @@ const durationLabel = computed(() => {
 const calendarHint = computed(() => store.settings.calendarUri
 	? t('vitalog', 'Not added to your calendar (sync failed).')
 	: t('vitalog', 'Calendar sync is off. Enable it from the settings in the left sidebar.'))
+
+// l'édition en place ne concerne que la fiche affichée : on la quitte quand on passe à un autre rendez-vous
+watch(() => props.appointment.id, () => {
+	editing.value = null
+})
+
+async function startEditing(field) {
+	editing.value = field
+	if (field === 'notes') {
+		notesDraft.value = props.appointment.notes ?? ''
+	}
+	await nextTick()
+	// le champ de recherche de vue-select n'est prêt qu'après son propre rendu
+	await new Promise((resolve) => requestAnimationFrame(resolve))
+	const input = document.getElementById(`vitalog-details-${field}`)
+	if (field === 'notes') {
+		input?.focus()
+		return
+	}
+	// vue-select ne déplie sa liste (et ne prend le focus) que sur un clic : on le simule pour ne pas en demander un second
+	input?.closest('.vs__selected-options')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+}
+
+async function pick(field, option) {
+	if (!option) {
+		return
+	}
+	if (await store.updateAppointment(props.appointment, { [field]: option.id })) {
+		editing.value = null
+	}
+}
+
+async function saveNotes() {
+	saving.value = true
+	const saved = await store.updateAppointment(props.appointment, { notes: notesDraft.value.trim() || null })
+	saving.value = false
+	if (saved) {
+		editing.value = null
+	}
+}
 
 const deleteButtons = [
 	{ label: t('vitalog', 'Cancel'), callback: () => {} },
@@ -301,10 +451,38 @@ async function pickFiles() {
 			flex: 1;
 			min-width: 0;
 		}
+
+		// un bouton « Ajouter… » garde sa largeur naturelle
+		> .button-vue:first-child {
+			flex: 0 1 auto;
+			margin-inline-start: -12px;
+		}
 	}
 
 	&__notes {
 		white-space: pre-wrap;
+	}
+
+	&__notes-editor {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__notes-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+	}
+
+	&__grow {
+		flex: 1;
+		min-width: 0;
+	}
+
+	&__tools {
+		display: flex;
+		flex-shrink: 0;
 	}
 
 	&__synced {

@@ -92,6 +92,12 @@ export const useDataStore = defineStore('data', () => {
 		return saved
 	}
 
+	/** Modifie quelques champs d'un rendez-vous : l'API remplace tout, on renvoie donc les autres valeurs telles quelles. */
+	function updateAppointment(appointment, changes) {
+		const { startsAt, duration, practitionerId, placeId, reason, notes, labelIds } = appointment
+		return saveAppointment({ startsAt, duration, practitionerId, placeId, reason, notes, labelIds, ...changes }, appointment.id)
+	}
+
 	async function deleteAppointment(id) {
 		const done = await guard(() => api.destroy('appointments', id), t('vitalog', 'The appointment could not be deleted.'))
 		if (done !== undefined) {
@@ -216,6 +222,7 @@ export const useDataStore = defineStore('data', () => {
 		countForLabel,
 		load,
 		saveAppointment,
+		updateAppointment,
 		deleteAppointment,
 		addAttachment,
 		removeAttachment,
