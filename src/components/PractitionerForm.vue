@@ -34,10 +34,13 @@
 					:label="t('vitalog', 'Name')"
 					required
 					autofocus />
-				<NcTextField
-					v-model="form.specialty"
-					:maxlength="255"
-					:label="t('vitalog', 'Specialty')" />
+				<NcSelect
+					v-model="specialty"
+					inputId="vitalog-specialty"
+					:inputLabel="t('vitalog', 'Specialty')"
+					:options="specialties"
+					:placeholder="t('vitalog', 'Pick or type to add…')"
+					taggable />
 				<NcTextField
 					v-model="form.phone"
 					:maxlength="64"
@@ -89,6 +92,24 @@ const form = reactive({
 	name: props.practitioner?.name ?? '',
 	specialty: props.practitioner?.specialty ?? '',
 	phone: props.practitioner?.phone ?? '',
+})
+
+// spécialités déjà saisies (sans doublon de casse), proposées à la saisie ; une nouvelle valeur tapée est acceptée telle quelle
+const specialties = computed(() => {
+	const known = new Map()
+	for (const { specialty } of store.practitioners) {
+		if (specialty && !known.has(specialty.toLowerCase())) {
+			known.set(specialty.toLowerCase(), specialty)
+		}
+	}
+
+	return [...known.values()].sort((a, b) => a.localeCompare(b))
+})
+const specialty = computed({
+	get: () => form.specialty || null,
+	set: (value) => {
+		form.specialty = (value ?? '').trim()
+	},
 })
 
 const toOption = (c) => ({ uid: c.uid, label: c.specialty ? `${c.name} · ${c.specialty}` : c.name, contact: c })

@@ -7,6 +7,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - The practitioner, place and notes of an appointment can be set or changed straight from its details, without opening the edit dialog.
+- The specialty of a practitioner is picked among the ones already used, or typed to add a new one.
 
 ## 0.1.0
 

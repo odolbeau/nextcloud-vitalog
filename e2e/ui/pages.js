@@ -52,3 +52,18 @@ export function fill(locator, value) {
 		await expect(locator).toHaveValue(value, { timeout: 500 })
 	}).toPass({ timeout: 10_000 })
 }
+
+/**
+ * Saisit une spécialité dans le champ (liste de suggestions + création) : on valide l'option proposée pour la valeur tapée.
+ * Le champ Contact apparaît après une recherche asynchrone et peut reprendre le focus : on réessaie jusqu'à ce que l'option s'affiche.
+ */
+export async function typeSpecialty(page, value) {
+	const field = dialog(page).last().getByRole('combobox', { name: 'Specialty' })
+	const option = page.locator('[role="option"]').filter({ hasText: value }).first()
+	await expect(async () => {
+		await field.click()
+		await field.fill(value)
+		await expect(option).toBeVisible({ timeout: 1000 })
+	}).toPass({ timeout: 10_000 })
+	await option.click()
+}

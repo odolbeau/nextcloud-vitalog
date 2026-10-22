@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { client, exportCalendar, inDays, vitalogEvents } from '../helpers.js'
-import { choose, dialog, fill, items, nav, openApp, selected, setLanguage } from './pages.js'
+import { choose, dialog, fill, items, nav, openApp, selected, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
 
@@ -32,7 +32,7 @@ test('first visit shows the empty state, then a full appointment can be created'
 	await form.getByRole('button', { name: 'New practitioner' }).click()
 	const practitionerDialog = dialog(page).last()
 	await fill(practitionerDialog.getByLabel('Name'), 'Dr Martin')
-	await fill(practitionerDialog.getByLabel('Specialty'), 'Dentiste')
+	await typeSpecialty(page, 'Dentiste')
 	await fill(practitionerDialog.getByLabel('Phone'), '01 02 03 04 05')
 	await practitionerDialog.getByRole('button', { name: 'Save' }).click()
 	await expect(selected(page, 'Practitioner')).toContainText('Dr Martin')

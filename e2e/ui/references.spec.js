@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { client, inDays } from '../helpers.js'
-import { dialog, fill, items, nav, openApp, setLanguage } from './pages.js'
+import { dialog, fill, items, nav, openApp, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
 
@@ -25,7 +25,7 @@ test.describe('practitioners', () => {
 		await page.getByRole('button', { name: 'New practitioner' }).click()
 		const form = dialog(page)
 		await fill(form.getByLabel('Name'), 'Dr Durand')
-		await fill(form.getByLabel('Specialty'), 'Cardiologue')
+		await typeSpecialty(page, 'Cardiologue')
 		await fill(form.getByLabel('Phone'), '04 05 06 07 08')
 		// plus de notes propres à Vitalog sur un praticien
 		await expect(form.getByLabel('Notes')).toHaveCount(0)
@@ -38,7 +38,7 @@ test.describe('practitioners', () => {
 
 		await row.first().click()
 		await expect(dialog(page).getByRole('heading', { name: 'Edit practitioner' })).toBeVisible()
-		await fill(dialog(page).getByLabel('Specialty'), 'Cardiologie')
+		await typeSpecialty(page, 'Cardiologie')
 		await dialog(page).getByRole('button', { name: 'Save' }).click()
 		await expect(row.first()).toContainText('Cardiologie')
 
@@ -47,6 +47,31 @@ test.describe('practitioners', () => {
 		await dialog(page).getByRole('button', { name: 'Delete', exact: true }).click()
 		await expect(row).toHaveCount(0)
 		expect(await admin.list('practitioners')).toEqual([])
+	})
+
+	test('the specialty is picked among the existing ones or added', async ({ page }) => {
+		await admin.create('practitioners', { name: 'Dr A', specialty: 'Dentiste' })
+		await admin.create('practitioners', { name: 'Dr B', specialty: 'dentiste' })
+		await admin.create('practitioners', { name: 'Dr C', specialty: 'Cardiologue' })
+		await openApp(page)
+		await nav(page, 'practitioners').click()
+
+		await page.getByRole('button', { name: 'New practitioner' }).click()
+		const form = dialog(page)
+		await fill(form.getByLabel('Name'), 'Dr D')
+		await form.getByRole('combobox', { name: 'Specialty' }).click()
+		// une seule entrée par spécialité, quelle que soit la casse
+		await expect(page.getByRole('option')).toHaveText(['Cardiologue', 'Dentiste'])
+		await page.locator('[role="option"]').filter({ hasText: 'Cardiologue' }).click()
+		await form.getByRole('button', { name: 'Save' }).click()
+		await expect(page.locator('[data-test^="practitioner-"]').filter({ hasText: 'Dr D' })).toContainText('Cardiologue')
+
+		await page.getByRole('button', { name: 'New practitioner' }).click()
+		await fill(dialog(page).getByLabel('Name'), 'Dr E')
+		await typeSpecialty(page, 'Dermatologue')
+		await dialog(page).getByRole('button', { name: 'Save' }).click()
+		await expect(page.locator('[data-test^="practitioner-"]').filter({ hasText: 'Dr E' })).toContainText('Dermatologue')
+		expect((await admin.list('practitioners')).map((p) => p.specialty).sort()).toEqual(['Cardiologue', 'Cardiologue', 'Dentiste', 'Dermatologue', 'dentiste'])
 	})
 
 	test('the name is required', async ({ page }) => {
