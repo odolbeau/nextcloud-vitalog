@@ -45,10 +45,11 @@ class ReferenceServicesTest extends TestCase {
 		$mapper->method('find')->willReturn(new Place());
 		$mapper->method('update')->willReturnArgument(0);
 
-		$place = (new PlaceService($mapper, $this->appointments))->update(4, 'alice', 'Clinique', 'Lyon');
+		$place = (new PlaceService($mapper, $this->appointments))->update(4, 'alice', 'Clinique', 'Lyon', 'Code 1234');
 
 		self::assertSame('Clinique', $place->getName());
 		self::assertSame('Lyon', $place->getAddress());
+		self::assertSame('Code 1234', $place->getNotes());
 	}
 
 	public function testFindUnknownPractitionerThrowsNotFound(): void {

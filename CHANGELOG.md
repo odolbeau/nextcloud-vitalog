@@ -9,6 +9,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Calendar events are no longer rewritten from scratch: only the title, location, description, labels and time Vitalog manages are updated, so an event's own time zone, reminders, attendees and other properties are kept. Events are written in the user's time zone instead of UTC (the Calendar app showed two times for each of them), and events written in UTC by an earlier version move to that time zone the next time they are saved.
 
 ### Added
+- Practical information on places (intercom, door code, floor…), shown in the appointment details.
 - An optional price on appointments, set or changed straight from the details like the notes. It is stored in cents without a currency.
 - The practitioner, place and notes of an appointment can be set or changed straight from its details, without opening the edit dialog.
 - The specialty of a practitioner is picked among the ones already used, or typed to add a new one.
@@ -21,6 +22,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 First release.
 
 ### Added
+- Practical information on places (intercom, door code, floor…), shown in the appointment details.
 - Appointments with date, duration, reason, notes, practitioner and place; "upcoming" and "past" depend only on the date.
 - Practitioners and places, created once or on the fly, reused everywhere.
 - Optional link of a practitioner to a card of the Contacts app, with a "Vitalog appointments" action in the contacts menu.

@@ -12,6 +12,11 @@
 				required
 				autofocus />
 			<NcTextArea v-model="form.address" :label="t('vitalog', 'Address')" rows="3" />
+			<NcTextArea
+				v-model="form.notes"
+				:label="t('vitalog', 'Practical information')"
+				:helperText="t('vitalog', 'Intercom, door code, floor…')"
+				rows="3" />
 		</div>
 		<template #actions>
 			<NcButton @click="emit('close')">
@@ -48,6 +53,7 @@ const saving = ref(false)
 const form = reactive({
 	name: props.place?.name ?? '',
 	address: props.place?.address ?? '',
+	notes: props.place?.notes ?? '',
 })
 
 async function submit() {
@@ -55,6 +61,7 @@ async function submit() {
 	const saved = await store.savePlace({
 		name: form.name.trim(),
 		address: form.address.trim() || null,
+		notes: form.notes.trim() || null,
 	}, props.place?.id)
 	saving.value = false
 	if (saved) {

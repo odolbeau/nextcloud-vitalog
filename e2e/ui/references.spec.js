@@ -124,12 +124,15 @@ test.describe('places', () => {
 		await page.getByRole('button', { name: 'New place' }).click()
 		await fill(dialog(page).getByLabel('Name'), 'Clinique du Parc')
 		await fill(dialog(page).getByLabel('Address'), '3 avenue du Parc, Lyon')
+		await fill(dialog(page).getByLabel('Practical information'), 'Interphone 12B, code 4521')
 		await dialog(page).getByRole('button', { name: 'Save' }).click()
 
 		const row = page.locator('[data-test^="place-"]')
 		await expect(row).toHaveCount(1)
 		await expect(row.first()).toContainText('Clinique du Parc')
 		await expect(row.first()).toContainText('3 avenue du Parc, Lyon')
+		await expect(row.first()).toContainText('Interphone 12B, code 4521')
+		expect((await admin.list('places'))[0].notes).toBe('Interphone 12B, code 4521')
 
 		await row.first().click()
 		await expect(dialog(page).getByRole('heading', { name: 'Edit place' })).toBeVisible()
@@ -142,6 +145,14 @@ test.describe('places', () => {
 		await expect(row).toHaveCount(0)
 		expect(await admin.list('places')).toEqual([])
 	})
+})
+
+test('the practical information of a place is shown in the appointment details', async ({ page }) => {
+	const place = await admin.create('places', { name: 'Cabinet', address: '1 rue de la Paix', notes: 'Interphone 12B, code 4521' })
+	await admin.create('appointments', { startsAt: inDays(3), reason: 'Contrôle', placeId: place.id })
+	await openApp(page)
+	await items(page).first().click()
+	await expect(page.getByRole('article')).toContainText('Interphone 12B, code 4521')
 })
 
 test('practitioner and place edits are reflected in appointments without reloading', async ({ page }) => {

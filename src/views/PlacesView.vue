@@ -29,6 +29,10 @@
 					@click.prevent="editing = place">
 					<template #subname>
 						{{ place.address }}
+						<template v-if="place.address && place.notes">
+							·
+						</template>
+						{{ place.notes }}
 					</template>
 					<template #extra-actions>
 						<NcButton

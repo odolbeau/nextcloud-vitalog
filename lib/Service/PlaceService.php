@@ -29,17 +29,17 @@ class PlaceService {
 		}
 	}
 
-	public function create(string $userId, string $name, ?string $address): Place {
+	public function create(string $userId, string $name, ?string $address, ?string $notes = null): Place {
 		$place = new Place();
 		$place->setUserId($userId);
-		$this->fill($place, $name, $address);
+		$this->fill($place, $name, $address, $notes);
 
 		return $this->mapper->insert($place);
 	}
 
-	public function update(int $id, string $userId, string $name, ?string $address): Place {
+	public function update(int $id, string $userId, string $name, ?string $address, ?string $notes = null): Place {
 		$place = $this->find($id, $userId);
-		$this->fill($place, $name, $address);
+		$this->fill($place, $name, $address, $notes);
 		return $this->mapper->update($place);
 	}
 
@@ -53,8 +53,9 @@ class PlaceService {
 		return $this->mapper->delete($place);
 	}
 
-	private function fill(Place $place, string $name, ?string $address): void {
+	private function fill(Place $place, string $name, ?string $address, ?string $notes): void {
 		$place->setName(Validator::requiredText($name, Validator::NAME_MAX, 'name'));
 		$place->setAddress(Validator::optionalText($address, Validator::NOTES_MAX, 'address'));
+		$place->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
 	}
 }

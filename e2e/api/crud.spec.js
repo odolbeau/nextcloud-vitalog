@@ -57,8 +57,8 @@ test.describe('places', () => {
 		const created = await admin.create('places', { name: 'Clinique du Parc', address: '1 rue de la Paix, Paris' })
 		expect(created).toMatchObject({ name: 'Clinique du Parc', address: '1 rue de la Paix, Paris' })
 
-		const updated = await admin.data(await admin.put(`places/${created.id}`, { name: 'Clinique', address: 'Lyon' }))
-		expect(updated).toMatchObject({ name: 'Clinique', address: 'Lyon' })
+		const updated = await admin.data(await admin.put(`places/${created.id}`, { name: 'Clinique', address: 'Lyon', notes: 'Interphone 12B, code 4521' }))
+		expect(updated).toMatchObject({ name: 'Clinique', address: 'Lyon', notes: 'Interphone 12B, code 4521' })
 
 		expect((await admin.delete(`places/${created.id}`)).status()).toBe(200)
 		expect(await admin.list('places')).toEqual([])

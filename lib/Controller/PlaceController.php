@@ -34,13 +34,13 @@ class PlaceController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $name, ?string $address = null): DataResponse {
-		return $this->handle(fn () => $this->service->create($this->userId, $name, $address), Http::STATUS_CREATED);
+	public function create(string $name, ?string $address = null, ?string $notes = null): DataResponse {
+		return $this->handle(fn () => $this->service->create($this->userId, $name, $address, $notes), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, string $name, ?string $address = null): DataResponse {
-		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $address));
+	public function update(int $id, string $name, ?string $address = null, ?string $notes = null): DataResponse {
+		return $this->handle(fn () => $this->service->update($id, $this->userId, $name, $address, $notes));
 	}
 
 	#[NoAdminRequired]

@@ -160,6 +160,9 @@
 							v-if="place.address"
 							class="details__block"
 							:href="mapUrl">{{ place.address }}</a>
+						<div v-if="place.notes" class="details__block details__notes details__muted">
+							{{ place.notes }}
+						</div>
 					</div>
 					<NcButton v-else variant="tertiary" @click="startEditing('place')">
 						<template #icon>

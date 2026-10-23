@@ -14,17 +14,21 @@ use OCP\AppFramework\Db\Entity;
  * @method void setName(string $name)
  * @method string|null getAddress()
  * @method void setAddress(?string $address)
+ * @method string|null getNotes()
+ * @method void setNotes(?string $notes)
  */
 class Place extends Entity implements JsonSerializable {
 	protected ?string $userId = null;
 	protected ?string $name = null;
 	protected ?string $address = null;
+	protected ?string $notes = null;
 
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->getId(),
 			'name' => $this->name,
 			'address' => $this->address,
+			'notes' => $this->notes,
 		];
 	}
 }
