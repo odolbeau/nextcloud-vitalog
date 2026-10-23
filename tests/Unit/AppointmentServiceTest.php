@@ -14,7 +14,6 @@ use OCA\Vitalog\Db\LabelMapper;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\PractitionerMapper;
 use OCA\Vitalog\Service\AppointmentService;
-use OCA\Vitalog\Service\CalendarSyncService;
 use OCA\Vitalog\Service\NotFoundException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -24,7 +23,6 @@ class AppointmentServiceTest extends TestCase {
 	private AppointmentMapper&MockObject $mapper;
 	private PractitionerMapper&MockObject $practitioners;
 	private AttachmentMapper&MockObject $attachments;
-	private CalendarSyncService&MockObject $sync;
 	private LabelMapper&MockObject $labels;
 	private AppointmentLabelMapper&MockObject $links;
 	private AppointmentService $service;
@@ -33,7 +31,6 @@ class AppointmentServiceTest extends TestCase {
 		$this->mapper = $this->createMock(AppointmentMapper::class);
 		$this->practitioners = $this->createMock(PractitionerMapper::class);
 		$this->attachments = $this->createMock(AttachmentMapper::class);
-		$this->sync = $this->createMock(CalendarSyncService::class);
 		$this->labels = $this->createMock(LabelMapper::class);
 		$this->links = $this->createMock(AppointmentLabelMapper::class);
 		$this->service = new AppointmentService(
@@ -41,19 +38,17 @@ class AppointmentServiceTest extends TestCase {
 			$this->practitioners,
 			$this->createMock(PlaceMapper::class),
 			$this->attachments,
-			$this->sync,
 			$this->labels,
 			$this->links,
 		);
 	}
 
-	public function testCreateInsertsAndSyncs(): void {
+	public function testCreateInserts(): void {
 		$this->mapper->method('insert')->willReturnCallback(static function ($a) {
 			$a->setId(1);
 
 			return $a;
 		});
-		$this->sync->expects(self::once())->method('sync');
 
 		$appointment = $this->service->create('alice', 1_800_000_000, 30, null, null, 'Contrôle', null);
 
@@ -91,12 +86,11 @@ class AppointmentServiceTest extends TestCase {
 		$this->service->find(1, 'alice');
 	}
 
-	public function testDeleteCleansCalendarAndAttachments(): void {
+	public function testDeleteCleansAttachments(): void {
 		$appointment = new Appointment();
 		$appointment->setId(4);
 		$this->mapper->method('find')->willReturn($appointment);
 		$this->mapper->method('delete')->willReturnArgument(0);
-		$this->sync->expects(self::once())->method('remove')->with($appointment);
 		$this->attachments->expects(self::once())->method('deleteByAppointment')->with(4);
 
 		$this->service->delete(4, 'alice');

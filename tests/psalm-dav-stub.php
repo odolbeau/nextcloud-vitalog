@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Signature minimale de la classe interne du DAV utilisée par DavCalendarGateway.
+// Signatures minimales des classes internes de l'app DAV utilisées par Vitalog (DavCalendarGateway, lib/Dav).
 
 namespace OCA\DAV\CalDAV {
 	class CalDavBackend {
@@ -18,11 +18,6 @@ namespace OCA\DAV\CalDAV {
 			return null;
 		}
 
-		/** @return array<string, mixed>|null */
-		public function getCalendarObject($calendarId, $objectUri, int $calendarType = self::CALENDAR_TYPE_CALENDAR) {
-			return null;
-		}
-
 		/** @return list<array<string, mixed>> */
 		public function getCalendarObjects($calendarId, $calendarType = self::CALENDAR_TYPE_CALENDAR): array {
 			return [];
@@ -32,20 +27,33 @@ namespace OCA\DAV\CalDAV {
 		public function getMultipleCalendarObjects($calendarId, array $uris, $calendarType = self::CALENDAR_TYPE_CALENDAR): array {
 			return [];
 		}
+	}
+}
 
-		public function getCalendarObjectByUID($principalUri, $uid, $calendarUri = null) {
-			return null;
+namespace OCA\DAV\CalDAV\Integration {
+	abstract class ExternalCalendar implements \Sabre\CalDAV\ICalendar, \Sabre\DAV\IProperties {
+		public function __construct(string $appId, string $calendarUri) {
 		}
 
-		public function createCalendarObject($calendarId, $objectUri, $calendarData, $calendarType = self::CALENDAR_TYPE_CALENDAR) {
+		final public function getName() {
 			return '';
 		}
 
-		public function updateCalendarObject($calendarId, $objectUri, $calendarData, $calendarType = self::CALENDAR_TYPE_CALENDAR) {
-			return '';
+		final public function setName($name) {
 		}
 
-		public function deleteCalendarObject($calendarId, $objectUri, $calendarType = self::CALENDAR_TYPE_CALENDAR, bool $forceDeletePermanently = false) {
+		final public function createDirectory($name) {
 		}
+	}
+
+	interface ICalendarProvider {
+		public function getAppId(): string;
+
+		/** @return ExternalCalendar[] */
+		public function fetchAllForCalendarHome(string $principalUri): array;
+
+		public function hasCalendarInCalendarHome(string $principalUri, string $calendarUri): bool;
+
+		public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ?ExternalCalendar;
 	}
 }

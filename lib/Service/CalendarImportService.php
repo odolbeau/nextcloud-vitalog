@@ -13,29 +13,18 @@ use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
- * Crée un rendez-vous quand l'utilisateur ajoute un événement dans le calendrier cible (sens unique :
- * les modifications ultérieures de l'événement ne sont pas répercutées dans Vitalog).
+ * Import ponctuel : crée un rendez-vous pour chaque événement d'un calendrier de l'utilisateur (sens unique : les
+ * modifications ultérieures de l'événement ne sont pas répercutées dans Vitalog). L'UID et le calendrier de l'événement sont
+ * gardés sur le rendez-vous, pour ne pas l'importer deux fois.
  */
 class CalendarImportService {
 	public function __construct(
 		private CalendarGateway $gateway,
 		private EventParser $parser,
-		private CalendarSyncService $sync,
 		private AppointmentMapper $appointments,
 		private PlaceMapper $places,
 		private LoggerInterface $logger,
 	) {
-	}
-
-	/** Un échec est journalisé et n'empêche jamais la création de l'événement dans le calendrier. */
-	public function importEvent(string $userId, string $calendarUri, string $ics): ?Appointment {
-		try {
-			return $this->doImport($userId, $calendarUri, $ics);
-		} catch (Throwable $e) {
-			$this->logger->error('Vitalog could not import a calendar event for ' . $userId, ['exception' => $e]);
-
-			return null;
-		}
 	}
 
 	/**
@@ -57,13 +46,6 @@ class CalendarImportService {
 		}
 
 		return $created;
-	}
-
-	private function doImport(string $userId, string $calendarUri, string $ics): ?Appointment {
-		if (!$this->sync->isImportEnabled($userId) || $this->sync->getTargetCalendar($userId) !== $calendarUri) {
-			return null;
-		}
-		return $this->createFrom($userId, $calendarUri, $ics);
 	}
 
 	private function createFrom(string $userId, string $calendarUri, string $ics): ?Appointment {

@@ -12,7 +12,7 @@ export const useDataStore = defineStore('data', () => {
 	const practitioners = ref([])
 	const places = ref([])
 	const labels = ref([])
-	const settings = ref({ calendarUri: null, importFromCalendar: false, calendarAppEnabled: false, calendars: [] })
+	const settings = ref({ calendarAppEnabled: false, calendarPath: null, calendars: [] })
 	const loaded = ref(false)
 	const loadError = ref(false)
 
@@ -153,8 +153,6 @@ export const useDataStore = defineStore('data', () => {
 		)
 		if (saved) {
 			replaceIn(list, saved)
-			// les événements du calendrier portent le nom / l'adresse : le serveur les a mis à jour
-			await refreshAppointments()
 		}
 		return saved
 	}
@@ -198,27 +196,15 @@ export const useDataStore = defineStore('data', () => {
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
 	const deletePlace = (id) => deleteReference('places', places, id)
 
-	async function saveCalendar(calendarUri, importFromCalendar = false, importExisting = false) {
-		const saved = await guard(() => api.saveSettings(calendarUri, importFromCalendar, importExisting), t('vitalog', 'The calendar setting could not be saved.'))
-		if (saved) {
-			const { imported, ...current } = saved
-			settings.value = current
-			await refreshAppointments()
-			if (importExisting) {
-				showSuccess(t('vitalog', 'Appointments created from existing events: {count}', { count: imported }))
-			}
+	/** Import ponctuel : crée un rendez-vous par événement du calendrier. Renvoie le nombre créé, ou `null` en cas d'échec. */
+	async function importCalendar(calendarUri) {
+		const result = await guard(() => api.importCalendar(calendarUri), t('vitalog', 'The events could not be imported.'))
+		if (!result) {
+			return null
 		}
-		return saved
-	}
-
-	async function unlinkCalendar(deleteEvents) {
-		const saved = await guard(() => api.unlinkCalendar(deleteEvents), t('vitalog', 'The calendar could not be unlinked.'))
-		if (saved) {
-			settings.value = saved
-			await refreshAppointments()
-			showSuccess(t('vitalog', 'Calendar unlinked.'))
-		}
-		return saved
+		await refreshAppointments()
+		showSuccess(t('vitalog', 'Appointments imported: {count}', { count: result.imported }))
+		return result.imported
 	}
 
 	return {
@@ -252,7 +238,6 @@ export const useDataStore = defineStore('data', () => {
 		deletePlace,
 		saveLabel,
 		deleteLabel,
-		saveCalendar,
-		unlinkCalendar,
+		importCalendar,
 	}
 })

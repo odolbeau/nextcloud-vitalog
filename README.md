@@ -8,15 +8,14 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
   and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
 - **Labels**: tags (with an optional colour) that bring appointments together across practitioners and places ("ankle", "blood
   donation"…). An appointment can carry several of them. The list can be filtered by label and by practitioner, and both filters
-  combine (filter button next to the search field, or the "Labels" page). Labels are written to the calendar event's categories (one
-  way: categories edited in Calendar do not come back).
+  combine (filter button next to the search field, or the "Labels" page). Labels show up as the categories of the calendar events.
 - **Navigation**: the view, the selected appointment and the filters live in the URL
   (`?view=…&appointment=…&label=…&practitioner=…`); back / forward, reload and shared links work, and "back" closes an open dialog.
 - **Documents**: prescriptions, reports, results… attached from your Nextcloud files.
-- **Calendar**: appointments are mirrored to the calendar you link (with a reminder the day before); moving or deleting one is
-  propagated. Optionally (off by default), an event added to that calendar also creates an appointment. When you link the calendar you
-  can also import the events it already contains in one go (past ones included).
-  One way only: later changes to the event are not propagated back, and recurring events are ignored.
+- **Calendar**: your appointments appear in a read-only "Vitalog" calendar, in the Calendar app and in any CalDAV client, with a
+  reminder the day before. It is generated from your appointments: there is nothing to link or synchronise, and changing an
+  appointment, a practitioner, a place or a label shows up right away. The events of an existing calendar can also be imported as
+  appointments in one go (past ones included; recurring events are ignored, and later changes to the events are not reflected).
 - English and French interface. Your data stays on your instance and is strictly private to each user.
 
 Compatible with Nextcloud **34 and 35** (PHP 8.2+; PHP 8.3+ for Nextcloud 35). Nextcloud 33 is deliberately not supported: its end of
@@ -45,8 +44,8 @@ sudo -u www-data php occ vitalog:purge    # lists what will be deleted and asks 
 sudo -u www-data php occ app:remove vitalog
 ```
 
-It drops the six `vitalog_*` tables and the users' settings. Calendar events created by Vitalog stay in the calendars, and attached
-files stay in the users' files.
+It drops the six `vitalog_*` tables and the users' settings, so the "Vitalog" calendar disappears with them. Attached files stay in
+the users' files.
 
 ## Development
 
@@ -70,7 +69,7 @@ the Calendar and Contacts apps.
 
 | Command | Content |
 | --- | --- |
-| `composer test` | PHPUnit: unit tests of the services (calendar sync, attachments, cascades, validation) |
+| `composer test` | PHPUnit: unit tests of the services (Vitalog calendar, import, attachments, cascades, validation) |
 | `composer lint` / `composer cs:fix` | php-cs-fixer |
 | `composer psalm` | static analysis |
 | `npm run lint` | ESLint (src, e2e, scripts) |
@@ -92,11 +91,10 @@ builds the same archive and attaches it to a GitHub release.
 ### Architecture
 
 - `lib/Db`: entities and mappers (`vitalog_*` tables, migration in `lib/Migration`). Every query is filtered by `user_id`.
-- `lib/Service`: business logic. `CalendarSyncService` mirrors an appointment into the target calendar; a synchronisation failure is
-  logged but never prevents saving.
-- `lib/Calendar`: `CalendarGateway` (interface) and `DavCalendarGateway`. The public `OCP\Calendar` API can only **create** an event,
-  so updating and deleting go through `OCA\DAV\CalDAV\CalDavBackend` (an internal class, though used by the official apps), isolated
-  behind the interface.
+- `lib/Service`: business logic, including the one-shot import of a calendar (`CalendarImportService`).
+- `lib/Dav`: the read-only "Vitalog" calendar (`CalendarPlugin`, `Calendar`, `CalendarObject`), declared in `appinfo/info.xml`.
+- `lib/Calendar`: `EventFactory` and `IcsBuilder` build the events of the Vitalog calendar; `CalendarGateway` and
+  `DavCalendarGateway` read the user's calendars for the import.
 - `lib/Contacts`: `ContactGateway` and `ManagerContactGateway` (public `OCP\Contacts\IManager` API, address books of the signed-in
   user); `lib/ContactsMenu`: the "Vitalog appointments" action on linked cards.
 - `lib/Controller`: OCS API under `/ocs/v2.php/apps/vitalog/api/` (`appointments`, `practitioners`, `places`, `labels`, `settings`,
@@ -105,23 +103,21 @@ builds the same archive and attaches it to a GitHub release.
 
 ## Calendar integration and Nextcloud's public API
 
-In the settings, the user **links** one calendar (and chooses the import options). Once linked, the calendar cannot be changed
-directly: the user must **unlink** it first, and chooses at that point whether the events Vitalog wrote stay in the calendar or are
-deleted. Appointments are never deleted by unlinking, and they keep the UID of their event: linking the same calendar again finds the
-events that were kept and updates them instead of duplicating them.
+Vitalog **does not write to the user's calendars**. It provides its own calendar, "Vitalog", the way the Deck app provides its
+boards: a calendar plugin declared in `appinfo/info.xml` (`<sabre><calendar-plugins>`) adds it to the user's CalDAV home
+(`/remote.php/dav/calendars/<user>/app-generated--vitalog--appointments/`). Its events are built on each request from the
+appointments, in the user's time zone, with a reminder the day before (`VALARM`, triggered by the clients that sync the calendar;
+Nextcloud's own reminder notifications only cover stored events). The calendar is read-only: creating, changing or deleting an event
+from a client is refused. Only its owner sees it. Hiding it or changing its colour in the Calendar app works as for any calendar.
 
-While a calendar is linked, Vitalog writes to it only when an **appointment** is created, changed or deleted: it creates the event,
-updates it, or deletes it (for an appointment imported from the calendar, it is the user's own event that gets updated). Renaming or
-deleting a practitioner, a place or a label does **not** touch the events already written; they show the new values the next time the
-appointment itself is saved. Unlinking with "delete" removes the events of the appointments still linked; an event kept earlier, whose
-appointment was deleted while unlinked, stays in the calendar.
+The import reads the events of one of the user's calendars once and creates the missing appointments; each appointment keeps the UID
+and calendar of its source event so that importing again skips it. Nothing is written back to the source calendar.
 
-The App Store guidelines say apps should use only Nextcloud's public API. The public `OCP\Calendar` API can only **create** an event
-(creating one whose UID already exists fails), and can neither update nor delete one. Updating and deleting therefore go through
-`OCA\DAV\CalDAV\CalDavBackend`, an internal class of the DAV app that the official apps also use. This is the only non-public API
-Vitalog uses; it is isolated behind `lib/Calendar/CalendarGateway.php` (implemented by `DavCalendarGateway`), which is the one file to
-adapt if a Nextcloud release changes it. A calendar failure is logged and never prevents an appointment from being saved. The CI
-exercises this integration against Nextcloud 34 and 35.
+The App Store guidelines say apps should use only Nextcloud's public API. Two internal APIs of the DAV app are used, both also used by
+official apps: the calendar plugin interface (`OCA\DAV\CalDAV\Integration\ICalendarProvider` and `ExternalCalendar`, as Deck does),
+isolated in `lib/Dav`, and `OCA\DAV\CalDAV\CalDavBackend` to read a calendar for the import, because the public `OCP\Calendar` API
+does not list all of a calendar's events. The latter is isolated behind `lib/Calendar/CalendarGateway.php`. The CI exercises both
+against Nextcloud 34 and 35.
 
 ## Known limitations (dependencies)
 

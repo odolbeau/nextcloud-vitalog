@@ -60,22 +60,10 @@ test('practitioners and places', async ({ page }) => {
 	await expectNoViolations(page)
 })
 
-test('calendar settings dialog, while no calendar is linked', async ({ page }) => {
+test('calendar settings dialog', async ({ page }) => {
 	await openApp(page)
 	await nav(page, 'settings').click()
 	await expect(dialog(page)).toBeVisible()
-	await expectNoViolations(page)
-})
-
-test('calendar settings dialog, with a linked calendar and while unlinking', async ({ page }) => {
-	await admin.put('settings', { calendarUri: 'personal' })
-	await openApp(page)
-	await nav(page, 'settings').click()
-	await expect(dialog(page).getByRole('button', { name: 'Unlink calendar' })).toBeVisible()
-	await expectNoViolations(page)
-
-	await dialog(page).getByRole('button', { name: 'Unlink calendar' }).click()
-	await expect(dialog(page).getByRole('radio', { name: 'Keep the events in the calendar' })).toBeVisible()
 	await expectNoViolations(page)
 })
 

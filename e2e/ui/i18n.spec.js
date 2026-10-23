@@ -24,7 +24,7 @@ test('the interface is available in French', async ({ page }) => {
 	await expect(nav(page, 'practitioners')).toContainText('Praticiens')
 	await expect(nav(page, 'places')).toContainText('Lieux')
 	await expect(nav(page, 'labels')).toContainText('Libellés')
-	await expect(nav(page, 'settings')).toContainText('Synchro calendrier')
+	await expect(nav(page, 'settings')).toContainText('Calendrier')
 
 	await page.locator('[data-test^="appointment-"]').first().click()
 	const details = page.getByRole('article')
@@ -40,12 +40,11 @@ test('the interface is available in French', async ({ page }) => {
 })
 
 test('the calendar event uses the user language for its fallback title', async () => {
-	const { exportCalendar, vitalogEvents, ADMIN } = await import('../helpers.js')
+	const { exportCalendar, vitalogEvents, ADMIN, VITALOG_CALENDAR } = await import('../helpers.js')
 	await admin.reset()
-	await admin.put('settings', { calendarUri: 'personal' })
 	await admin.create('appointments', { startsAt: inDays(3) })
 
-	const [event] = vitalogEvents(await exportCalendar(ADMIN, 'personal'))
+	const [event] = vitalogEvents(await exportCalendar(ADMIN, VITALOG_CALENDAR))
 
 	expect(event).toContain('SUMMARY:Rendez-vous médical')
 })

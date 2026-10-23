@@ -20,7 +20,6 @@ class AppointmentService {
 		private PractitionerMapper $practitionerMapper,
 		private PlaceMapper $placeMapper,
 		private AttachmentMapper $attachmentMapper,
-		private CalendarSyncService $calendarSync,
 		private LabelMapper $labelMapper,
 		private AppointmentLabelMapper $labelLinks,
 	) {
@@ -46,7 +45,6 @@ class AppointmentService {
 		$labelIds = $this->validLabelIds($userId, $labelIds);
 		$appointment = $this->mapper->insert($appointment);
 		$this->labelLinks->replace($appointment->getId(), $labelIds);
-		$this->calendarSync->sync($appointment);
 
 		return $appointment;
 	}
@@ -57,14 +55,12 @@ class AppointmentService {
 		$labelIds = $this->validLabelIds($userId, $labelIds);
 		$appointment = $this->mapper->update($appointment);
 		$this->labelLinks->replace($id, $labelIds);
-		$this->calendarSync->sync($appointment);
 
 		return $appointment;
 	}
 
 	public function delete(int $id, string $userId): Appointment {
 		$appointment = $this->find($id, $userId);
-		$this->calendarSync->remove($appointment);
 		$this->attachmentMapper->deleteByAppointment($id);
 		$this->labelLinks->deleteByAppointment($id);
 

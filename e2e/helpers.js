@@ -4,6 +4,8 @@ export const BASE_URL = process.env.NC_URL ?? 'http://localhost:8480'
 // comptes de test de l'instance de dev / CI (créés par dev/docker-compose.yml)
 export const ADMIN = { user: 'admin', password: 'admin' }
 export const BOB = { user: 'bob', password: 'Vitalog-e2e-pass-9271' }
+// calendrier « Vitalog » fourni par l'app (préfixe imposé par l'app DAV)
+export const VITALOG_CALENDAR = 'app-generated--vitalog--appointments'
 
 export const nowSeconds = () => Math.floor(Date.now() / 1000)
 export function inDays(days, hour = 10) {
@@ -53,13 +55,6 @@ export async function client(account = ADMIN) {
 				for (const item of await this.list(resource)) {
 					await context.delete(api(`${resource}/${item.id}`))
 				}
-			}
-			await context.post(api('settings/unlink'), { data: { deleteEvents: true } })
-			// des événements gardés à la déliaison ne sont plus rattachés à aucun rendez-vous : on les retire du calendrier par défaut
-			const calendar = `/remote.php/dav/calendars/${this.account.user}/personal/`
-			const exported = await (await context.get(`${calendar}?export`)).text()
-			for (const [, uid] of exported.replace(/\r?\n[ \t]/g, '').matchAll(/^UID:(\S+@vitalog)\r?$/gm)) {
-				await context.delete(`${calendar}${uid}.ics`)
 			}
 		},
 		dispose: () => context.dispose(),

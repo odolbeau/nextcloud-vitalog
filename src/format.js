@@ -69,3 +69,13 @@ export function parsePrice(text) {
  * @param cents
  */
 export const priceToInput = (cents) => cents === null || cents === undefined ? '' : (cents / 100).toFixed(2).replace('.', ',')
+
+/**
+ * Jour local du rendez-vous au format AAAA-MM-JJ (adresse d'un jour dans l'app Calendrier).
+ *
+ * @param startsAt
+ */
+export function isoDay(startsAt) {
+	const date = toDate(startsAt)
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}

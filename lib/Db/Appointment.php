@@ -24,6 +24,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setNotes(?string $notes)
  * @method int|null getPrice()
  * @method void setPrice(?int $price)
+ * Import ponctuel : UID et calendrier de l'événement d'origine (pour ne pas l'importer deux fois).
+ *
  * @method string|null getCalendarUid()
  * @method void setCalendarUid(?string $calendarUid)
  * @method string|null getCalendarUri()
@@ -59,8 +61,6 @@ class Appointment extends Entity implements JsonSerializable {
 			'reason' => $this->reason,
 			'notes' => $this->notes,
 			'price' => $this->price,
-			'synced' => $this->calendarUri !== null,
-			'calendarUid' => $this->calendarUri !== null ? $this->calendarUid : null,
 		];
 	}
 }

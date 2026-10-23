@@ -311,8 +311,7 @@
 			</dd>
 			<dt>{{ t('vitalog', 'Calendar') }}</dt>
 			<dd class="details__row">
-				<span v-if="appointment.synced" class="details__synced"><CalendarCheck :size="18" /> {{ t('vitalog', 'Added to your calendar') }}</span>
-				<span v-else class="details__muted">{{ calendarHint }}</span>
+				<span class="details__synced"><CalendarCheck :size="18" /> {{ t('vitalog', 'In your Vitalog calendar') }}</span>
 				<NcButton
 					v-if="calendarUrl"
 					class="details__open"
@@ -390,7 +389,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import DateBadge from './DateBadge.vue'
 import LabelChip from './LabelChip.vue'
-import { formatDateTime, formatPrice, parsePrice, priceToInput } from '../format.js'
+import { formatDateTime, formatPrice, isoDay, parsePrice, priceToInput } from '../format.js'
 import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -407,9 +406,12 @@ const priceDraft = ref('')
 const reasonDraft = ref('')
 const saving = ref(false)
 
-// lien permanent de l'app Calendrier vers l'événement (par son UID)
-const calendarUrl = computed(() => store.settings.calendarAppEnabled && props.appointment.calendarUid
-	? generateUrl('/apps/calendar/object/{uid}', { uid: props.appointment.calendarUid })
+// l'app Calendrier ouvre un événement d'après le chemin DAV de son objet (encodé en base64), sur le jour du rendez-vous
+const calendarUrl = computed(() => store.settings.calendarAppEnabled && store.settings.calendarPath
+	? generateUrl('/apps/calendar/timeGridDay/{day}/edit/popover/{object}/next', {
+			day: isoDay(props.appointment.startsAt),
+			object: btoa(`${store.settings.calendarPath}appointment-${props.appointment.id}.ics`),
+		})
 	: null)
 const labels = computed(() => store.labelsOf(props.appointment))
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
@@ -438,10 +440,6 @@ const durationLabel = computed(() => {
 		? t('vitalog', '{hours} h', { hours: minutes / 60 })
 		: t('vitalog', '{minutes} min', { minutes })
 })
-
-const calendarHint = computed(() => store.settings.calendarUri
-	? t('vitalog', 'Not added to your calendar (sync failed).')
-	: t('vitalog', 'Calendar sync is off. Enable it from the settings in the left sidebar.'))
 
 // l'édition en place ne concerne que la fiche affichée : on la quitte quand on passe à un autre rendez-vous
 watch(() => props.appointment.id, () => {

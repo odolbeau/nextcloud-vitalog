@@ -32,24 +32,6 @@ class DavCalendarGateway implements CalendarGateway {
 		return $calendars;
 	}
 
-	public function put(string $userId, string $calendarUri, string $uid, string $ics): void {
-		$calendarId = $this->calendarId($userId, $calendarUri);
-		$objectUri = $this->objectUri($userId, $calendarUri, $uid);
-		if ($objectUri === null) {
-			$this->backend->createCalendarObject($calendarId, $uid . '.ics', $ics);
-		} else {
-			$this->backend->updateCalendarObject($calendarId, $objectUri, $ics);
-		}
-	}
-
-	public function find(string $userId, string $calendarUri, string $uid): ?string {
-		$calendarId = $this->calendarId($userId, $calendarUri);
-		$objectUri = $this->objectUri($userId, $calendarUri, $uid);
-		$object = $objectUri === null ? null : $this->backend->getCalendarObject($calendarId, $objectUri);
-
-		return is_array($object) && is_string($object['calendardata'] ?? null) ? $object['calendardata'] : null;
-	}
-
 	public function listEvents(string $userId, string $calendarUri): iterable {
 		$calendarId = $this->calendarId($userId, $calendarUri);
 		$uris = [];
@@ -65,21 +47,6 @@ class DavCalendarGateway implements CalendarGateway {
 				}
 			}
 		}
-	}
-
-	public function delete(string $userId, string $calendarUri, string $uid): void {
-		$calendar = $this->backend->getCalendarByUri($this->principal($userId), $calendarUri);
-		$objectUri = $this->objectUri($userId, $calendarUri, $uid);
-		if ($calendar !== null && $objectUri !== null) {
-			$this->backend->deleteCalendarObject($calendar['id'], $objectUri);
-		}
-	}
-
-	private function objectUri(string $userId, string $calendarUri, string $uid): ?string {
-		$found = $this->backend->getCalendarObjectByUID($this->principal($userId), $uid, $calendarUri);
-
-		// « calendrier/objet »
-		return is_string($found) ? substr($found, strlen($calendarUri) + 1) : null;
 	}
 
 	private function calendarId(string $userId, string $calendarUri): int {

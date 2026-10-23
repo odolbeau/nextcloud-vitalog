@@ -58,11 +58,11 @@
 			<template #footer>
 				<ul class="footer">
 					<NcAppNavigationItem
-						:name="t('vitalog', 'Calendar sync')"
+						:name="t('vitalog', 'Calendar')"
 						data-test="nav-settings"
 						@click.prevent="settingsOpen = true">
 						<template #icon>
-							<CalendarSync :size="20" />
+							<CalendarMonth :size="20" />
 						</template>
 					</NcAppNavigationItem>
 				</ul>
@@ -122,7 +122,6 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import CalendarArrowRight from 'vue-material-design-icons/CalendarArrowRight.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
-import CalendarSync from 'vue-material-design-icons/CalendarSync.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'

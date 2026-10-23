@@ -93,7 +93,6 @@ test.describe('appointments', () => {
 			reason: 'Contrôle',
 			notes: 'À jeun',
 			price: 2550,
-			synced: false,
 			attachments: [],
 		})
 

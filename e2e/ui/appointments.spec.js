@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { client, exportCalendar, inDays, vitalogEvents } from '../helpers.js'
+import { client, inDays, VITALOG_CALENDAR } from '../helpers.js'
 import { choose, dialog, fill, items, nav, openApp, selected, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
@@ -363,74 +363,44 @@ test('attached files are listed and can be detached', async ({ page }) => {
 	}
 })
 
-test('calendar sync can be enabled from the settings', async ({ page }) => {
+test('the details link to the appointment in the Vitalog calendar of the Calendar app', async ({ page }) => {
 	const appointment = await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
 	await openApp(page)
 	await items(page).first().click()
-	await expect(page.getByRole('article')).toContainText('Calendar sync is off')
+	await expect(page.getByRole('article')).toContainText('In your Vitalog calendar')
 
-	await nav(page, 'settings').click()
-	const settings = dialog(page)
-	await expect(settings.getByRole('heading', { name: 'Calendar sync' })).toBeVisible()
-	await expect(settings.getByRole('button', { name: 'Link calendar' })).toBeDisabled()
-	await choose(page, 'Calendar', 'Personal')
-	await settings.getByRole('button', { name: 'Link calendar' }).click()
-
-	await expect(page.getByRole('article')).toContainText('Added to your calendar')
-	const events = vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))
-	expect(events).toHaveLength(1)
-	expect(events[0]).toContain('SUMMARY:Bilan')
-
-	// lien permanent vers l'événement dans l'app Calendrier
 	const link = page.getByRole('article').getByRole('link', { name: 'Open in Calendar' })
 	await expect(link).not.toHaveAttribute('target', '_blank')
 	const href = await link.getAttribute('href')
-	expect(href).toMatch(/\/apps\/calendar\/object\/.+(@|%40)vitalog$/)
-	const redirect = await admin.context.get(href, { maxRedirects: 0 })
-	expect(redirect.headers().location).toContain('/apps/calendar/edit/')
-
-	// lié : on ne peut plus choisir un autre calendrier, seulement délier
-	await nav(page, 'settings').click()
-	const linked = dialog(page)
-	await expect(linked).toContainText('Linked calendar')
-	await expect(linked).toContainText('Personal')
-	await expect(linked.getByRole('combobox', { name: 'Calendar' })).toHaveCount(0)
-	await linked.getByRole('button', { name: 'Unlink calendar' }).click()
-	await expect(linked.getByRole('heading', { name: 'Unlink the calendar' })).toBeVisible()
-	// le choix par défaut est de garder les événements
-	await expect(linked.getByRole('radio', { name: 'Keep the events in the calendar' })).toBeChecked()
-	await linked.getByRole('button', { name: 'Unlink', exact: true }).click()
-
-	await expect(dialog(page)).toHaveCount(0)
-	await expect(page.getByRole('article')).toContainText('Calendar sync is off')
-	expect((await admin.list('appointments'))[0]).toMatchObject({ id: appointment.id, synced: false })
-	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(1)
+	const [, object] = href.match(/\/apps\/calendar\/timeGridDay\/\d{4}-\d{2}-\d{2}\/edit\/popover\/([^/]+)\/next$/)
+	expect(Buffer.from(decodeURIComponent(object), 'base64').toString()).toBe(`/remote.php/dav/calendars/admin/${VITALOG_CALENDAR}/appointment-${appointment.id}.ics`)
 })
 
-test('unlinking from the settings can delete the events, and the calendar can be linked again', async ({ page }) => {
-	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
-	await admin.put('settings', { calendarUri: 'personal' })
-	await openApp(page)
-	await nav(page, 'settings').click()
-	await dialog(page).getByRole('button', { name: 'Unlink calendar' }).click()
+test('the events of a calendar can be imported from the settings', async ({ page }) => {
+	const uid = `ui-existing-${Date.now()}`
+	// calendrier dédié : « personal » contient déjà l'événement d'accueil de Nextcloud
+	const calendar = `vitalog-e2e-ui-existing-${Date.now()}`
+	expect((await admin.context.fetch(`/remote.php/dav/calendars/admin/${calendar}/`, { method: 'MKCALENDAR' })).status()).toBe(201)
+	const start = new Date(Date.now() + 4 * 86400_000).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+	const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Vitalog e2e//EN', 'BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${start}`, `DTSTART:${start}`, `DTEND:${start}`, 'SUMMARY:Déjà au calendrier', 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n')
+	expect((await admin.context.put(`/remote.php/dav/calendars/admin/${calendar}/${uid}.ics`, { headers: { 'Content-Type': 'text/calendar' }, data: ics })).status()).toBe(201)
 
-	// « Annuler » revient aux réglages sans rien délier
-	await dialog(page).getByRole('button', { name: 'Cancel' }).click()
-	await expect(dialog(page).getByRole('button', { name: 'Unlink calendar' })).toBeVisible()
-	expect((await admin.data(await admin.get('settings'))).calendarUri).toBe('personal')
+	try {
+		await openApp(page)
+		await nav(page, 'settings').click()
+		const settings = dialog(page)
+		await expect(settings.getByRole('heading', { name: 'Your Vitalog calendar' })).toBeVisible()
+		await expect(settings.getByRole('button', { name: 'Import', exact: true })).toBeDisabled()
+		await choose(page, 'Calendar to import', calendar)
+		await settings.getByRole('button', { name: 'Import', exact: true }).click()
+		await expect(dialog(page)).toHaveCount(0)
 
-	await dialog(page).getByRole('button', { name: 'Unlink calendar' }).click()
-	await dialog(page).getByText('Delete the events from the calendar').click()
-	await dialog(page).getByRole('button', { name: 'Unlink', exact: true }).click()
-	await expect(dialog(page)).toHaveCount(0)
-	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(0)
-
-	// et on peut lier de nouveau
-	await nav(page, 'settings').click()
-	await choose(page, 'Calendar', 'Personal')
-	await dialog(page).getByRole('button', { name: 'Link calendar' }).click()
-	await expect(dialog(page)).toHaveCount(0)
-	expect(vitalogEvents(await exportCalendar({ user: 'admin', password: 'admin' }, 'personal'))).toHaveLength(1)
+		await expect(items(page)).toHaveCount(1)
+		await expect(items(page).first()).toContainText('Déjà au calendrier')
+		await expect(page.getByText('Appointments imported: 1', { exact: true })).toBeVisible()
+	} finally {
+		await admin.context.delete(`/remote.php/dav/calendars/admin/${calendar}/`)
+	}
 })
 
 test('an appointment created at a past date shows up in Past', async ({ page }) => {
@@ -447,59 +417,4 @@ test('an appointment created at a past date shows up in Past', async ({ page }) 
 	await expect(items(page).first()).toContainText('Vaccin')
 	await nav(page, 'upcoming').click()
 	await expect(page.getByText('Nothing planned')).toBeVisible()
-})
-
-test('importing events from the calendar can be enabled from the settings, with its limits explained', async ({ page }) => {
-	await openApp(page)
-	await nav(page, 'settings').click()
-	const settings = dialog(page)
-	const toggle = settings.getByRole('checkbox', { name: /Create an appointment for each event I add later/ })
-	await expect(toggle).toBeDisabled()
-	await expect(settings).toContainText('Recurring events are ignored')
-
-	await choose(page, 'Calendar', 'Personal')
-	await expect(toggle).toBeEnabled()
-	await expect(toggle).not.toBeChecked()
-	await toggle.click({ force: true })
-	await settings.getByRole('button', { name: 'Link calendar' }).click()
-	await expect(dialog(page)).toHaveCount(0)
-	expect(await admin.data(await admin.get('settings'))).toMatchObject({ calendarUri: 'personal', importFromCalendar: true })
-
-	// l'état est restitué à la réouverture ; une fois lié, l'option s'applique tout de suite (pas de bouton « Enregistrer »)
-	await nav(page, 'settings').click()
-	const linkedToggle = dialog(page).getByRole('switch', { name: /Create an appointment for each event I add to this calendar/ })
-	await expect(linkedToggle).toBeChecked()
-	await expect(dialog(page).getByRole('button', { name: 'Save' })).toHaveCount(0)
-	await linkedToggle.click({ force: true })
-	await expect(linkedToggle).not.toBeChecked()
-	await expect.poll(async () => (await admin.data(await admin.get('settings'))).importFromCalendar).toBe(false)
-	await dialog(page).getByRole('button', { name: 'Close' }).last().click()
-	await expect(dialog(page)).toHaveCount(0)
-})
-
-test('selecting a calendar can import the events it already contains', async ({ page }) => {
-	const uid = `ui-existing-${Date.now()}`
-	// calendrier dédié : « personal » contient déjà l'événement d'accueil de Nextcloud
-	const calendar = `vitalog-e2e-ui-existing-${Date.now()}`
-	expect((await admin.context.fetch(`/remote.php/dav/calendars/admin/${calendar}/`, { method: 'MKCALENDAR' })).status()).toBe(201)
-	const start = new Date(Date.now() + 4 * 86400_000).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
-	const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Vitalog e2e//EN', 'BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${start}`, `DTSTART:${start}`, `DTEND:${start}`, 'SUMMARY:Déjà au calendrier', 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n')
-	expect((await admin.context.put(`/remote.php/dav/calendars/admin/${calendar}/${uid}.ics`, { headers: { 'Content-Type': 'text/calendar' }, data: ics })).status()).toBe(201)
-
-	await openApp(page)
-	await nav(page, 'settings').click()
-	const settings = dialog(page)
-	const existing = settings.getByRole('checkbox', { name: /Create appointments from the events already in this calendar/ })
-	await expect(existing).toBeDisabled()
-	await choose(page, 'Calendar', calendar)
-	await expect(existing).toBeEnabled()
-	await existing.check({ force: true })
-	await settings.getByRole('button', { name: 'Link calendar' }).click()
-	await expect(dialog(page)).toHaveCount(0)
-
-	await expect(items(page)).toHaveCount(1)
-	await expect(items(page).first()).toContainText('Déjà au calendrier')
-	await expect(page.getByText('Appointments created from existing events: 1', { exact: true })).toBeVisible()
-
-	await admin.context.delete(`/remote.php/dav/calendars/admin/${calendar}/`)
 })
