@@ -145,6 +145,10 @@ async function search(term) {
 }
 function onSearch(term) {
 	clearTimeout(timer)
+	// choisir une fiche vide le texte tapé : inutile de relancer une recherche, qui griserait la fiche choisie le temps du chargement
+	if (term === '' && contact.value !== null) {
+		return
+	}
 	timer = setTimeout(() => search(term), 250)
 }
 function onPick(option) {
