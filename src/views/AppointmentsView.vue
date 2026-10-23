@@ -6,7 +6,7 @@
 		:listMaxWidth="50"
 		@update:showDetails="onShowDetails">
 		<template #list>
-			<NcAppContentList>
+			<NcAppContentList class="list__pane">
 				<div class="list__toolbar">
 					<NcTextField
 						v-model="query"
@@ -266,6 +266,14 @@ function subname(item) {
 
 .list {
 	padding: 0 8px 8px;
+
+	// Contournement : sur un écran étroit, le CSS du serveur (core/css/mobile.scss) retire le `max-height` de la liste
+	// (`max-height: unset`, pensé pour une page qui défile elle-même), alors que le bloc de @nextcloud/vue qui la contient
+	// ne défile pas : la liste dépasse l'écran et ses derniers éléments sont inatteignables. On la borne à son bloc pour
+	// qu'elle défile (constaté avec Nextcloud 35.0.2 et @nextcloud/vue 9.13.1 et 9.14.0).
+	&__pane {
+		max-height: 100%;
+	}
 
 	&__toolbar {
 		display: flex;

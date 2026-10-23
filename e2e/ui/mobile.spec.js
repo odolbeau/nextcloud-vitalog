@@ -42,3 +42,19 @@ test('the creation form fits the screen', async ({ page }) => {
 	expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
 	await expect(form.getByRole('button', { name: 'Save' })).toBeVisible()
 })
+
+test('a long list can be scrolled on a phone', async ({ page }) => {
+	for (let i = 0; i < 40; i++) {
+		await admin.create('appointments', { startsAt: inDays(i + 1), reason: `RDV ${i + 1}` })
+	}
+	await page.goto('/index.php/apps/vitalog/')
+	await expect(items(page).first()).toBeVisible()
+
+	const last = items(page).last()
+	await expect(last).not.toBeInViewport()
+	// molette / glissement sur la liste
+	const box = await items(page).first().boundingBox()
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+	await page.mouse.wheel(0, 4000)
+	await expect(last).toBeInViewport()
+})
