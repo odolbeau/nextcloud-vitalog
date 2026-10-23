@@ -65,6 +65,7 @@ OC.L10N.register(
         "Edit the labels": "Modifier les libellés",
         "Edit the notes": "Modifier les notes",
         "Edit the price": "Modifier le prix",
+        "Edit the title": "Modifier le titre",
         "Enter an amount such as 25 or 25.50.": "Saisissez un montant, par exemple 25 ou 25,50.",
         "Error": "Erreur",
         "Events written by Vitalog": "Événements écrits par Vitalog",

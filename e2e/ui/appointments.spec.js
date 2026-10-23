@@ -85,7 +85,7 @@ test('editing an appointment updates the details', async ({ page }) => {
 	await openApp(page)
 
 	await items(page).first().click()
-	await page.getByRole('button', { name: 'Edit' }).click()
+	await page.getByRole('button', { name: 'Edit', exact: true }).click()
 	const form = dialog(page)
 	await expect(form.getByRole('heading', { name: 'Edit appointment' })).toBeVisible()
 	await expect(form.getByLabel('Reason')).toHaveValue('Contrôle')
@@ -167,6 +167,33 @@ test('the notes can be added, edited and cleared from the details', async ({ pag
 	await details.getByRole('button', { name: 'Save' }).click()
 	await expect(details.getByRole('button', { name: 'Add notes' })).toBeVisible()
 	expect((await admin.list('appointments'))[0].notes).toBeNull()
+})
+
+test('the title can be edited from the details', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(5), reason: 'Contrôle' })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+
+	await details.getByRole('button', { name: 'Edit the title' }).click()
+	await expect(details.getByLabel('Reason')).toHaveValue('Contrôle')
+	await details.getByLabel('Reason').fill('Contrôle annuel')
+	await details.getByLabel('Reason').press('Enter')
+	await expect(details.getByRole('heading', { name: 'Contrôle annuel' })).toBeVisible()
+	expect((await admin.list('appointments'))[0].reason).toBe('Contrôle annuel')
+
+	// Échap annule
+	await details.getByRole('button', { name: 'Edit the title' }).click()
+	await details.getByLabel('Reason').fill('Brouillon')
+	await details.getByLabel('Reason').press('Escape')
+	await expect(details.getByRole('heading', { name: 'Contrôle annuel' })).toBeVisible()
+
+	// un titre vide est supprimé
+	await details.getByRole('button', { name: 'Edit the title' }).click()
+	await details.getByLabel('Reason').fill('')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details.getByRole('heading', { name: 'Medical appointment' })).toBeVisible()
+	expect((await admin.list('appointments'))[0].reason).toBeNull()
 })
 
 test('the price can be added, edited and cleared from the details', async ({ page }) => {

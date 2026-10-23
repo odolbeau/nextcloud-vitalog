@@ -3,7 +3,47 @@
 		<header class="details__header">
 			<DateBadge :startsAt="appointment.startsAt" :muted="store.isPast(appointment)" />
 			<div class="details__heading">
-				<h2>{{ title }}</h2>
+				<form v-if="editing === 'reason'" class="details__title-editor" @submit.prevent="saveReason">
+					<NcTextField
+						v-model="reasonDraft"
+						class="details__grow"
+						:aria-label="t('vitalog', 'Reason')"
+						labelOutside
+						:maxlength="255"
+						:placeholder="t('vitalog', 'Check-up, follow-up, …')"
+						@keydown.esc="editing = null" />
+					<NcButton
+						type="submit"
+						variant="tertiary"
+						:disabled="saving"
+						:aria-label="t('vitalog', 'Save')"
+						:title="t('vitalog', 'Save')">
+						<template #icon>
+							<Check :size="20" />
+						</template>
+					</NcButton>
+					<NcButton
+						variant="tertiary"
+						:aria-label="t('vitalog', 'Cancel')"
+						:title="t('vitalog', 'Cancel')"
+						@click="editing = null">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+					</NcButton>
+				</form>
+				<div v-else class="details__title">
+					<h2>{{ title }}</h2>
+					<NcButton
+						variant="tertiary"
+						:title="t('vitalog', 'Edit the title')"
+						:aria-label="t('vitalog', 'Edit the title')"
+						@click="startEditing('reason')">
+						<template #icon>
+							<Pencil :size="20" />
+						</template>
+					</NcButton>
+				</div>
 				<p class="details__when">
 					{{ formatDateTime(appointment.startsAt) }} · {{ durationLabel }}
 				</p>
@@ -364,6 +404,7 @@ const confirmingDelete = ref(false)
 const editing = ref(null)
 const notesDraft = ref('')
 const priceDraft = ref('')
+const reasonDraft = ref('')
 const saving = ref(false)
 
 // lien permanent de l'app Calendrier vers l'événement (par son UID)
@@ -412,16 +453,19 @@ async function startEditing(field) {
 	if (field === 'notes') {
 		notesDraft.value = props.appointment.notes ?? ''
 	}
+	if (field === 'reason') {
+		reasonDraft.value = props.appointment.reason ?? ''
+	}
 	if (field === 'price') {
 		priceDraft.value = priceToInput(props.appointment.price)
 	}
 	await nextTick()
 	// le champ de recherche de vue-select n'est prêt qu'après son propre rendu
 	await new Promise((resolve) => requestAnimationFrame(resolve))
-	const input = field === 'price'
-		? document.querySelector('.details__price-editor input')
+	const input = field === 'price' || field === 'reason'
+		? document.querySelector(field === 'price' ? '.details__price-editor input' : '.details__title-editor input')
 		: document.getElementById(`vitalog-details-${field}`)
-	if (field === 'notes' || field === 'price') {
+	if (field === 'notes' || field === 'price' || field === 'reason') {
 		input?.focus()
 		return
 	}
@@ -441,6 +485,15 @@ async function pick(field, option) {
 async function saveNotes() {
 	saving.value = true
 	const saved = await store.updateAppointment(props.appointment, { notes: notesDraft.value.trim() || null })
+	saving.value = false
+	if (saved) {
+		editing.value = null
+	}
+}
+
+async function saveReason() {
+	saving.value = true
+	const saved = await store.updateAppointment(props.appointment, { reason: reasonDraft.value.trim() || null })
 	saving.value = false
 	if (saved) {
 		editing.value = null
@@ -524,6 +577,13 @@ async function pickFiles() {
 		display: flex;
 		align-items: center;
 		gap: 16px;
+	}
+
+	&__title,
+	&__title-editor {
+		display: flex;
+		align-items: center;
+		gap: 4px;
 	}
 
 	&__heading {
