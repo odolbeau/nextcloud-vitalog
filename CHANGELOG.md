@@ -6,6 +6,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- An event moved into the linked calendar from another one (changing an event's calendar in the Calendar app) is now imported too when importing is on; only newly created events were before.
 - The appointment list can be scrolled again on a narrow screen (Nextcloud's mobile styles let it grow past the screen).
 - Calendar events are no longer rewritten from scratch: only the title, location, description, labels and time Vitalog manages are updated, so an event's own time zone, reminders, attendees and other properties are kept. Events are written in the user's time zone instead of UTC (the Calendar app showed two times for each of them), and events written in UTC by an earlier version move to that time zone the next time they are saved.
 

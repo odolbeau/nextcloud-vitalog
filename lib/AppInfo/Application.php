@@ -8,12 +8,13 @@ use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\DavCalendarGateway;
 use OCA\Vitalog\Contacts\ContactGateway;
 use OCA\Vitalog\Contacts\ManagerContactGateway;
-use OCA\Vitalog\Listener\CalendarObjectCreatedListener;
+use OCA\Vitalog\Listener\CalendarObjectImportListener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\Calendar\Events\CalendarObjectCreatedEvent;
+use OCP\Calendar\Events\CalendarObjectMovedEvent;
 
 class Application extends App implements IBootstrap {
 	public const APP_ID = 'vitalog';
@@ -25,7 +26,8 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerServiceAlias(CalendarGateway::class, DavCalendarGateway::class);
 		$context->registerServiceAlias(ContactGateway::class, ManagerContactGateway::class);
-		$context->registerEventListener(CalendarObjectCreatedEvent::class, CalendarObjectCreatedListener::class);
+		$context->registerEventListener(CalendarObjectCreatedEvent::class, CalendarObjectImportListener::class);
+		$context->registerEventListener(CalendarObjectMovedEvent::class, CalendarObjectImportListener::class);
 	}
 
 	public function boot(IBootContext $context): void {

@@ -6,11 +6,17 @@ namespace OCA\Vitalog\Listener;
 
 use OCA\Vitalog\Service\CalendarImportService;
 use OCP\Calendar\Events\CalendarObjectCreatedEvent;
+use OCP\Calendar\Events\CalendarObjectMovedEvent;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 
-/** @template-implements IEventListener<Event> */
-class CalendarObjectCreatedListener implements IEventListener {
+/**
+ * Un événement arrive dans un calendrier : il y est créé, ou déplacé depuis un autre calendrier (l'app Calendrier envoie alors
+ * un événement « déplacé », pas « créé »).
+ *
+ * @template-implements IEventListener<Event>
+ */
+class CalendarObjectImportListener implements IEventListener {
 	private const PRINCIPAL_PREFIX = 'principals/users/';
 
 	public function __construct(
@@ -19,10 +25,13 @@ class CalendarObjectCreatedListener implements IEventListener {
 	}
 
 	public function handle(Event $event): void {
-		if (!$event instanceof CalendarObjectCreatedEvent) {
+		if ($event instanceof CalendarObjectCreatedEvent) {
+			$calendar = $event->getCalendarData();
+		} elseif ($event instanceof CalendarObjectMovedEvent) {
+			$calendar = $event->getTargetCalendarData();
+		} else {
 			return;
 		}
-		$calendar = $event->getCalendarData();
 		$ics = $event->getObjectData()['calendardata'] ?? null;
 		$principal = $calendar['principaluri'] ?? '';
 		if (!is_string($ics) || !is_string($principal) || !str_starts_with($principal, self::PRINCIPAL_PREFIX)) {

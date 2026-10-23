@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, client, exportCalendar, inDays } from '../helpers.js'
+import { ADMIN, BASE_URL, client, exportCalendar, inDays } from '../helpers.js'
 
 let admin
 // un calendrier supprimé reste en corbeille avec son URI : on en crée un nouveau à chaque exécution
@@ -134,6 +134,24 @@ test('an event that is already over is imported too', async () => {
 
 	const [appointment] = await admin.list('appointments')
 	expect(appointment).toMatchObject({ reason: 'Radio', synced: true })
+})
+
+test('an event moved into the target calendar from another one becomes an appointment', async () => {
+	await configure(EXISTING, true)
+	// un événement passé, créé dans un autre calendrier puis déplacé comme le fait l'app Calendrier (changement d'agenda)
+	const uid = await addEvent(OTHER, { startsAt: inDays(-2000), summary: 'Dentiste' })
+	expect(await admin.list('appointments')).toHaveLength(0)
+
+	const moved = await admin.context.fetch(`/remote.php/dav/calendars/${ADMIN.user}/${OTHER}/user-${uid}.ics`, {
+		method: 'MOVE',
+		headers: { Destination: `${BASE_URL}/remote.php/dav/calendars/${ADMIN.user}/${EXISTING}/user-${uid}.ics` },
+	})
+	expect(moved.status(), await moved.text()).toBeLessThan(300)
+	// l'événement n'est plus dans le calendrier d'origine : le nettoyage doit viser le nouveau
+	added.splice(added.findIndex(([, id]) => id === uid), 1, [EXISTING, uid])
+
+	const [appointment] = await admin.list('appointments')
+	expect(appointment).toMatchObject({ reason: 'Dentiste', synced: true, calendarUid: uid })
 })
 
 test('events in another calendar, recurring events and Vitalog\'s own events are ignored', async () => {
