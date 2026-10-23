@@ -8,6 +8,8 @@ use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Integration\ICalendarProvider;
 use OCA\Vitalog\Calendar\EventFactory;
 use OCP\IUserSession;
+use OCP\Server;
+use Throwable;
 
 /**
  * Expose le calendrier « Vitalog » (lecture seule) dans le dossier CalDAV de l'utilisateur, comme l'app Deck pour ses tableaux.
@@ -19,9 +21,17 @@ class CalendarPlugin implements ICalendarProvider {
 	public const DAV_NAME = 'app-generated--vitalog--' . self::CALENDAR_URI;
 	private const PRINCIPAL_PREFIX = 'principals/users/';
 
+	/**
+	 * L'app DAV crée ce plugin depuis son propre conteneur, qui ne sait pas toujours résoudre les services du serveur (hors
+	 * requête web : `occ`, tâches de fond) : ils sont donc récupérés à l'usage, et le calendrier est simplement absent si
+	 * c'est impossible.
+	 *
+	 * @param (\Closure(): EventFactory)|null $events
+	 * @param (\Closure(): IUserSession)|null $userSession
+	 */
 	public function __construct(
-		private EventFactory $events,
-		private IUserSession $userSession,
+		private ?\Closure $events = null,
+		private ?\Closure $userSession = null,
 	) {
 	}
 
@@ -32,7 +42,7 @@ class CalendarPlugin implements ICalendarProvider {
 	public function fetchAllForCalendarHome(string $principalUri): array {
 		$userId = $this->ownUser($principalUri);
 
-		return $userId === null ? [] : [new Calendar($principalUri, $userId, $this->events)];
+		return $userId === null ? [] : [new Calendar($principalUri, $userId, $this->events())];
 	}
 
 	public function hasCalendarInCalendarHome(string $principalUri, string $calendarUri): bool {
@@ -42,13 +52,21 @@ class CalendarPlugin implements ICalendarProvider {
 	public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ?ExternalCalendar {
 		$userId = $this->ownUser($principalUri);
 
-		return $calendarUri === self::CALENDAR_URI && $userId !== null ? new Calendar($principalUri, $userId, $this->events) : null;
+		return $calendarUri === self::CALENDAR_URI && $userId !== null ? new Calendar($principalUri, $userId, $this->events()) : null;
 	}
 
 	/** L'utilisateur connecté, si le dossier CalDAV demandé est le sien. */
 	private function ownUser(string $principalUri): ?string {
-		$userId = $this->userSession->getUser()?->getUID();
+		try {
+			$userId = ($this->userSession ?? static fn (): IUserSession => Server::get(IUserSession::class))()->getUser()?->getUID();
+		} catch (Throwable) {
+			return null;
+		}
 
 		return $userId !== null && $principalUri === self::PRINCIPAL_PREFIX . $userId ? $userId : null;
+	}
+
+	private function events(): EventFactory {
+		return ($this->events ?? static fn (): EventFactory => Server::get(EventFactory::class))();
 	}
 }

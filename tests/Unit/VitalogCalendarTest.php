@@ -135,7 +135,7 @@ class VitalogCalendarTest extends TestCase {
 		$user->method('getUID')->willReturn('alice');
 		$session = $this->createMock(IUserSession::class);
 		$session->method('getUser')->willReturn($user);
-		$plugin = new CalendarPlugin($this->events, $session);
+		$plugin = new CalendarPlugin(fn (): EventFactory => $this->events, static fn (): IUserSession => $session);
 
 		self::assertCount(1, $plugin->fetchAllForCalendarHome('principals/users/alice'));
 		self::assertSame([], $plugin->fetchAllForCalendarHome('principals/users/bob'));
