@@ -112,8 +112,8 @@ export const useDataStore = defineStore('data', () => {
 
 	/** Modifie quelques champs d'un rendez-vous : l'API remplace tout, on renvoie donc les autres valeurs telles quelles. */
 	function updateAppointment(appointment, changes) {
-		const { startsAt, duration, practitionerId, placeId, reason, notes, labelIds } = appointment
-		return saveAppointment({ startsAt, duration, practitionerId, placeId, reason, notes, labelIds, ...changes }, appointment.id)
+		const { startsAt, duration, practitionerId, placeId, reason, notes, price, labelIds } = appointment
+		return saveAppointment({ startsAt, duration, practitionerId, placeId, reason, notes, price, labelIds, ...changes }, appointment.id)
 	}
 
 	async function deleteAppointment(id) {

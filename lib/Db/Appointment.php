@@ -22,6 +22,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReason(?string $reason)
  * @method string|null getNotes()
  * @method void setNotes(?string $notes)
+ * @method int|null getPrice()
+ * @method void setPrice(?int $price)
  * @method string|null getCalendarUid()
  * @method void setCalendarUid(?string $calendarUid)
  * @method string|null getCalendarUri()
@@ -35,6 +37,7 @@ class Appointment extends Entity implements JsonSerializable {
 	protected ?int $duration = null;
 	protected ?string $reason = null;
 	protected ?string $notes = null;
+	protected ?int $price = null;
 	protected ?string $calendarUid = null;
 	protected ?string $calendarUri = null;
 
@@ -43,6 +46,7 @@ class Appointment extends Entity implements JsonSerializable {
 		$this->addType('placeId', 'integer');
 		$this->addType('startsAt', 'integer');
 		$this->addType('duration', 'integer');
+		$this->addType('price', 'integer');
 	}
 
 	public function jsonSerialize(): array {
@@ -54,6 +58,7 @@ class Appointment extends Entity implements JsonSerializable {
 			'duration' => $this->duration,
 			'reason' => $this->reason,
 			'notes' => $this->notes,
+			'price' => $this->price,
 			'synced' => $this->calendarUri !== null,
 			'calendarUid' => $this->calendarUri !== null ? $this->calendarUid : null,
 		];

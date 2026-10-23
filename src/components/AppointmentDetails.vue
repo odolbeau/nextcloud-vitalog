@@ -221,6 +221,51 @@
 					</NcButton>
 				</span>
 			</dd>
+			<dt>{{ t('vitalog', 'Price') }}</dt>
+			<dd v-if="editing === 'price'" class="details__notes-editor">
+				<form class="details__price-editor" @submit.prevent="savePrice">
+					<NcTextField
+						v-model="priceDraft"
+						class="details__grow"
+						inputmode="decimal"
+						:aria-label="t('vitalog', 'Price')"
+						labelOutside
+						:error="priceInvalid"
+						:helperText="priceInvalid ? t('vitalog', 'Enter an amount such as 25 or 25.50.') : ''"
+						@keydown.esc="editing = null" />
+					<NcButton @click="editing = null">
+						{{ t('vitalog', 'Cancel') }}
+					</NcButton>
+					<NcButton
+						type="submit"
+						variant="primary"
+						:disabled="saving || priceInvalid">
+						{{ t('vitalog', 'Save') }}
+					</NcButton>
+				</form>
+			</dd>
+			<dd v-else class="details__row">
+				<div v-if="appointment.price !== null && appointment.price !== undefined">
+					{{ formatPrice(appointment.price) }}
+				</div>
+				<NcButton v-else variant="tertiary" @click="startEditing('price')">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('vitalog', 'Add a price') }}
+				</NcButton>
+				<span v-if="appointment.price !== null && appointment.price !== undefined" class="details__tools">
+					<NcButton
+						variant="tertiary"
+						:title="t('vitalog', 'Edit the price')"
+						:aria-label="t('vitalog', 'Edit the price')"
+						@click="startEditing('price')">
+						<template #icon>
+							<Pencil :size="20" />
+						</template>
+					</NcButton>
+				</span>
+			</dd>
 			<dt>{{ t('vitalog', 'Calendar') }}</dt>
 			<dd class="details__row">
 				<span v-if="appointment.synced" class="details__synced"><CalendarCheck :size="18" /> {{ t('vitalog', 'Added to your calendar') }}</span>
@@ -289,6 +334,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import CardAccountDetails from 'vue-material-design-icons/CardAccountDetails.vue'
@@ -301,7 +347,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import DateBadge from './DateBadge.vue'
 import LabelChip from './LabelChip.vue'
-import { formatDateTime } from '../format.js'
+import { formatDateTime, formatPrice, parsePrice, priceToInput } from '../format.js'
 import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -314,6 +360,7 @@ const store = useDataStore()
 const confirmingDelete = ref(false)
 const editing = ref(null)
 const notesDraft = ref('')
+const priceDraft = ref('')
 const saving = ref(false)
 
 // lien permanent de l'app Calendrier vers l'événement (par son UID)
@@ -339,6 +386,8 @@ const placeOptions = computed(() => store.places.map((p) => ({ id: p.id, label: 
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
 const mapUrl = computed(() => 'https://www.openstreetmap.org/search?query=' + encodeURIComponent(place.value?.address ?? ''))
 
+const priceInvalid = computed(() => Number.isNaN(parsePrice(priceDraft.value)))
+
 const durationLabel = computed(() => {
 	const minutes = props.appointment.duration
 	return minutes >= 60 && minutes % 60 === 0
@@ -360,11 +409,16 @@ async function startEditing(field) {
 	if (field === 'notes') {
 		notesDraft.value = props.appointment.notes ?? ''
 	}
+	if (field === 'price') {
+		priceDraft.value = priceToInput(props.appointment.price)
+	}
 	await nextTick()
 	// le champ de recherche de vue-select n'est prêt qu'après son propre rendu
 	await new Promise((resolve) => requestAnimationFrame(resolve))
-	const input = document.getElementById(`vitalog-details-${field}`)
-	if (field === 'notes') {
+	const input = field === 'price'
+		? document.querySelector('.details__price-editor input')
+		: document.getElementById(`vitalog-details-${field}`)
+	if (field === 'notes' || field === 'price') {
 		input?.focus()
 		return
 	}
@@ -384,6 +438,18 @@ async function pick(field, option) {
 async function saveNotes() {
 	saving.value = true
 	const saved = await store.updateAppointment(props.appointment, { notes: notesDraft.value.trim() || null })
+	saving.value = false
+	if (saved) {
+		editing.value = null
+	}
+}
+
+async function savePrice() {
+	if (priceInvalid.value) {
+		return
+	}
+	saving.value = true
+	const saved = await store.updateAppointment(props.appointment, { price: parsePrice(priceDraft.value) })
 	saving.value = false
 	if (saved) {
 		editing.value = null
@@ -533,6 +599,12 @@ async function pickFiles() {
 	&__notes-editor {
 		display: flex;
 		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__price-editor {
+		display: flex;
+		align-items: flex-start;
 		gap: 8px;
 	}
 

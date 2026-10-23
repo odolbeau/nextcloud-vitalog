@@ -83,6 +83,7 @@ test.describe('appointments', () => {
 			placeId: place.id,
 			reason: 'Contrôle',
 			notes: 'À jeun',
+			price: 2550,
 		})
 		expect(created).toMatchObject({
 			startsAt,
@@ -91,12 +92,13 @@ test.describe('appointments', () => {
 			placeId: place.id,
 			reason: 'Contrôle',
 			notes: 'À jeun',
+			price: 2550,
 			synced: false,
 			attachments: [],
 		})
 
 		const updated = await admin.data(await admin.put(`appointments/${created.id}`, { startsAt: startsAt + 3600, duration: 30 }))
-		expect(updated).toMatchObject({ startsAt: startsAt + 3600, practitionerId: null, reason: null })
+		expect(updated).toMatchObject({ startsAt: startsAt + 3600, practitionerId: null, reason: null, price: null })
 
 		expect((await admin.delete(`appointments/${created.id}`)).status()).toBe(200)
 		expect((await admin.get(`appointments/${created.id}`)).status()).toBe(404)

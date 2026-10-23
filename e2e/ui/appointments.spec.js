@@ -169,6 +169,40 @@ test('the notes can be added, edited and cleared from the details', async ({ pag
 	expect((await admin.list('appointments'))[0].notes).toBeNull()
 })
 
+test('the price can be added, edited and cleared from the details', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(5), reason: 'Contrôle' })
+	await openApp(page)
+	await items(page).first().click()
+	const details = page.getByRole('article')
+
+	await details.getByRole('button', { name: 'Add a price' }).click()
+	await details.getByLabel('Price').fill('25,5')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details).toContainText('25.50')
+	expect((await admin.list('appointments'))[0].price).toBe(2550)
+
+	// un montant invalide ne s'enregistre pas
+	await details.getByRole('button', { name: 'Edit the price' }).click()
+	await expect(details.getByLabel('Price')).toHaveValue('25,50')
+	await details.getByLabel('Price').fill('abc')
+	await expect(details.getByRole('button', { name: 'Save' })).toBeDisabled()
+	await details.getByRole('button', { name: 'Cancel' }).click()
+	await expect(details).toContainText('25.50')
+
+	// gratuit (0) n'est pas « sans prix »
+	await details.getByRole('button', { name: 'Edit the price' }).click()
+	await details.getByLabel('Price').fill('0')
+	await details.getByRole('button', { name: 'Save' }).click()
+	expect((await admin.list('appointments'))[0].price).toBe(0)
+
+	// vider le champ supprime le prix
+	await details.getByRole('button', { name: 'Edit the price' }).click()
+	await details.getByLabel('Price').fill('')
+	await details.getByRole('button', { name: 'Save' }).click()
+	await expect(details.getByRole('button', { name: 'Add a price' })).toBeVisible()
+	expect((await admin.list('appointments'))[0].price).toBeNull()
+})
+
 test('Upcoming and Past depend only on the date', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
 	await admin.create('appointments', { startsAt: inDays(-3), reason: 'Radio' })

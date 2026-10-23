@@ -39,10 +39,10 @@ class AppointmentService {
 		}
 	}
 
-	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = []): Appointment {
+	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = [], ?int $price = null): Appointment {
 		$appointment = new Appointment();
 		$appointment->setUserId($userId);
-		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes);
+		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $price);
 		$labelIds = $this->validLabelIds($userId, $labelIds);
 		$appointment = $this->mapper->insert($appointment);
 		$this->labelLinks->replace($appointment->getId(), $labelIds);
@@ -51,9 +51,9 @@ class AppointmentService {
 		return $appointment;
 	}
 
-	public function update(int $id, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = []): Appointment {
+	public function update(int $id, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = [], ?int $price = null): Appointment {
 		$appointment = $this->find($id, $userId);
-		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes);
+		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $price);
 		$labelIds = $this->validLabelIds($userId, $labelIds);
 		$appointment = $this->mapper->update($appointment);
 		$this->labelLinks->replace($id, $labelIds);
@@ -99,9 +99,12 @@ class AppointmentService {
 		return $labelIds;
 	}
 
-	private function fill(Appointment $appointment, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes): void {
+	private function fill(Appointment $appointment, string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, ?int $price = null): void {
 		if ($duration <= 0 || $duration > Validator::DURATION_MAX) {
 			throw new InvalidArgumentException('Invalid duration');
+		}
+		if ($price !== null && ($price < 0 || $price > Validator::PRICE_MAX)) {
+			throw new InvalidArgumentException('Invalid price');
 		}
 		if ($startsAt < 0) {
 			throw new InvalidArgumentException('Invalid date');
@@ -122,6 +125,7 @@ class AppointmentService {
 		$appointment->setPractitionerId($practitionerId);
 		$appointment->setPlaceId($placeId);
 		$appointment->setReason(Validator::optionalText($reason, Validator::NAME_MAX, 'reason'));
+		$appointment->setPrice($price);
 		$appointment->setNotes(Validator::optionalText($notes, Validator::NOTES_MAX, 'notes'));
 	}
 }

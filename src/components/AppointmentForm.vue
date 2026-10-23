@@ -80,6 +80,12 @@
 				:maxlength="255"
 				:label="t('vitalog', 'Reason')"
 				:placeholder="t('vitalog', 'Check-up, follow-up, …')" />
+			<NcTextField
+				v-model="price"
+				inputmode="decimal"
+				:label="t('vitalog', 'Price')"
+				:error="priceInvalid"
+				:helperText="priceInvalid ? t('vitalog', 'Enter an amount such as 25 or 25.50.') : ''" />
 			<NcTextArea v-model="notes" :label="t('vitalog', 'Notes')" rows="4" />
 		</div>
 
@@ -117,7 +123,7 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import PlaceForm from './PlaceForm.vue'
 import PractitionerForm from './PractitionerForm.vue'
-import { nextHalfHour, toDate, toTimestamp } from '../format.js'
+import { nextHalfHour, parsePrice, priceToInput, toDate, toTimestamp } from '../format.js'
 import { useDialogHistory } from '../navigation.js'
 import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
@@ -149,10 +155,12 @@ const place = ref(props.appointment?.placeId ? placeOptions.value.find((o) => o.
 const labels = ref((props.appointment?.labelIds ?? []).map((id) => labelOptions.value.find((o) => o.id === id)).filter(Boolean))
 const reason = ref(props.appointment?.reason ?? '')
 const notes = ref(props.appointment?.notes ?? '')
+const price = ref(priceToInput(props.appointment?.price))
 const creating = ref(null)
 const saving = ref(false)
 
-const valid = computed(() => startsAt.value instanceof Date && !Number.isNaN(startsAt.value.getTime()))
+const priceInvalid = computed(() => Number.isNaN(parsePrice(price.value)))
+const valid = computed(() => startsAt.value instanceof Date && !Number.isNaN(startsAt.value.getTime()) && !priceInvalid.value)
 
 async function submit() {
 	saving.value = true
@@ -168,6 +176,7 @@ async function submit() {
 		placeId: place.value?.id ?? null,
 		reason: reason.value.trim() || null,
 		notes: notes.value.trim() || null,
+		price: parsePrice(price.value),
 		labelIds,
 	}, props.appointment?.id)
 	saving.value = false

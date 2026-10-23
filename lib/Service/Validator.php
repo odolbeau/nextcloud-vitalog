@@ -14,6 +14,8 @@ final class Validator {
 	public const PHONE_MAX = 64;
 	public const NOTES_MAX = 10000;
 	public const DURATION_MAX = 24 * 60;
+	/** Prix en centimes (1 000 000,00). */
+	public const PRICE_MAX = 100_000_000;
 
 	/** Texte obligatoire : rogné, non vide, borné. */
 	public static function requiredText(string $value, int $max, string $field): string {

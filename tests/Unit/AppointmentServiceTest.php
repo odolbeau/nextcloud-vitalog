@@ -61,6 +61,21 @@ class AppointmentServiceTest extends TestCase {
 		self::assertSame('Contrôle', $appointment->getReason());
 	}
 
+	public function testPriceIsOptionalAndBounded(): void {
+		$this->mapper->method('insert')->willReturnCallback(static function ($a) {
+			$a->setId(1);
+
+			return $a;
+		});
+
+		self::assertNull($this->service->create('alice', 1_800_000_000, 30, null, null, null, null)->getPrice());
+		self::assertSame(2550, $this->service->create('alice', 1_800_000_000, 30, null, null, null, null, [], 2550)->getPrice());
+		self::assertSame(0, $this->service->create('alice', 1_800_000_000, 30, null, null, null, null, [], 0)->getPrice());
+
+		$this->expectException(InvalidArgumentException::class);
+		$this->service->create('alice', 1_800_000_000, 30, null, null, null, null, [], -1);
+	}
+
 	public function testCreateRejectsForeignPractitioner(): void {
 		$this->practitioners->method('find')->willThrowException(new DoesNotExistException(''));
 		$this->mapper->expects(self::never())->method('insert');

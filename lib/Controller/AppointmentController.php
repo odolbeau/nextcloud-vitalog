@@ -37,16 +37,16 @@ class AppointmentController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = []): DataResponse {
+	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = [], ?int $price = null): DataResponse {
 		return $this->handle(
-			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds),
+			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds, $price),
 			Http::STATUS_CREATED,
 		);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = []): DataResponse {
-		return $this->handle(fn () => $this->service->update($id, $this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds));
+	public function update(int $id, int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = [], ?int $price = null): DataResponse {
+		return $this->handle(fn () => $this->service->update($id, $this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds, $price));
 	}
 
 	#[NoAdminRequired]

@@ -42,3 +42,30 @@ export function nextHalfHour() {
 	date.setMinutes(date.getMinutes() < 30 ? 30 : 60)
 	return date
 }
+
+/**
+ * Les prix sont stockés en centimes ; la devise n'est pas enregistrée, seul le montant est affiché.
+ *
+ * @param cents
+ */
+export const formatPrice = (cents) => new Intl.NumberFormat(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100)
+
+/**
+ * Montant saisi (« 25 », « 25,5 », « 25.50 ») en centimes ; `null` si vide, `NaN` si invalide.
+ *
+ * @param text
+ */
+export function parsePrice(text) {
+	const value = text.trim().replace(',', '.')
+	if (value === '') {
+		return null
+	}
+	return /^\d+(\.\d{1,2})?$/.test(value) ? Math.round(Number(value) * 100) : Number.NaN
+}
+
+/**
+ * Centimes en montant éditable (« 25.5 » → « 25,50 » selon la locale, sans séparateur de milliers).
+ *
+ * @param cents
+ */
+export const priceToInput = (cents) => cents === null || cents === undefined ? '' : (cents / 100).toFixed(2).replace('.', ',')
