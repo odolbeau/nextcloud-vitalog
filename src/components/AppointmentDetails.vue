@@ -427,7 +427,7 @@ const labelSelection = computed({
 		}
 	},
 })
-const practitionerOptions = computed(() => store.practitioners.map((p) => ({ id: p.id, label: p.specialty ? `${p.name} (${p.specialty})` : p.name })))
+const practitionerOptions = computed(() => store.practitionersByRecency.map((p) => ({ id: p.id, label: p.specialty ? `${p.name} (${p.specialty})` : p.name })))
 const placeOptions = computed(() => store.places.map((p) => ({ id: p.id, label: p.name })))
 const title = computed(() => props.appointment.reason || t('vitalog', 'Medical appointment'))
 const mapUrl = computed(() => 'https://www.openstreetmap.org/search?query=' + encodeURIComponent(place.value?.address ?? ''))

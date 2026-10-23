@@ -8,11 +8,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - Calendar: instead of writing events into a calendar you link, Vitalog now provides its own read-only "Vitalog" calendar, generated from your appointments (like Deck's boards), in your time zone and with a reminder the day before. There is nothing to link or unlink any more, and renaming a practitioner, a place or a label shows up right away. Events already written into a linked calendar by an earlier version are left there untouched.
 - Calendar import is now a one-shot action from the settings (past events included, already imported events skipped); events added to a calendar afterwards are no longer imported automatically.
+- When picking a practitioner for an appointment, the ones with the most recent appointment (by its date) come first; those without any follow by name.
+- The practitioners page groups them by specialty (regardless of case), those without one last.
 
 ### Fixed
 - The appointment list can be scrolled again on a narrow screen (Nextcloud's mobile styles let it grow past the screen).
 
 ### Added
+- The appointment list shows a heading at each change of year, kept at the top while scrolling.
 - The title (reason) of an appointment can be edited straight from its details.
 - Practical information on places (intercom, door code, floor…), shown in the appointment details.
 - An optional price on appointments, set or changed straight from the details like the notes. It is stored in cents without a currency.

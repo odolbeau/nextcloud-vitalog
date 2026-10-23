@@ -72,24 +72,35 @@
 
 				<NcLoadingIcon v-if="!store.loaded" class="list__loading" :size="32" />
 				<ul v-else-if="items.length > 0" class="list" :aria-label="heading">
-					<NcListItem
-						v-for="item in items"
-						:key="item.id"
-						:name="item.reason || t('vitalog', 'Medical appointment')"
-						:active="item.id === selectedId"
-						:data-test="`appointment-${item.id}`"
-						compact
-						@click.prevent="selectedId = item.id">
-						<template #icon>
-							<DateBadge :startsAt="item.startsAt" :muted="store.isPast(item)" />
-						</template>
-						<template #subname>
-							{{ subname(item) }}
-						</template>
-						<template #details>
-							<span>{{ formatTime(item.startsAt) }}</span>
-						</template>
-					</NcListItem>
+					<li
+						v-for="year in years"
+						:key="year.year"
+						class="list__year"
+						:data-test="`year-${year.year}`">
+						<h3 :id="`vitalog-year-${year.year}`" class="list__year-title">
+							{{ year.year }}
+						</h3>
+						<ul :aria-labelledby="`vitalog-year-${year.year}`">
+							<NcListItem
+								v-for="item in year.items"
+								:key="item.id"
+								:name="item.reason || t('vitalog', 'Medical appointment')"
+								:active="item.id === selectedId"
+								:data-test="`appointment-${item.id}`"
+								compact
+								@click.prevent="selectedId = item.id">
+								<template #icon>
+									<DateBadge :startsAt="item.startsAt" :muted="store.isPast(item)" />
+								</template>
+								<template #subname>
+									{{ subname(item) }}
+								</template>
+								<template #details>
+									<span>{{ formatTime(item.startsAt) }}</span>
+								</template>
+							</NcListItem>
+						</ul>
+					</li>
 				</ul>
 				<NcEmptyContent
 					v-else
@@ -147,7 +158,7 @@ import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
-import { formatDate, formatTime } from '../format.js'
+import { formatDate, formatTime, yearOf } from '../format.js'
 import { go, nav } from '../navigation.js'
 import { contains } from '../search.js'
 import { useDataStore } from '../stores/data.js'
@@ -212,6 +223,18 @@ const items = computed(() => {
 		...store.labelsOf(a).map((l) => l.name),
 	].some((text) => contains(text, needle)))
 })
+// un intertitre à chaque changement d'année, dans l'ordre de la liste
+const years = computed(() => {
+	const result = []
+	for (const item of items.value) {
+		const year = yearOf(item.startsAt)
+		if (result.at(-1)?.year !== year) {
+			result.push({ year, items: [] })
+		}
+		result.at(-1).items.push(item)
+	}
+	return result
+})
 const selected = computed(() => store.appointments.find((a) => a.id === selectedId.value) ?? null)
 
 const filtering = computed(() => query.value !== '' || props.labelId !== null || props.practitionerId !== null)
@@ -273,6 +296,25 @@ function subname(item) {
 	// qu'elle défile (constaté avec Nextcloud 35.0.2 et @nextcloud/vue 9.13.1 et 9.14.0).
 	&__pane {
 		max-height: 100%;
+	}
+
+	&__year {
+		list-style: none;
+	}
+
+	// l'année reste visible en haut de la liste pendant le défilement, à droite du bouton du menu (comme la recherche)
+	&__year-title {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+		margin: 0;
+		padding: 8px 8px 4px calc(var(--default-clickable-area) + 4px);
+		min-height: var(--default-clickable-area);
+		box-sizing: border-box;
+		background-color: var(--color-main-background);
+		font-size: 1em;
+		font-weight: bold;
+		color: var(--color-text-maxcontrast);
 	}
 
 	&__toolbar {

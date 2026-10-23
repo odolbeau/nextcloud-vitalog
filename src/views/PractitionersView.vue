@@ -20,47 +20,58 @@
 					<Stethoscope />
 				</template>
 			</NcEmptyContent>
-			<ul v-else class="reference__list" :aria-label="t('vitalog', 'Practitioners')">
-				<NcListItem
-					v-for="practitioner in store.practitioners"
-					:key="practitioner.id"
-					:name="practitioner.name"
-					:data-test="`practitioner-${practitioner.id}`"
-					@click.prevent="editing = practitioner">
-					<template #subname>
-						{{ [practitioner.specialty, practitioner.phone].filter(Boolean).join(' · ') }}
-					</template>
-					<template #extra-actions>
-						<NcButton
-							variant="tertiary"
-							:aria-label="t('vitalog', 'Show appointments with {name}', { name: practitioner.name })"
-							:title="t('vitalog', 'Show appointments')"
-							@click.stop="emit('filter', practitioner.id)">
-							<template #icon>
-								<CalendarSearch :size="20" />
+			<template v-else>
+				<section
+					v-for="group in groups"
+					:key="group.key"
+					class="reference__group"
+					data-test="specialty">
+					<h3 class="reference__specialty">
+						{{ group.name }}
+					</h3>
+					<ul class="reference__list" :aria-label="group.name">
+						<NcListItem
+							v-for="practitioner in group.practitioners"
+							:key="practitioner.id"
+							:name="practitioner.name"
+							:data-test="`practitioner-${practitioner.id}`"
+							@click.prevent="editing = practitioner">
+							<template #subname>
+								{{ practitioner.phone }}
 							</template>
-						</NcButton>
-						<NcButton
-							v-if="practitioner.contactUrl"
-							variant="tertiary"
-							:href="practitioner.contactUrl"
-							:aria-label="t('vitalog', 'Open {name} in Contacts', { name: practitioner.name })"
-							@click.stop>
-							<template #icon>
-								<CardAccountDetails :size="20" />
+							<template #extra-actions>
+								<NcButton
+									variant="tertiary"
+									:aria-label="t('vitalog', 'Show appointments with {name}', { name: practitioner.name })"
+									:title="t('vitalog', 'Show appointments')"
+									@click.stop="emit('filter', practitioner.id)">
+									<template #icon>
+										<CalendarSearch :size="20" />
+									</template>
+								</NcButton>
+								<NcButton
+									v-if="practitioner.contactUrl"
+									variant="tertiary"
+									:href="practitioner.contactUrl"
+									:aria-label="t('vitalog', 'Open {name} in Contacts', { name: practitioner.name })"
+									@click.stop>
+									<template #icon>
+										<CardAccountDetails :size="20" />
+									</template>
+								</NcButton>
+								<NcButton
+									variant="tertiary"
+									:aria-label="t('vitalog', 'Delete {name}', { name: practitioner.name })"
+									@click.stop="deleting = practitioner">
+									<template #icon>
+										<Delete :size="20" />
+									</template>
+								</NcButton>
 							</template>
-						</NcButton>
-						<NcButton
-							variant="tertiary"
-							:aria-label="t('vitalog', 'Delete {name}', { name: practitioner.name })"
-							@click.stop="deleting = practitioner">
-							<template #icon>
-								<Delete :size="20" />
-							</template>
-						</NcButton>
-					</template>
-				</NcListItem>
-			</ul>
+						</NcListItem>
+					</ul>
+				</section>
+			</template>
 		</div>
 
 		<PractitionerForm
@@ -78,7 +89,7 @@
 
 <script setup>
 import { t } from '@nextcloud/l10n'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -98,6 +109,20 @@ const emit = defineEmits(['filter'])
 const store = useDataStore()
 const editing = ref(null)
 const deleting = ref(null)
+
+// regroupés par spécialité (sans tenir compte de la casse), par ordre alphabétique ; ceux sans spécialité à la fin
+const groups = computed(() => {
+	const bySpecialty = new Map()
+	for (const practitioner of store.practitioners) {
+		const name = practitioner.specialty?.trim() || null
+		const key = name?.toLocaleLowerCase() ?? ''
+		if (!bySpecialty.has(key)) {
+			bySpecialty.set(key, { key, name: name ?? t('vitalog', 'No specialty'), practitioners: [] })
+		}
+		bySpecialty.get(key).practitioners.push(practitioner)
+	}
+	return [...bySpecialty.values()].sort((a, b) => (a.key === '') - (b.key === '') || a.name.localeCompare(b.name))
+})
 
 const deleteButtons = [
 	{ label: t('vitalog', 'Cancel'), callback: () => {} },
@@ -120,6 +145,16 @@ const deleteButtons = [
 		h2 {
 			margin: 0;
 		}
+	}
+
+	&__group + &__group {
+		margin-top: 16px;
+	}
+
+	&__specialty {
+		margin: 0 0 4px;
+		font-size: 1.1em;
+		color: var(--color-text-maxcontrast);
 	}
 }
 </style>

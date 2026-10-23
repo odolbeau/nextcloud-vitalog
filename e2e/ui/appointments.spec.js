@@ -137,6 +137,21 @@ test('the practitioner can be changed from the details', async ({ page }) => {
 	await expect(details).not.toContainText('Dr Martin')
 })
 
+test('practitioners are offered by their latest appointment first, then by name', async ({ page }) => {
+	const old = await admin.create('practitioners', { name: 'Dr Ancien' })
+	const recent = await admin.create('practitioners', { name: 'Dr Récent' })
+	await admin.create('practitioners', { name: 'Dr Zéro' })
+	await admin.create('practitioners', { name: 'Dr Aucun' })
+	// la date du rendez-vous compte, pas l'ordre de saisie : celui de Dr Ancien est enregistré en dernier
+	await admin.create('appointments', { startsAt: inDays(10), practitionerId: recent.id })
+	await admin.create('appointments', { startsAt: inDays(-30), practitionerId: old.id })
+	await openApp(page)
+
+	await page.getByRole('button', { name: 'New appointment' }).first().click()
+	await dialog(page).getByRole('combobox', { name: 'Practitioner' }).click()
+	await expect(page.getByRole('option')).toHaveText(['Dr Récent', 'Dr Ancien', 'Dr Aucun', 'Dr Zéro'])
+})
+
 test('the notes can be added, edited and cleared from the details', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(5), reason: 'Contrôle' })
 	await openApp(page)
@@ -206,7 +221,7 @@ test('the price can be added, edited and cleared from the details', async ({ pag
 	await details.getByLabel('Price').fill('25,5')
 	await details.getByRole('button', { name: 'Save' }).click()
 	await expect(details).toContainText('25.50')
-	expect((await admin.list('appointments'))[0].price).toBe(2550)
+	await expect.poll(async () => (await admin.list('appointments'))[0].price).toBe(2550)
 
 	// un montant invalide ne s'enregistre pas
 	await details.getByRole('button', { name: 'Edit the price' }).click()
@@ -220,14 +235,14 @@ test('the price can be added, edited and cleared from the details', async ({ pag
 	await details.getByRole('button', { name: 'Edit the price' }).click()
 	await details.getByLabel('Price').fill('0')
 	await details.getByRole('button', { name: 'Save' }).click()
-	expect((await admin.list('appointments'))[0].price).toBe(0)
+	await expect.poll(async () => (await admin.list('appointments'))[0].price).toBe(0)
 
 	// vider le champ supprime le prix
 	await details.getByRole('button', { name: 'Edit the price' }).click()
 	await details.getByLabel('Price').fill('')
 	await details.getByRole('button', { name: 'Save' }).click()
 	await expect(details.getByRole('button', { name: 'Add a price' })).toBeVisible()
-	expect((await admin.list('appointments'))[0].price).toBeNull()
+	await expect.poll(async () => (await admin.list('appointments'))[0].price).toBeNull()
 })
 
 test('Upcoming and Past depend only on the date', async ({ page }) => {
@@ -339,6 +354,35 @@ test('upcoming is sorted soonest first, past most recent first', async ({ page }
 
 	await nav(page, 'all').click()
 	await expect(items(page)).toHaveCount(4)
+})
+
+test('the list shows a heading at each change of year, kept in view while scrolling', async ({ page }) => {
+	const year = new Date().getFullYear()
+	const at = (y, month) => Math.floor(new Date(y, month, 15, 10).getTime() / 1000)
+	for (let i = 0; i < 15; i++) {
+		await admin.create('appointments', { startsAt: at(year - 1, i % 12) + i * 60, reason: `Suivi ${i}` })
+	}
+	await admin.create('appointments', { startsAt: at(year - 3, 5), reason: 'Très ancien' })
+	await admin.create('appointments', { startsAt: inDays(-1), reason: 'Hier' })
+	await openApp(page)
+	await nav(page, 'past').click()
+
+	const headings = page.getByRole('list', { name: 'Past appointments' }).getByRole('heading')
+	const yesterday = new Date(Date.now() - 86400 * 1000).getFullYear()
+	await expect(headings).toHaveText([...new Set([yesterday, year - 1, year - 3])].map(String))
+	await expect(page.getByRole('list', { name: String(year - 3) }).getByRole('listitem')).toHaveCount(1)
+
+	// au bas des rendez-vous d'une année, son intertitre reste affiché au-dessus d'eux
+	const lastYear = page.getByRole('list', { name: String(year - 1) })
+	await lastYear.locator('[data-test^="appointment-"]').last().scrollIntoViewIfNeeded()
+	const heading = await page.locator(`[data-test="year-${year - 1}"] h3`).boundingBox()
+	const first = await lastYear.locator('[data-test^="appointment-"]').first().boundingBox()
+	expect(first.y).toBeLessThan(heading.y)
+	await expect(page.locator(`[data-test="year-${year - 1}"] h3`)).toBeInViewport()
+
+	// la recherche retire les années sans résultat
+	await page.getByLabel('Search appointments').fill('Très ancien')
+	await expect(headings).toHaveText([String(year - 3)])
 })
 
 test('attached files are listed and can be detached', async ({ page }) => {

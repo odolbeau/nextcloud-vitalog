@@ -145,7 +145,7 @@ const durations = [15, 30, 45, 60, 90, 120].map((minutes) => ({
 		? t('vitalog', '{hours} h', { hours: minutes / 60 })
 		: t('vitalog', '{minutes} min', { minutes }),
 }))
-const practitionerOptions = computed(() => store.practitioners.map((p) => toOption(p.id, p.specialty ? `${p.name} (${p.specialty})` : p.name)))
+const practitionerOptions = computed(() => store.practitionersByRecency.map((p) => toOption(p.id, p.specialty ? `${p.name} (${p.specialty})` : p.name)))
 const placeOptions = computed(() => store.places.map((p) => toOption(p.id, p.name)))
 
 const startsAt = ref(props.appointment ? toDate(props.appointment.startsAt) : nextHalfHour())

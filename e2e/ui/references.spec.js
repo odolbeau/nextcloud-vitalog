@@ -16,6 +16,9 @@ test.beforeEach(async () => {
 	await admin.reset()
 })
 
+// la liste des praticiens d'une spécialité
+const specialty = (page, name) => page.locator('[data-test="specialty"]').filter({ has: page.getByRole('heading', { name, exact: true }) })
+
 test.describe('practitioners', () => {
 	test('empty state, create, edit, delete', async ({ page }) => {
 		await openApp(page)
@@ -34,13 +37,15 @@ test.describe('practitioners', () => {
 		const row = page.locator('[data-test^="practitioner-"]')
 		await expect(row).toHaveCount(1)
 		await expect(row.first()).toContainText('Dr Durand')
-		await expect(row.first()).toContainText('Cardiologue · 04 05 06 07 08')
+		await expect(row.first()).toContainText('04 05 06 07 08')
+		await expect(specialty(page, 'Cardiologue')).toContainText('Dr Durand')
 
 		await row.first().click()
 		await expect(dialog(page).getByRole('heading', { name: 'Edit practitioner' })).toBeVisible()
 		await typeSpecialty(page, 'Cardiologie')
 		await dialog(page).getByRole('button', { name: 'Save' }).click()
-		await expect(row.first()).toContainText('Cardiologie')
+		await expect(specialty(page, 'Cardiologie')).toContainText('Dr Durand')
+		await expect(specialty(page, 'Cardiologue')).toHaveCount(0)
 
 		await page.getByRole('button', { name: 'Delete Dr Durand' }).click()
 		await expect(dialog(page).getByRole('heading', { name: 'Delete Dr Durand?' })).toBeVisible()
@@ -64,14 +69,29 @@ test.describe('practitioners', () => {
 		await expect(page.getByRole('option')).toHaveText(['Cardiologue', 'Dentiste'])
 		await page.locator('[role="option"]').filter({ hasText: 'Cardiologue' }).click()
 		await form.getByRole('button', { name: 'Save' }).click()
-		await expect(page.locator('[data-test^="practitioner-"]').filter({ hasText: 'Dr D' })).toContainText('Cardiologue')
+		await expect(specialty(page, 'Cardiologue')).toContainText('Dr D')
 
 		await page.getByRole('button', { name: 'New practitioner' }).click()
 		await fill(dialog(page).getByLabel('Name'), 'Dr E')
 		await typeSpecialty(page, 'Dermatologue')
 		await dialog(page).getByRole('button', { name: 'Save' }).click()
-		await expect(page.locator('[data-test^="practitioner-"]').filter({ hasText: 'Dr E' })).toContainText('Dermatologue')
+		await expect(specialty(page, 'Dermatologue')).toContainText('Dr E')
 		expect((await admin.list('practitioners')).map((p) => p.specialty).sort()).toEqual(['Cardiologue', 'Cardiologue', 'Dentiste', 'Dermatologue', 'dentiste'])
+	})
+
+	test('the list is grouped by specialty, regardless of case, those without one last', async ({ page }) => {
+		await admin.create('practitioners', { name: 'Dr Vidal' })
+		await admin.create('practitioners', { name: 'Dr Bernard', specialty: 'dentiste' })
+		await admin.create('practitioners', { name: 'Dr Petit', specialty: 'Cardiologue' })
+		await admin.create('practitioners', { name: 'Dr Arnaud', specialty: 'Dentiste' })
+		await openApp(page)
+		await nav(page, 'practitioners').click()
+
+		await expect(page.locator('[data-test="specialty"] h3')).toHaveText(['Cardiologue', 'Dentiste', 'No specialty'])
+		await expect(specialty(page, 'Dentiste').locator('[data-test^="practitioner-"]')).toHaveCount(2)
+		await expect(specialty(page, 'Dentiste')).toContainText('Dr Arnaud')
+		await expect(specialty(page, 'Dentiste')).toContainText('Dr Bernard')
+		await expect(specialty(page, 'No specialty')).toContainText('Dr Vidal')
 	})
 
 	test('the name is required', async ({ page }) => {

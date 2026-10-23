@@ -27,6 +27,16 @@ export const useDataStore = defineStore('data', () => {
 		.sort((a, b) => b.startsAt - a.startsAt))
 	const all = computed(() => [...appointments.value].sort((a, b) => b.startsAt - a.startsAt))
 
+	// date du rendez-vous le plus récent (à venir compris) de chaque praticien ; sans rendez-vous, ordre alphabétique en fin de liste
+	const practitionersByRecency = computed(() => {
+		const latest = new Map()
+		for (const a of appointments.value) {
+			if (a.practitionerId !== null && a.startsAt > (latest.get(a.practitionerId) ?? -Infinity)) {
+				latest.set(a.practitionerId, a.startsAt)
+			}
+		}
+		return [...practitioners.value].sort((a, b) => (latest.get(b.id) ?? -Infinity) - (latest.get(a.id) ?? -Infinity) || a.name.localeCompare(b.name))
+	})
 	const practitionerById = (id) => practitioners.value.find((p) => p.id === id) ?? null
 	const placeById = (id) => places.value.find((p) => p.id === id) ?? null
 	const labelById = (id) => labels.value.find((l) => l.id === id) ?? null
@@ -219,6 +229,7 @@ export const useDataStore = defineStore('data', () => {
 		past,
 		all,
 		isPast,
+		practitionersByRecency,
 		practitionerById,
 		placeById,
 		labelById,
