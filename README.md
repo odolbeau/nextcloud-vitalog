@@ -125,15 +125,13 @@ exercises this integration against Nextcloud 34 and 35.
 
 ## Known limitations (dependencies)
 
-Observed with `@nextcloud/vue` 9.13.1; not fixed in this repository:
+Observed with `@nextcloud/vue` 9.14.0; not fixed in this repository:
 
-- the tab title shows `[object Object]`: `NcContent` provides `appName` as a `computed` while `useAppName()` expects a string;
 - the `splitpanes` separator of `NcAppContent` is focusable with `role="separator"` but has no `aria-valuenow` (axe: `aria-required-attr`);
-- `NcSelect` dims the selected value with `opacity` (2.4:1 contrast) and its spinner is an unnamed `role="img"` (axe: `color-contrast`,
-  `role-img-alt`). Fixed upstream by [nextcloud-vue#9098](https://github.com/nextcloud-libraries/nextcloud-vue/pull/9098).
-  Workarounds here, to remove once a release containing it is installed: the global `<style>` block in `src/App.vue`, and
-  `.exclude('.loading-icon')` in `e2e/ui/contacts.spec.js`;
-- `NcModal` ignores Escape when the focus is in an input field: a form does not close with Escape from a field.
+  the accessibility tests exclude it;
+- `NcModal` ignores Escape when the focus is in an input field: a form does not close with Escape from a field;
+- on a narrow screen Nextcloud's own styles (`core/css/mobile.scss`) remove the `max-height` of the appointment list while the
+  `NcAppContent` wrapper does not scroll, so the list could not be scrolled: worked around in `src/views/AppointmentsView.vue`.
 
 ## License
 

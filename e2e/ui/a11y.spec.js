@@ -105,3 +105,9 @@ test('a form can be submitted with Enter', async ({ page }) => {
 
 	await expect(page.locator('[data-test^="place-"]').filter({ hasText: 'Cabinet Enter' })).toHaveCount(1)
 })
+
+test('the page title shows the app name', async ({ page }) => {
+	await openApp(page)
+	await expect(page).toHaveTitle(/Vitalog/)
+	await expect(page).not.toHaveTitle(/\[object Object\]/)
+})

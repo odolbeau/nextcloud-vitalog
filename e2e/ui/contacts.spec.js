@@ -52,9 +52,7 @@ test('a practitioner picked from the contacts shows only the contact, and become
 	await expect(dialog(page).getByLabel('Notes')).toHaveCount(0)
 
 	// accessibilité du formulaire lié
-	// .loading-icon : le spinner de NcSelect est un role="img" sans nom dans @nextcloud/vue 9.13.1
-	// (corrigé par nextcloud-libraries/nextcloud-vue#9098 : retirer l'exclusion avec la version qui l'embarque)
-	const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').exclude('.loading-icon').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+	const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
 	expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([])
 
 	await dialog(page).getByRole('button', { name: 'Save' }).click()
