@@ -35,6 +35,18 @@ test.describe('practitioners', () => {
 		expect((await admin.get(`practitioners/${created.id}`)).status()).toBe(404)
 	})
 
+	test('a usual place can be set, must be one of the user\'s, and is dropped with the place', async () => {
+		const place = await admin.create('places', { name: 'Cabinet' })
+		const practitioner = await admin.create('practitioners', { name: 'Dr Martin', placeId: place.id })
+		expect(practitioner.placeId).toBe(place.id)
+
+		const bobPlace = await bob.create('places', { name: 'Chez Bob' })
+		expect((await admin.put(`practitioners/${practitioner.id}`, { name: 'Dr Martin', placeId: bobPlace.id })).status()).toBe(400)
+
+		await admin.delete(`places/${place.id}`)
+		expect((await admin.data(await admin.get(`practitioners/${practitioner.id}`))).placeId).toBeNull()
+	})
+
 	test('name is required', async () => {
 		const response = await admin.post('practitioners', { specialty: 'ORL' })
 		expect(response.status()).toBe(400)

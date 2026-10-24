@@ -37,7 +37,7 @@
 							:data-test="`practitioner-${practitioner.id}`"
 							@click.prevent="editing = practitioner">
 							<template #subname>
-								{{ practitioner.phone }}
+								{{ [practitioner.phone, store.placeById(practitioner.placeId)?.name].filter(Boolean).join(' · ') }}
 							</template>
 							<template #extra-actions>
 								<NcButton

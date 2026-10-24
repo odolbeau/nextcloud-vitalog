@@ -44,14 +44,15 @@
 
 			<div class="form__row">
 				<NcSelect
-					v-model="place"
+					:modelValue="place"
 					:filterBy="filterByText"
 					class="form__grow"
 					inputId="vitalog-place"
 					:inputLabel="t('vitalog', 'Place')"
 					:options="placeOptions"
 					:placeholder="t('vitalog', 'None')"
-					label="label" />
+					label="label"
+					@update:modelValue="pickPlace" />
 				<NcButton
 					:aria-label="t('vitalog', 'New place')"
 					:title="t('vitalog', 'New place')"
@@ -95,7 +96,7 @@
 			@close="creating = null" />
 		<PlaceForm
 			v-if="creating === 'place'"
-			@saved="(p) => place = toOption(p.id, p.name)"
+			@saved="(p) => pickPlace(toOption(p.id, p.name))"
 			@close="creating = null" />
 		<template #actions>
 			<NcButton @click="emit('close')">
@@ -113,7 +114,7 @@
 
 <script setup>
 import { t } from '@nextcloud/l10n'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -157,6 +158,22 @@ const reason = ref(props.appointment?.reason ?? '')
 const notes = ref(props.appointment?.notes ?? '')
 const price = ref(priceToInput(props.appointment?.price))
 const creating = ref(null)
+
+// Le lieu habituel du praticien choisi remplit le lieu, tant qu'il est vide ou qu'il vient lui-même d'un praticien :
+// un lieu choisi à la main n'est jamais remplacé.
+const placeFromPractitioner = ref(false)
+function pickPlace(option) {
+	place.value = option
+	placeFromPractitioner.value = false
+}
+watch(practitioner, (option) => {
+	if (place.value !== null && !placeFromPractitioner.value) {
+		return
+	}
+	const placeId = store.practitionerById(option?.id)?.placeId
+	place.value = placeOptions.value.find((o) => o.id === placeId) ?? null
+	placeFromPractitioner.value = place.value !== null
+})
 const saving = ref(false)
 
 const priceInvalid = computed(() => Number.isNaN(parsePrice(price.value)))

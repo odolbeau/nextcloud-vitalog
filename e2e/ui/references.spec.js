@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { client, inDays } from '../helpers.js'
-import { dialog, fill, items, nav, openApp, setLanguage, typeSpecialty } from './pages.js'
+import { choose, dialog, fill, items, nav, openApp, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
 
@@ -92,6 +92,20 @@ test.describe('practitioners', () => {
 		await expect(specialty(page, 'Dentiste')).toContainText('Dr Arnaud')
 		await expect(specialty(page, 'Dentiste')).toContainText('Dr Bernard')
 		await expect(specialty(page, 'No specialty')).toContainText('Dr Vidal')
+	})
+
+	test('the usual place is picked in the practitioner form and shown in the list', async ({ page }) => {
+		const place = await admin.create('places', { name: 'Cabinet du Port' })
+		const practitioner = await admin.create('practitioners', { name: 'Dr Martin', phone: '0102030405' })
+		await openApp(page)
+		await nav(page, 'practitioners').click()
+
+		await page.locator(`[data-test="practitioner-${practitioner.id}"]`).click()
+		await choose(page, 'Usual place', 'Cabinet du Port')
+		await dialog(page).getByRole('button', { name: 'Save' }).click()
+
+		await expect(page.locator(`[data-test="practitioner-${practitioner.id}"]`)).toContainText('0102030405 · Cabinet du Port')
+		expect((await admin.list('practitioners'))[0].placeId).toBe(place.id)
 	})
 
 	test('the name is required', async ({ page }) => {

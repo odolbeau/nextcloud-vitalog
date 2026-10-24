@@ -475,7 +475,12 @@ async function pick(field, option) {
 	if (!option) {
 		return
 	}
-	if (await store.updateAppointment(props.appointment, { [field]: option.id })) {
+	const changes = { [field]: option.id }
+	// sans lieu, le rendez-vous prend le lieu habituel du praticien choisi ; un lieu déjà renseigné n'est jamais remplacé
+	if (field === 'practitionerId' && props.appointment.placeId === null) {
+		changes.placeId = store.practitionerById(option.id)?.placeId ?? null
+	}
+	if (await store.updateAppointment(props.appointment, changes)) {
 		editing.value = null
 	}
 }

@@ -7,12 +7,14 @@ namespace OCA\Vitalog\Service;
 use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Place;
 use OCA\Vitalog\Db\PlaceMapper;
+use OCA\Vitalog\Db\PractitionerMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 
 class PlaceService {
 	public function __construct(
 		private PlaceMapper $mapper,
 		private AppointmentMapper $appointments,
+		private PractitionerMapper $practitioners,
 	) {
 	}
 
@@ -49,6 +51,11 @@ class PlaceService {
 		foreach ($affected as $appointment) {
 			$appointment->setPlaceId(null);
 			$this->appointments->update($appointment);
+		}
+		// n'est plus le lieu habituel de personne
+		foreach ($this->practitioners->findByPlace($id, $userId) as $practitioner) {
+			$practitioner->setPlaceId(null);
+			$this->practitioners->update($practitioner);
 		}
 		return $this->mapper->delete($place);
 	}

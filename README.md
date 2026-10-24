@@ -6,6 +6,8 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
 - **Practitioners and places**: created once (or on the fly from an appointment) and reused everywhere.
   A practitioner can optionally be linked to a card of the **Contacts** app: the card is the source of truth for the name, specialty
   and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
+  A practitioner can have a usual place: picking them for an appointment fills an empty place with it, and it can still be changed
+  case by case.
 - **Labels**: tags (with an optional colour) that bring appointments together across practitioners and places ("ankle", "blood
   donation"…). An appointment can carry several of them. The list can be filtered by label and by practitioner, and both filters
   combine (filter button next to the search field, or the "Labels" page). Labels show up as the categories of the calendar events.

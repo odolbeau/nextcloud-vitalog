@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use OCA\Vitalog\Contacts\ContactException;
 use OCA\Vitalog\Contacts\ContactGateway;
 use OCA\Vitalog\Db\AppointmentMapper;
+use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\Practitioner;
 use OCA\Vitalog\Db\PractitionerMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -23,6 +24,7 @@ class PractitionerService {
 		private PractitionerMapper $mapper,
 		private AppointmentMapper $appointments,
 		private ContactGateway $contacts,
+		private PlaceMapper $places,
 	) {
 	}
 
@@ -35,10 +37,11 @@ class PractitionerService {
 		return $this->resolve($this->get($id, $userId));
 	}
 
-	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null): Practitioner {
+	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null): Practitioner {
 		$practitioner = new Practitioner();
 		$practitioner->setUserId($userId);
 		$this->fill($practitioner, $name, $specialty, $phone);
+		$this->setPlace($practitioner, $userId, $placeId);
 		if ($contactUid !== null && $contactUid !== '') {
 			$this->link($practitioner, $this->contact($contactUid));
 		}
@@ -48,10 +51,12 @@ class PractitionerService {
 
 	/**
 	 * Remplace le praticien. `$contactUid` null le délie ; un autre UID le relie ; le même UID le garde lié
-	 * (nom, spécialité et téléphone proviennent alors de la fiche et les valeurs reçues sont ignorées).
+	 * (nom, spécialité et téléphone proviennent alors de la fiche et les valeurs reçues sont ignorées). Le lieu habituel
+	 * reste modifiable dans tous les cas.
 	 */
-	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null): Practitioner {
+	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null): Practitioner {
 		$practitioner = $this->get($id, $userId);
+		$this->setPlace($practitioner, $userId, $placeId);
 		$contactUid = $contactUid === '' ? null : $contactUid;
 
 		if ($contactUid === null) {
@@ -101,6 +106,17 @@ class PractitionerService {
 		$practitioner->setName(Validator::requiredText($name, Validator::NAME_MAX, 'name'));
 		$practitioner->setSpecialty(Validator::optionalText($specialty, Validator::NAME_MAX, 'specialty'));
 		$practitioner->setPhone(Validator::optionalText($phone, Validator::PHONE_MAX, 'phone'));
+	}
+
+	private function setPlace(Practitioner $practitioner, string $userId, ?int $placeId): void {
+		if ($placeId !== null) {
+			try {
+				$this->places->find($placeId, $userId);
+			} catch (DoesNotExistException) {
+				throw new InvalidArgumentException('Unknown place');
+			}
+		}
+		$practitioner->setPlaceId($placeId);
 	}
 
 	private function get(int $id, string $userId): Practitioner {

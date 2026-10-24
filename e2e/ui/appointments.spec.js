@@ -122,6 +122,54 @@ test('a missing practitioner and place can be chosen from the details', async ({
 	expect(stored).toMatchObject({ practitionerId: practitioner.id, placeId: place.id, reason: 'Contrôle' })
 })
 
+test('the usual place of the practitioner fills the place, unless one was picked by hand', async ({ page }) => {
+	const port = await admin.create('places', { name: 'Cabinet du Port' })
+	const clinic = await admin.create('places', { name: 'Clinique Sud' })
+	await admin.create('places', { name: 'Hôpital Nord' })
+	await admin.create('practitioners', { name: 'Dr Martin', placeId: port.id })
+	await admin.create('practitioners', { name: 'Dr Durand', placeId: clinic.id })
+	await admin.create('practitioners', { name: 'Dr Petit' })
+	await openApp(page)
+	await page.getByRole('button', { name: 'New appointment' }).first().click()
+
+	// pré-rempli, puis suivi tant qu'il vient d'un praticien
+	await choose(page, 'Practitioner', 'Dr Martin')
+	await expect(selected(page, 'Place')).toContainText('Cabinet du Port')
+	await choose(page, 'Practitioner', 'Dr Durand')
+	await expect(selected(page, 'Place')).toContainText('Clinique Sud')
+	await choose(page, 'Practitioner', 'Dr Petit')
+	await expect(selected(page, 'Place')).not.toContainText('Clinique Sud')
+
+	// choisi à la main : plus jamais remplacé
+	await choose(page, 'Place', 'Hôpital Nord')
+	await choose(page, 'Practitioner', 'Dr Martin')
+	await expect(selected(page, 'Place')).toContainText('Hôpital Nord')
+	await dialog(page).getByRole('button', { name: 'Save' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+	expect((await admin.list('appointments'))[0].placeId).not.toBe(port.id)
+})
+
+test('choosing a practitioner from the details fills an empty place only', async ({ page }) => {
+	const port = await admin.create('places', { name: 'Cabinet du Port' })
+	const clinic = await admin.create('places', { name: 'Clinique Sud' })
+	const martin = await admin.create('practitioners', { name: 'Dr Martin', placeId: port.id })
+	const without = await admin.create('appointments', { startsAt: inDays(5), reason: 'Sans lieu' })
+	const elsewhere = await admin.create('appointments', { startsAt: inDays(6), reason: 'Ailleurs', placeId: clinic.id })
+	await openApp(page)
+	const details = page.getByRole('article')
+
+	for (const reason of ['Sans lieu', 'Ailleurs']) {
+		await items(page).filter({ hasText: reason }).click()
+		await details.getByRole('button', { name: 'Choose a practitioner' }).click()
+		await page.getByRole('option').filter({ hasText: 'Dr Martin' }).click()
+		await expect(details).toContainText('Dr Martin')
+	}
+
+	const stored = Object.fromEntries((await admin.list('appointments')).map((a) => [a.id, a]))
+	expect(stored[without.id]).toMatchObject({ practitionerId: martin.id, placeId: port.id })
+	expect(stored[elsewhere.id]).toMatchObject({ practitionerId: martin.id, placeId: clinic.id })
+})
+
 test('the practitioner can be changed from the details', async ({ page }) => {
 	const first = await admin.create('practitioners', { name: 'Dr Martin' })
 	await admin.create('practitioners', { name: 'Dr Durand' })

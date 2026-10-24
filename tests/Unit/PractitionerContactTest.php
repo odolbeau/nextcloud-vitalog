@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use OCA\Vitalog\Contacts\ContactException;
 use OCA\Vitalog\Contacts\ContactGateway;
 use OCA\Vitalog\Db\AppointmentMapper;
+use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\Practitioner;
 use OCA\Vitalog\Db\PractitionerMapper;
 use OCA\Vitalog\Service\PractitionerService;
@@ -30,7 +31,7 @@ class PractitionerContactTest extends TestCase {
 		$this->contacts = $this->createMock(ContactGateway::class);
 		$this->contacts->method('isAvailable')->willReturn(true);
 		$this->contacts->method('url')->willReturn('/contacts/uid-1');
-		$this->service = new PractitionerService($this->mapper, $this->appointments, $this->contacts);
+		$this->service = new PractitionerService($this->mapper, $this->appointments, $this->contacts, $this->createMock(PlaceMapper::class));
 	}
 
 	private function practitioner(?string $contactUid = null): Practitioner {
@@ -93,7 +94,7 @@ class PractitionerContactTest extends TestCase {
 		$contacts = $this->createMock(ContactGateway::class);
 		$contacts->method('isAvailable')->willReturn(false);
 		$contacts->expects(self::never())->method('find');
-		$service = new PractitionerService($this->mapper, $this->appointments, $contacts);
+		$service = new PractitionerService($this->mapper, $this->appointments, $contacts, $this->createMock(PlaceMapper::class));
 		$this->practitioner('uid-1');
 
 		self::assertSame(Practitioner::CONTACT_UNAVAILABLE, $service->find(5, 'alice')->getContactStatus());
@@ -103,11 +104,13 @@ class PractitionerContactTest extends TestCase {
 		$this->practitioner('uid-1');
 		$this->contacts->method('find')->willReturn(self::CONTACT);
 
-		$updated = $this->service->update(5, 'alice', 'Autre nom', 'Autre', '999', 'uid-1');
+		$updated = $this->service->update(5, 'alice', 'Autre nom', 'Autre', '999', 'uid-1', 7);
 
 		self::assertSame('Dr Spike', $updated->getName());
 		self::assertSame('Cardiologue', $updated->getSpecialty());
 		self::assertSame('0102030405', $updated->getPhone());
+		// le lieu habituel est propre à Vitalog : il reste modifiable
+		self::assertSame(7, $updated->getPlaceId());
 	}
 
 	public function testUnlinkingKeepsTheDataAndUnlocksIt(): void {
@@ -159,6 +162,6 @@ class PractitionerContactTest extends TestCase {
 		$linked->setContactUid('uid-1');
 		$mapper->method('find')->willReturn($linked);
 		$this->expectException(InvalidArgumentException::class);
-		(new PractitionerService($mapper, $this->appointments, $this->contacts))->createContact(5, 'alice');
+		(new PractitionerService($mapper, $this->appointments, $this->contacts, $this->createMock(PlaceMapper::class)))->createContact(5, 'alice');
 	}
 }

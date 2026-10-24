@@ -48,6 +48,15 @@
 					:label="t('vitalog', 'Phone')"
 					type="tel" />
 			</template>
+			<!-- propre à Vitalog : modifiable même pour un praticien lié à un contact -->
+			<NcSelect
+				v-if="placeOptions.length > 0"
+				v-model="place"
+				:filterBy="filterByText"
+				inputId="vitalog-practitioner-place"
+				:inputLabel="t('vitalog', 'Usual place')"
+				:options="placeOptions"
+				:placeholder="t('vitalog', 'Offered for new appointments')" />
 		</div>
 		<template #actions>
 			<NcButton
@@ -114,6 +123,9 @@ const specialty = computed({
 	},
 })
 
+const placeOptions = computed(() => store.places.map((p) => ({ id: p.id, label: p.name })))
+const place = ref(placeOptions.value.find((o) => o.id === props.practitioner?.placeId) ?? null)
+
 const toOption = (c) => ({ uid: c.uid, label: c.specialty ? `${c.name} · ${c.specialty}` : c.name, contact: c })
 const contact = ref(props.practitioner?.contactUid
 	? { uid: props.practitioner.contactUid, label: props.practitioner.name }
@@ -178,6 +190,7 @@ async function submit() {
 		specialty: form.specialty.trim() || null,
 		phone: form.phone.trim() || null,
 		contactUid: contact.value?.uid ?? null,
+		placeId: place.value?.id ?? null,
 	}, props.practitioner?.id)
 	saving.value = false
 	if (saved) {

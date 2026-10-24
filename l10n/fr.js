@@ -85,6 +85,8 @@ OC.L10N.register(
         "No places yet": "Aucun lieu pour l’instant",
         "No practitioners yet": "Aucun praticien pour l’instant",
         "No specialty": "Sans spécialité",
+        "Usual place": "Lieu habituel",
+        "Offered for new appointments": "Proposé pour les nouveaux rendez-vous",
         "None": "Aucun",
         "Notes": "Notes",
         "Nothing planned": "Rien de prévu",

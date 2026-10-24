@@ -204,7 +204,14 @@ export const useDataStore = defineStore('data', () => {
 	const deleteLabel = (id) => deleteReference('labels', labels, id)
 
 	const savePlace = (form, id = null) => saveReference('places', places, form, id)
-	const deletePlace = (id) => deleteReference('places', places, id)
+	async function deletePlace(id) {
+		const done = await deleteReference('places', places, id)
+		if (done) {
+			// le serveur l'a retiré comme lieu habituel des praticiens
+			practitioners.value = practitioners.value.map((p) => (p.placeId === id ? { ...p, placeId: null } : p))
+		}
+		return done
+	}
 
 	/** Import ponctuel : crée un rendez-vous par événement du calendrier. Renvoie le nombre créé, ou `null` en cas d'échec. */
 	async function importCalendar(calendarUri) {

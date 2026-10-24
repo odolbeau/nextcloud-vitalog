@@ -15,6 +15,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - The appointment list can be scrolled again on a narrow screen (Nextcloud's mobile styles let it grow past the screen).
 
 ### Added
+- A practitioner can have a usual place. Picking them for an appointment fills an empty place with it (in the form, also when the place came from the previously picked practitioner); a place picked by hand is never replaced. On upgrade, practitioners whose appointments were all at one place get it as their usual place.
 - The appointment list shows a heading at each change of year, kept at the top while scrolling.
 - The title (reason) of an appointment can be edited straight from its details.
 - Practical information on places (intercom, door code, floor…), shown in the appointment details.

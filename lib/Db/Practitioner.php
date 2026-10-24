@@ -20,6 +20,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setContactUid(?string $contactUid)
  * @method string|null getContactBook()
  * @method void setContactBook(?string $contactBook)
+ * @method int|null getPlaceId()
+ * @method void setPlaceId(?int $placeId)
  */
 class Practitioner extends Entity implements JsonSerializable {
 	/** Pas de lien avec un contact. */
@@ -37,10 +39,16 @@ class Practitioner extends Entity implements JsonSerializable {
 	protected ?string $phone = null;
 	protected ?string $contactUid = null;
 	protected ?string $contactBook = null;
+	/** Lieu habituel, proposé par défaut pour ses rendez-vous ; propre à Vitalog, même pour un praticien lié à un contact. */
+	protected ?int $placeId = null;
 
 	// état calculé à la lecture, non persisté
 	private string $contactStatus = self::CONTACT_NONE;
 	private ?string $contactUrl = null;
+
+	public function __construct() {
+		$this->addType('placeId', 'integer');
+	}
 
 	public function setContactState(string $status, ?string $url = null): void {
 		$this->contactStatus = $status;
@@ -57,6 +65,7 @@ class Practitioner extends Entity implements JsonSerializable {
 			'name' => $this->name,
 			'specialty' => $this->specialty,
 			'phone' => $this->phone,
+			'placeId' => $this->placeId,
 			'contactUid' => $this->contactUid,
 			'contactStatus' => $this->contactStatus,
 			'contactUrl' => $this->contactUrl,
