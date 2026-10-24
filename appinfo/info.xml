@@ -9,13 +9,13 @@
 
 * **Practitioners and places** are created once and reused, optionally linked to your Contacts; a practitioner's usual place fills the place of their appointments.
 * **Labels** gather appointments whatever the practitioner or place, and the list can be filtered by label or practitioner.
-* **Calendar**: your appointments appear in a read-only "Vitalog" calendar (with a reminder the day before), and the events of an existing calendar can be imported as appointments.
+* **Calendar**: your appointments appear in a read-only calendar (named "🩺 Vitalog" by default, with a reminder the day before), and the events of an existing calendar can be imported as appointments.
 * **Private**: your data stays on your instance and is strictly private to each user.]]></description>
 	<description lang="fr"><![CDATA[Gardez une trace privée de vos rendez-vous médicaux : date, motif et notes, avec le praticien et le lieu, des libellés pour réunir des rendez-vous quel que soit le praticien (une cheville, un don du sang…), et des documents joints depuis vos fichiers Nextcloud.
 
 * **Praticiens et lieux** : créés une fois et réutilisés, avec un lien facultatif vers vos Contacts ; le lieu habituel d'un praticien remplit le lieu de ses rendez-vous.
 * **Libellés** : ils réunissent des rendez-vous quel que soit le praticien ou le lieu ; la liste se filtre par libellé ou par praticien.
-* **Calendrier** : vos rendez-vous apparaissent dans un calendrier « Vitalog » en lecture seule (avec un rappel la veille), et les événements d’un calendrier existant peuvent être importés comme rendez-vous.
+* **Calendrier** : vos rendez-vous apparaissent dans un calendrier en lecture seule (nommé « 🩺 Vitalog » par défaut, avec un rappel la veille), et les événements d’un calendrier existant peuvent être importés comme rendez-vous.
 * **Privé** : vos données restent sur votre instance et sont strictement privées à chaque utilisateur.]]></description>
 	<version>0.1.0</version>
 	<licence>AGPL-3.0-or-later</licence>

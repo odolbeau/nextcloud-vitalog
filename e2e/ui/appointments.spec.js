@@ -495,6 +495,28 @@ test('the events of a calendar can be imported from the settings', async ({ page
 	}
 })
 
+test('the name and color of the Vitalog calendar are set in the settings', async ({ page }) => {
+	await openApp(page)
+	await nav(page, 'settings').click()
+	const name = dialog(page).getByLabel('Calendar name')
+	await expect(name).toHaveValue('🩺 Vitalog')
+	await fill(name, 'Santé')
+	// Entrée enregistre le nom sans lancer l'import ni fermer la fenêtre
+	await name.press('Enter')
+	await expect.poll(async () => (await admin.data(await admin.get('settings'))).calendarName).toBe('Santé')
+	await expect(dialog(page)).toBeVisible()
+
+	await dialog(page).getByRole('button', { name: 'Calendar color' }).click()
+	// le popover s'anime à l'ouverture : on réessaie tant que le clic n'a pas pris (comme pour les libellés)
+	await expect(async () => {
+		await page.locator('label', { has: page.getByRole('radio', { name: 'Purple' }) }).click()
+		await expect(page.getByRole('radio', { name: 'Purple' })).toBeChecked({ timeout: 500 })
+	}).toPass({ timeout: 10_000 })
+	await page.getByRole('button', { name: 'Choose' }).click()
+	await expect(dialog(page).locator('.settings__swatch')).toHaveCSS('background-color', 'rgb(182, 70, 157)')
+	await expect.poll(async () => (await admin.data(await admin.get('settings'))).calendarColor).toBe('#b6469d')
+})
+
 test('an appointment created at a past date shows up in Past', async ({ page }) => {
 	await openApp(page)
 	await page.getByRole('button', { name: 'New appointment' }).first().click()

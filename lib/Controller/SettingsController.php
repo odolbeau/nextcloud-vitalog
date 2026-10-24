@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Controller;
 
+use InvalidArgumentException;
 use OCA\Vitalog\AppInfo\Application;
+use OCA\Vitalog\Calendar\CalendarAppearance;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Dav\CalendarPlugin;
 use OCA\Vitalog\Service\CalendarImportService;
@@ -22,6 +24,7 @@ class SettingsController extends OCSController {
 		IRequest $request,
 		private CalendarImportService $import,
 		private CalendarGateway $calendars,
+		private CalendarAppearance $appearance,
 		private IAppManager $apps,
 		private IURLGenerator $urls,
 		private ?string $userId,
@@ -38,9 +41,35 @@ class SettingsController extends OCSController {
 			// chemin DAV du calendrier « Vitalog » : l'app Calendrier repère un événement par le chemin de son objet
 			'calendarPath' => $this->urls->linkTo('', 'remote.php') . '/dav/calendars/' . rawurlencode((string)$this->userId)
 				. '/' . CalendarPlugin::DAV_NAME . '/',
+			'calendarName' => $this->appearance->name((string)$this->userId),
+			'calendarColor' => $this->appearance->color((string)$this->userId),
 			// calendriers depuis lesquels importer des rendez-vous
 			'calendars' => $this->calendars->listWritable($this->userId),
 		]);
+	}
+
+	/**
+	 * Nom et couleur du calendrier « Vitalog » (aussi modifiables depuis l'app Calendrier). Ce qui est omis ne change pas.
+	 *
+	 * @param string|null $name 1 à 255 caractères
+	 * @param string|null $color `#rrggbb`
+	 */
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'PUT', url: '/api/settings/calendar')]
+	public function updateCalendar(?string $name = null, ?string $color = null): DataResponse {
+		$userId = (string)$this->userId;
+		try {
+			if ($name !== null) {
+				$this->appearance->setName($userId, $name);
+			}
+			if ($color !== null) {
+				$this->appearance->setColor($userId, $color);
+			}
+		} catch (InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+
+		return new DataResponse(['calendarName' => $this->appearance->name($userId), 'calendarColor' => $this->appearance->color($userId)]);
 	}
 
 	/**

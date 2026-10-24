@@ -19,6 +19,8 @@ export const searchContacts = (search) => axios.get(url('contacts'), { ...config
 export const createContact = (practitionerId) => axios.post(url(`practitioners/${practitionerId}/contact`), {}, config).then(unwrap)
 
 export const getSettings = () => axios.get(url('settings'), config).then(unwrap)
+/** Nom et/ou couleur du calendrier « Vitalog » : `{ calendarName, calendarColor }`. */
+export const updateCalendar = (changes) => axios.put(url('settings/calendar'), changes, config).then(unwrap)
 /** Import ponctuel des événements d'un calendrier : `{ imported }`. */
 export const importCalendar = (calendarUri) => axios.post(url('settings/import'), { calendarUri }, config).then(unwrap)
 

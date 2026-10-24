@@ -6,6 +6,7 @@ namespace OCA\Vitalog\Dav;
 
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Integration\ICalendarProvider;
+use OCA\Vitalog\Calendar\CalendarAppearance;
 use OCA\Vitalog\Calendar\EventFactory;
 use OCP\IUserSession;
 use OCP\Server;
@@ -28,10 +29,12 @@ class CalendarPlugin implements ICalendarProvider {
 	 *
 	 * @param (\Closure(): EventFactory)|null $events
 	 * @param (\Closure(): IUserSession)|null $userSession
+	 * @param (\Closure(): CalendarAppearance)|null $appearance
 	 */
 	public function __construct(
 		private ?\Closure $events = null,
 		private ?\Closure $userSession = null,
+		private ?\Closure $appearance = null,
 	) {
 	}
 
@@ -42,7 +45,7 @@ class CalendarPlugin implements ICalendarProvider {
 	public function fetchAllForCalendarHome(string $principalUri): array {
 		$userId = $this->ownUser($principalUri);
 
-		return $userId === null ? [] : [new Calendar($principalUri, $userId, $this->events())];
+		return $userId === null ? [] : [$this->calendar($principalUri, $userId)];
 	}
 
 	public function hasCalendarInCalendarHome(string $principalUri, string $calendarUri): bool {
@@ -52,7 +55,7 @@ class CalendarPlugin implements ICalendarProvider {
 	public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ?ExternalCalendar {
 		$userId = $this->ownUser($principalUri);
 
-		return $calendarUri === self::CALENDAR_URI && $userId !== null ? new Calendar($principalUri, $userId, $this->events()) : null;
+		return $calendarUri === self::CALENDAR_URI && $userId !== null ? $this->calendar($principalUri, $userId) : null;
 	}
 
 	/** L'utilisateur connecté, si le dossier CalDAV demandé est le sien. */
@@ -66,7 +69,12 @@ class CalendarPlugin implements ICalendarProvider {
 		return $userId !== null && $principalUri === self::PRINCIPAL_PREFIX . $userId ? $userId : null;
 	}
 
-	private function events(): EventFactory {
-		return ($this->events ?? static fn (): EventFactory => Server::get(EventFactory::class))();
+	private function calendar(string $principalUri, string $userId): Calendar {
+		return new Calendar(
+			$principalUri,
+			$userId,
+			($this->events ?? static fn (): EventFactory => Server::get(EventFactory::class))(),
+			($this->appearance ?? static fn (): CalendarAppearance => Server::get(CalendarAppearance::class))(),
+		);
 	}
 }

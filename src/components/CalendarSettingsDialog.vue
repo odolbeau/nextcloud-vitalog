@@ -5,21 +5,38 @@
 		isForm
 		@submit="submit"
 		@closing="emit('close')">
-		<div class="settings">
+		<div ref="settingsElement" class="settings">
 			<section class="settings__section">
 				<h3>{{ t('vitalog', 'Your Vitalog calendar') }}</h3>
 				<p>
-					{{ t('vitalog', 'Your appointments appear in a read-only calendar named "Vitalog", with a reminder the day before. Edit them here: the calendar follows.') }}
+					{{ t('vitalog', 'Your appointments appear in a read-only calendar, with a reminder the day before. Edit them here: the calendar follows.') }}
 				</p>
-				<NcButton
-					v-if="store.settings.calendarAppEnabled"
-					:href="calendarAppUrl"
-					variant="secondary">
-					<template #icon>
-						<CalendarMonth :size="20" />
-					</template>
-					{{ t('vitalog', 'Open the Calendar app') }}
-				</NcButton>
+				<!-- Entrée enregistre le nom au lieu de lancer l'import -->
+				<NcTextField
+					v-model="name"
+					:label="t('vitalog', 'Calendar name')"
+					:maxlength="255"
+					@change="saveName"
+					@keydown.enter.prevent="saveName" />
+				<div class="settings__buttons">
+					<NcColorPicker v-model="color" :container="pickerContainer">
+						<NcButton>
+							<template #icon>
+								<span class="settings__swatch" :style="{ background: color }" aria-hidden="true" />
+							</template>
+							{{ t('vitalog', 'Calendar color') }}
+						</NcButton>
+					</NcColorPicker>
+					<NcButton
+						v-if="store.settings.calendarAppEnabled"
+						:href="calendarAppUrl"
+						variant="secondary">
+						<template #icon>
+							<CalendarMonth :size="20" />
+						</template>
+						{{ t('vitalog', 'Open the Calendar app') }}
+					</NcButton>
+				</div>
 			</section>
 
 			<section class="settings__section">
@@ -57,11 +74,13 @@
 <script setup>
 import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcColorPicker from '@nextcloud/vue/components/NcColorPicker'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import { useDialogHistory } from '../navigation.js'
 import { filterByText } from '../search.js'
@@ -75,6 +94,48 @@ const calendarAppUrl = generateUrl('/apps/calendar')
 const options = computed(() => store.settings.calendars.map((c) => ({ id: c.uri, label: c.name })))
 const selected = ref(null)
 const importing = ref(false)
+
+// enregistré en quittant le champ ou avec Entrée ; vide, il reprend le nom enregistré
+const name = ref(store.settings.calendarName ?? '')
+async function saveName() {
+	const value = name.value.trim()
+	if (value === '' || value === store.settings.calendarName) {
+		name.value = store.settings.calendarName ?? ''
+		return
+	}
+	await store.updateCalendar({ name: value })
+	name.value = store.settings.calendarName ?? ''
+}
+
+// sélecteur ouvert dans le fond du modal, comme pour les libellés (voir LabelForm)
+const settingsElement = ref(null)
+const pickerContainer = computed(() => settingsElement.value?.closest('.modal-mask') ?? 'body')
+// le sélecteur avancé émet une couleur à chaque mouvement : on n'enregistre que la dernière
+const pendingColor = ref(null)
+let colorTimer
+const color = computed({
+	get: () => pendingColor.value ?? store.settings.calendarColor,
+	set: (value) => {
+		pendingColor.value = value
+		clearTimeout(colorTimer)
+		colorTimer = setTimeout(saveColor, 400)
+	},
+})
+
+async function saveColor() {
+	clearTimeout(colorTimer)
+	if (pendingColor.value === null) {
+		return
+	}
+	if (pendingColor.value !== store.settings.calendarColor) {
+		await store.updateCalendar({ color: pendingColor.value })
+	}
+	pendingColor.value = null
+}
+onBeforeUnmount(() => {
+	saveName()
+	saveColor()
+})
 
 async function submit() {
 	importing.value = true
@@ -111,6 +172,18 @@ async function submit() {
 		> .button-vue {
 			align-self: flex-start;
 		}
+	}
+
+	&__buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	&__swatch {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
 	}
 
 	&__hint {

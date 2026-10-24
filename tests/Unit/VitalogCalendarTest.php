@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Tests\Unit;
 
+use OCA\Vitalog\Calendar\CalendarAppearance;
 use OCA\Vitalog\Calendar\EventFactory;
 use OCA\Vitalog\Calendar\IcsBuilder;
 use OCA\Vitalog\Dav\Calendar;
@@ -17,6 +18,7 @@ use OCA\Vitalog\Db\Place;
 use OCA\Vitalog\Db\PlaceMapper;
 use OCA\Vitalog\Db\Practitioner;
 use OCA\Vitalog\Db\PractitionerMapper;
+use OCP\Config\IUserConfig;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUser;
@@ -24,12 +26,16 @@ use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\PropPatch;
 
 /** Le calendrier « Vitalog » : événements générés depuis les rendez-vous, en lecture seule, visible de son seul propriétaire. */
 class VitalogCalendarTest extends TestCase {
 	private const STARTS_AT = 1_800_000_000; // 2027-01-15 08:00 UTC
 
 	private EventFactory $events;
+	private CalendarAppearance $appearance;
+	/** @var array<string, string> préférences enregistrées, par utilisateur et clé */
+	private array $preferences = [];
 
 	protected function setUp(): void {
 		$withPractitioner = $this->appointment(1, practitionerId: 5, placeId: 6, reason: 'Contrôle', notes: 'À jeun');
@@ -62,6 +68,19 @@ class VitalogCalendarTest extends TestCase {
 		$l->method('t')->willReturnArgument(0);
 
 		$this->events = new EventFactory($appointments, $practitioners, $places, $labels, $links, new IcsBuilder(), $config, $l);
+
+		$userConfig = $this->createMock(IUserConfig::class);
+		$userConfig->method('getValueString')->willReturnCallback(fn (string $userId, string $app, string $key, string $default) => $this->preferences["$userId/$key"] ?? $default);
+		$userConfig->method('setValueString')->willReturnCallback(function (string $userId, string $app, string $key, string $value): bool {
+			$this->preferences["$userId/$key"] = $value;
+
+			return true;
+		});
+		$this->appearance = new CalendarAppearance($userConfig);
+	}
+
+	private function calendar(): Calendar {
+		return new Calendar('principals/users/alice', 'alice', $this->events, $this->appearance);
 	}
 
 	private function appointment(int $id, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null): Appointment {
@@ -106,7 +125,7 @@ class VitalogCalendarTest extends TestCase {
 	}
 
 	public function testTheCalendarIsReadOnly(): void {
-		$calendar = new Calendar('principals/users/alice', 'alice', $this->events);
+		$calendar = $this->calendar();
 
 		self::assertCount(2, $calendar->getChildren());
 		self::assertTrue($calendar->childExists('appointment-1.ics'));
@@ -135,12 +154,43 @@ class VitalogCalendarTest extends TestCase {
 		$user->method('getUID')->willReturn('alice');
 		$session = $this->createMock(IUserSession::class);
 		$session->method('getUser')->willReturn($user);
-		$plugin = new CalendarPlugin(fn (): EventFactory => $this->events, static fn (): IUserSession => $session);
+		$plugin = new CalendarPlugin(fn (): EventFactory => $this->events, static fn (): IUserSession => $session, fn (): CalendarAppearance => $this->appearance);
 
 		self::assertCount(1, $plugin->fetchAllForCalendarHome('principals/users/alice'));
 		self::assertSame([], $plugin->fetchAllForCalendarHome('principals/users/bob'));
 		self::assertTrue($plugin->hasCalendarInCalendarHome('principals/users/alice', 'appointments'));
 		self::assertFalse($plugin->hasCalendarInCalendarHome('principals/users/bob', 'appointments'));
 		self::assertNull($plugin->getCalendarInCalendarHome('principals/users/alice', 'other'));
+	}
+
+	public function testNameAndColorHaveDefaultsAndFollowTheCalendarApp(): void {
+		$calendar = $this->calendar();
+		$name = '{DAV:}displayname';
+		$color = '{http://apple.com/ns/ical/}calendar-color';
+		self::assertSame('🩺 Vitalog', $calendar->getProperties([])[$name]);
+		self::assertSame('#6ea68f', $calendar->getProperties([])[$color]);
+
+		// comme l'app Calendrier quand on y renomme le calendrier ou change sa couleur ; les autres propriétés restent au
+		// stockage de Nextcloud
+		$patch = new PropPatch([$name => ' Santé ', $color => '#B6469DFF', '{http://owncloud.org/ns}calendar-enabled' => '0']);
+		$calendar->propPatch($patch);
+		self::assertSame(['{http://owncloud.org/ns}calendar-enabled'], $patch->getRemainingMutations());
+		$patch->handleRemaining(static fn (): bool => true);
+		self::assertTrue($patch->commit());
+		self::assertSame('Santé', $calendar->getProperties([])[$name]);
+		self::assertSame('#b6469d', $calendar->getProperties([])[$color]);
+	}
+
+	public function testInvalidNamesAndColorsAreRefused(): void {
+		foreach (['{http://apple.com/ns/ical/}calendar-color' => 'green', '{DAV:}displayname' => '  '] as $property => $value) {
+			$patch = new PropPatch([$property => $value]);
+			$this->calendar()->propPatch($patch);
+			self::assertFalse($patch->commit());
+		}
+		self::assertSame(CalendarAppearance::DEFAULT_NAME, $this->appearance->name('alice'));
+		self::assertSame(CalendarAppearance::DEFAULT_COLOR, $this->appearance->color('alice'));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->appearance->setColor('alice', '#12345');
 	}
 }

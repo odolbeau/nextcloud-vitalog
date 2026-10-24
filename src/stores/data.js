@@ -12,7 +12,7 @@ export const useDataStore = defineStore('data', () => {
 	const practitioners = ref([])
 	const places = ref([])
 	const labels = ref([])
-	const settings = ref({ calendarAppEnabled: false, calendarPath: null, calendars: [] })
+	const settings = ref({ calendarAppEnabled: false, calendarPath: null, calendarName: null, calendarColor: null, calendars: [] })
 	const loaded = ref(false)
 	const loadError = ref(false)
 
@@ -214,6 +214,14 @@ export const useDataStore = defineStore('data', () => {
 	}
 
 	/** Import ponctuel : crée un rendez-vous par événement du calendrier. Renvoie le nombre créé, ou `null` en cas d'échec. */
+	/** @param changes `{ name }` et/ou `{ color }` du calendrier « Vitalog » */
+	async function updateCalendar(changes) {
+		const result = await guard(() => api.updateCalendar(changes), t('vitalog', 'The calendar could not be saved.'))
+		if (result) {
+			settings.value = { ...settings.value, ...result }
+		}
+	}
+
 	async function importCalendar(calendarUri) {
 		const result = await guard(() => api.importCalendar(calendarUri), t('vitalog', 'The events could not be imported.'))
 		if (!result) {
@@ -256,6 +264,7 @@ export const useDataStore = defineStore('data', () => {
 		deletePlace,
 		saveLabel,
 		deleteLabel,
+		updateCalendar,
 		importCalendar,
 	}
 })

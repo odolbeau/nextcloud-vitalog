@@ -16,7 +16,8 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
 - **Documents**: prescriptions, reports, results… attached from your Nextcloud files.
 - **Calendar**: your appointments appear in a read-only "Vitalog" calendar, in the Calendar app and in any CalDAV client, with a
   reminder the day before. It is generated from your appointments: there is nothing to link or synchronise, and changing an
-  appointment, a practitioner, a place or a label shows up right away. The events of an existing calendar can also be imported as
+  appointment, a practitioner, a place or a label shows up right away. It is named "🩺 Vitalog" and green by default; its name and
+  colour are set in the settings (or in the Calendar app, the settings follow). The events of an existing calendar can also be imported as
   appointments in one go (past ones included; recurring events are ignored, and later changes to the events are not reflected).
 - English and French interface. Your data stays on your instance and is strictly private to each user.
 
@@ -110,7 +111,9 @@ boards: a calendar plugin declared in `appinfo/info.xml` (`<sabre><calendar-plug
 (`/remote.php/dav/calendars/<user>/app-generated--vitalog--appointments/`). Its events are built on each request from the
 appointments, in the user's time zone, with a reminder the day before (`VALARM`, triggered by the clients that sync the calendar;
 Nextcloud's own reminder notifications only cover stored events). The calendar is read-only: creating, changing or deleting an event
-from a client is refused. Only its owner sees it. Hiding it or changing its colour in the Calendar app works as for any calendar.
+from a client is refused. Only its owner sees it. Hiding it in the Calendar app works as for any calendar; its name and colour are
+Vitalog settings (`calendar_name`, `calendar_color`), which the calendar handles itself when a client changes them, before
+Nextcloud's property storage would keep them apart.
 
 The import reads the events of one of the user's calendars once and creates the missing appointments; each appointment keeps the UID
 and calendar of its source event so that importing again skips it. Nothing is written back to the source calendar.

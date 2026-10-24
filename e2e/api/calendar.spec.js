@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, BOB, client, ensureBob, exportCalendar, inDays, VITALOG_CALENDAR, vitalogEvents } from '../helpers.js'
+import { ADMIN, BOB, client, DEFAULT_CALENDAR, ensureBob, exportCalendar, inDays, VITALOG_CALENDAR, vitalogEvents } from '../helpers.js'
 
 let admin
 let bob
@@ -38,9 +38,43 @@ test('the Vitalog calendar is listed in the user\'s calendars, read-only', async
 	expect(response.status()).toBe(207)
 	const body = await response.text()
 	const calendar = body.split('<d:response>').find((part) => part.includes(VITALOG_CALENDAR))
-	expect(calendar).toContain('<d:displayname>Vitalog</d:displayname>')
+	expect(calendar).toContain(`<d:displayname>${DEFAULT_CALENDAR.name}</d:displayname>`)
 	expect(calendar).toContain('<d:read/>')
 	expect(calendar).not.toContain('<d:write/>')
+})
+
+test('the calendar is named and green by default, both set from Vitalog or from a calendar client', async () => {
+	const appearance = async () => {
+		const response = await admin.context.fetch(CALENDAR, {
+			method: 'PROPFIND',
+			headers: { Depth: '0', 'Content-Type': 'application/xml' },
+			data: '<d:propfind xmlns:d="DAV:" xmlns:a="http://apple.com/ns/ical/"><d:prop><d:displayname/><a:calendar-color/></d:prop></d:propfind>',
+		})
+		expect(response.status()).toBe(207)
+		const body = await response.text()
+		return { name: body.match(/displayname>([^<]*)</)?.[1], color: body.match(/calendar-color[^>]*>([^<]*)</)?.[1] }
+	}
+	expect(await appearance()).toEqual(DEFAULT_CALENDAR)
+
+	const set = await admin.put('settings/calendar', { name: '  Santé  ', color: '#B6469D' })
+	expect(await admin.data(set)).toEqual({ calendarName: 'Santé', calendarColor: '#b6469d' })
+	expect(await appearance()).toEqual({ name: 'Santé', color: '#b6469d' })
+	expect((await admin.put('settings/calendar', { color: 'green' })).status()).toBe(400)
+	expect((await admin.put('settings/calendar', { name: '  ' })).status()).toBe(400)
+
+	// comme l'app Calendrier quand on y renomme le calendrier ou change sa couleur : les réglages de Vitalog suivent
+	const patch = await admin.context.fetch(CALENDAR, {
+		method: 'PROPPATCH',
+		headers: { 'Content-Type': 'application/xml' },
+		data: '<d:propertyupdate xmlns:d="DAV:" xmlns:a="http://apple.com/ns/ical/"><d:set><d:prop><d:displayname>⚕️ Rendez-vous</d:displayname><a:calendar-color>#0082C9FF</a:calendar-color></d:prop></d:set></d:propertyupdate>',
+	})
+	expect(patch.status()).toBe(207)
+	expect(await patch.text()).not.toMatch(/HTTP\/1\.1 (4|5)\d\d/)
+	expect(await appearance()).toEqual({ name: '⚕️ Rendez-vous', color: '#0082c9' })
+	expect(await admin.data(await admin.get('settings'))).toMatchObject({ calendarName: '⚕️ Rendez-vous', calendarColor: '#0082c9' })
+
+	// bob a les siens
+	expect(await bob.data(await bob.get('settings'))).toMatchObject({ calendarName: DEFAULT_CALENDAR.name, calendarColor: DEFAULT_CALENDAR.color })
 })
 
 test('each appointment is an event, kept up to date with the appointment and its references', async () => {

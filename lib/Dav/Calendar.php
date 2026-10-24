@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Dav;
 
+use InvalidArgumentException;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
+use OCA\Vitalog\Calendar\CalendarAppearance;
 use OCA\Vitalog\Calendar\EventFactory;
 use Sabre\CalDAV\CalendarQueryValidator;
 use Sabre\CalDAV\Plugin;
@@ -17,10 +19,13 @@ use Sabre\VObject\Reader;
 
 /**
  * Le calendrier « Vitalog » : un événement par rendez-vous, généré à la lecture. En lecture seule ; seules les propriétés
- * d'affichage (visibilité, couleur choisies dans l'app Calendrier) sont enregistrées, par le stockage de propriétés de
- * Nextcloud.
+ * d'affichage choisies dans l'app Calendrier sont enregistrées : le nom et la couleur dans les réglages de Vitalog, les
+ * autres (visibilité…) par le stockage de propriétés de Nextcloud.
  */
 class Calendar extends ExternalCalendar implements IACL {
+	private const NAME = '{DAV:}displayname';
+	private const COLOR = '{http://apple.com/ns/ical/}calendar-color';
+
 	/** @var array<string, string>|null ICS par nom d'objet, calculés une fois par requête */
 	private ?array $children = null;
 
@@ -28,6 +33,7 @@ class Calendar extends ExternalCalendar implements IACL {
 		private string $principalUri,
 		private string $userId,
 		private EventFactory $events,
+		private CalendarAppearance $appearance,
 	) {
 		parent::__construct('vitalog', CalendarPlugin::CALENDAR_URI);
 	}
@@ -58,13 +64,28 @@ class Calendar extends ExternalCalendar implements IACL {
 
 	public function getProperties($properties): array {
 		return [
-			'{DAV:}displayname' => 'Vitalog',
+			self::NAME => $this->appearance->name($this->userId),
+			self::COLOR => $this->appearance->color($this->userId),
 			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet(['VEVENT']),
 		];
 	}
 
 	public function propPatch(PropPatch $propPatch): void {
-		// rien ici : les propriétés d'affichage restantes sont enregistrées par le stockage de propriétés de Nextcloud
+		// traités avant le stockage de propriétés de Nextcloud, qui sinon les garderait pour lui et masquerait les réglages
+		$propPatch->handle(self::NAME, fn (mixed $name): bool => $this->apply(fn () => $this->appearance->setName($this->userId, (string)$name)));
+		$propPatch->handle(self::COLOR, fn (mixed $color): bool => $this->apply(fn () => $this->appearance->setColor($this->userId, (string)$color)));
+		// les autres propriétés d'affichage sont enregistrées par le stockage de propriétés de Nextcloud
+	}
+
+	/** @param \Closure(): string $set */
+	private function apply(\Closure $set): bool {
+		try {
+			$set();
+		} catch (InvalidArgumentException) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public function createFile($name, $data = null) {

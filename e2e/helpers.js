@@ -6,6 +6,8 @@ export const ADMIN = { user: 'admin', password: 'admin' }
 export const BOB = { user: 'bob', password: 'Vitalog-e2e-pass-9271' }
 // calendrier « Vitalog » fourni par l'app (préfixe imposé par l'app DAV)
 export const VITALOG_CALENDAR = 'app-generated--vitalog--appointments'
+// nom et couleur par défaut de ce calendrier
+export const DEFAULT_CALENDAR = { name: '🩺 Vitalog', color: '#6ea68f' }
 
 export const nowSeconds = () => Math.floor(Date.now() / 1000)
 export function inDays(days, hour = 10) {
@@ -49,13 +51,14 @@ export async function client(account = ADMIN) {
 		async list(resource) {
 			return data(await context.get(api(resource)))
 		},
-		/** Supprime toutes les données Vitalog du compte. */
+		/** Supprime toutes les données Vitalog du compte et remet le nom et la couleur du calendrier par défaut. */
 		async reset() {
 			for (const resource of ['appointments', 'practitioners', 'places', 'labels']) {
 				for (const item of await this.list(resource)) {
 					await context.delete(api(`${resource}/${item.id}`))
 				}
 			}
+			await context.put(api('settings/calendar'), { data: DEFAULT_CALENDAR })
 		},
 		dispose: () => context.dispose(),
 	}
