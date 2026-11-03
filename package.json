@@ -1,6 +1,6 @@
 {
 	"name": "vitalog",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"description": "Keep track of your medical appointments in Nextcloud",
 	"license": "AGPL-3.0-or-later",

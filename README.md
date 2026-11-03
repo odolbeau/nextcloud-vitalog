@@ -26,7 +26,12 @@ life is 2027-02-18.
 
 ## Installation
 
-Until the app is on the Nextcloud App Store, install a release archive by hand:
+Install Vitalog from the [Nextcloud App Store](https://apps.nextcloud.com/apps/vitalog): in Nextcloud, **Apps** › **Organization** ›
+**Vitalog** › **Download and enable** (or `sudo -u www-data php occ app:install vitalog`). Updates are then offered like for any
+other app.
+
+To install it by hand instead, extract a release archive from the
+[GitHub releases](https://github.com/odolbeau/nextcloud-vitalog/releases):
 
 ```sh
 tar -xzf vitalog-X.Y.Z.tar.gz -C /path/to/nextcloud/custom_apps/
@@ -88,8 +93,14 @@ Bump `<version>` in `appinfo/info.xml` and `CHANGELOG.md`. The store screenshots
 `node scripts/screenshots.mjs` (it replaces the dev admin's data with English demo data).
 
 `make package` builds the front end and produces `build/vitalog-<version>.tar.gz`: only what runs on a server, under a top-level
-`vitalog/` folder. Pushing a tag `vX.Y.Z` (matching `<version>` in `appinfo/info.xml`) runs `.github/workflows/release.yml`, which
-builds the same archive and attaches it to a GitHub release.
+`vitalog/` folder (enough for a manual installation).
+
+App Store releases are signed with the app's private key and the certificate signed by Nextcloud, both kept outside the repository
+in `~/.nextcloud/certificates/` (`CERT_DIR`). `make signed-package` builds the same archive with `appinfo/signature.json` (code
+signature made by `occ integrity:sign-app` in a throwaway Nextcloud container, then checked like a server does) and the archive
+signature asked by the App Store in `build/vitalog-<version>.tar.gz.sig`. `make release`, from a clean `main` already pushed, then
+creates the GitHub release `v<version>` with that archive and prints what to give the App Store (archive URL and signature).
+Signing stays on the maintainer's machine: there is no release workflow on GitHub, so that the key never leaves it.
 
 ### Architecture
 

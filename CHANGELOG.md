@@ -3,7 +3,9 @@
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## 0.2.0 - 2026-11-03
+
+First release on the Nextcloud App Store, signed with the app's certificate.
 
 ### Changed
 - Calendar: instead of writing events into a calendar you link, Vitalog now provides its own read-only "Vitalog" calendar, generated from your appointments (like Deck's boards), in your time zone and with a reminder the day before. There is nothing to link or unlink any more, and renaming a practitioner, a place or a label shows up right away. Events already written into a linked calendar by an earlier version are left there untouched.
