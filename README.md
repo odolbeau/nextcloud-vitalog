@@ -99,8 +99,10 @@ App Store releases are signed with the app's private key and the certificate sig
 in `~/.nextcloud/certificates/` (`CERT_DIR`). `make signed-package` builds the same archive with `appinfo/signature.json` (code
 signature made by `occ integrity:sign-app` in a throwaway Nextcloud container, then checked like a server does) and the archive
 signature asked by the App Store in `build/vitalog-<version>.tar.gz.sig`. `make release`, from a clean `main` already pushed, then
-creates the GitHub release `v<version>` with that archive and prints what to give the App Store (archive URL and signature).
-Signing stays on the maintainer's machine: there is no release workflow on GitHub, so that the key never leaves it.
+builds it, creates the GitHub release `v<version>` with that archive and publishes the release on the App Store through its API
+(archive URL and signature; the store downloads the archive and checks the signature). The API token of the App Store account is
+read from `~/.nextcloud/appstore-token` (`APPSTORE_TOKEN_FILE`). Signing and publishing stay on the maintainer's machine: there is
+no release workflow on GitHub, so that neither the key nor the token leaves it.
 
 ### Architecture
 

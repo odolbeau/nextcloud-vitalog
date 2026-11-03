@@ -43,14 +43,24 @@ signed-package: package-files
 	openssl base64 -d -A -in $(ARCHIVE).sig | openssl dgst -sha512 -verify build/$(APP_ID).pub -signature /dev/stdin $(ARCHIVE)
 	@echo "Built $(ARCHIVE) and its App Store signature $(ARCHIVE).sig"
 
-# GitHub release v$(VERSION) with the signed archive, from a clean tree whose HEAD is already on origin/main.
-release: signed-package
+# Publishes v$(VERSION), from a clean tree whose HEAD is already on origin/main: GitHub release with the signed archive, then
+# App Store release (the store downloads the archive from GitHub and checks its signature against the app certificate).
+# The App Store API token is read from APPSTORE_TOKEN_FILE and never printed.
+APPSTORE_TOKEN_FILE ?= $(HOME)/.nextcloud/appstore-token
+DOWNLOAD_URL = https://github.com/odolbeau/nextcloud-vitalog/releases/download/v$(VERSION)/$(notdir $(ARCHIVE))
+
+release:
 	@test -z "$$(git status --porcelain)" || { echo "The working tree is not clean"; exit 1; }
+	@test -s $(APPSTORE_TOKEN_FILE) || { echo "Missing App Store API token: $(APPSTORE_TOKEN_FILE)"; exit 1; }
 	git fetch -q origin main && git merge-base --is-ancestor HEAD origin/main || { echo "Push HEAD to origin/main first"; exit 1; }
+	$(MAKE) signed-package
 	gh release create v$(VERSION) $(ARCHIVE) --target $$(git rev-parse HEAD) --title v$(VERSION) --generate-notes
-	@echo "App Store (https://apps.nextcloud.com/developer/apps/releases/new):"
-	@echo "  download:  https://github.com/odolbeau/nextcloud-vitalog/releases/download/v$(VERSION)/$(notdir $(ARCHIVE))"
-	@echo "  signature: $$(cat $(ARCHIVE).sig)"
+	@printf '{"download":"%s","signature":"%s","nightly":false}' "$(DOWNLOAD_URL)" "$$(cat $(ARCHIVE).sig)" \
+		| curl -sS --fail-with-body -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+			-H "Authorization: Token $$(tr -d '[:space:]' < $(APPSTORE_TOKEN_FILE))" -H 'Content-Type: application/json' \
+			--data-binary @- -o build/appstore-response.json -w 'App Store: HTTP %{http_code}\n' \
+		|| { cat build/appstore-response.json; echo; exit 1; }
+	@echo "Published v$(VERSION): https://apps.nextcloud.com/apps/$(APP_ID)"
 
 clean:
 	rm -rf build
