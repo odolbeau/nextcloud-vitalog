@@ -58,3 +58,18 @@ test('a long list can be scrolled on a phone', async ({ page }) => {
 	await page.mouse.wheel(0, 4000)
 	await expect(last).toBeInViewport()
 })
+
+test('no in-place editing on a phone: the Edit button opens the full form', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
+	await page.goto('/index.php/apps/vitalog/')
+	await items(page).first().click()
+
+	const details = page.getByRole('article')
+	await expect(details.getByRole('heading', { name: 'Bilan' })).toBeVisible()
+	for (const name of ['Edit the title', 'Add labels', 'Choose a practitioner', 'Choose a place', 'Add notes', 'Add a price']) {
+		await expect(details.getByRole('button', { name })).toHaveCount(0)
+	}
+
+	await details.getByRole('button', { name: 'Edit', exact: true }).click()
+	await expect(dialog(page).getByLabel('Reason')).toHaveValue('Bilan')
+})

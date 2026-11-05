@@ -35,6 +35,7 @@
 				<div v-else class="details__title">
 					<h2>{{ title }}</h2>
 					<NcButton
+						v-if="inline"
 						variant="tertiary"
 						:title="t('vitalog', 'Edit the title')"
 						:aria-label="t('vitalog', 'Edit the title')"
@@ -45,12 +46,12 @@
 					</NcButton>
 				</div>
 				<p class="details__when">
-					{{ formatDateTime(appointment.startsAt) }} · {{ durationLabel }}
+					{{ formatDateTime(appointment.startsAt) }} · <span class="details__nowrap">{{ durationLabel }}</span>
 				</p>
 			</div>
 		</header>
 
-		<div class="details__labels-row" @keydown.esc="editing = null">
+		<div v-if="inline || labels.length > 0" class="details__labels-row" @keydown.esc="editing = null">
 			<template v-if="editing === 'labels'">
 				<NcSelect
 					v-model="labelSelection"
@@ -86,7 +87,7 @@
 					</li>
 				</ul>
 				<NcButton
-					v-if="labels.length > 0"
+					v-if="inline && labels.length > 0"
 					variant="tertiary"
 					:title="t('vitalog', 'Edit the labels')"
 					:aria-label="t('vitalog', 'Edit the labels')"
@@ -95,7 +96,7 @@
 						<Pencil :size="20" />
 					</template>
 				</NcButton>
-				<NcButton v-else variant="tertiary" @click="startEditing('labels')">
+				<NcButton v-else-if="inline" variant="tertiary" @click="startEditing('labels')">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -145,12 +146,13 @@
 						<span v-if="practitioner.specialty"> · {{ practitioner.specialty }}</span>
 						<a v-if="practitioner.phone" :href="`tel:${practitioner.phone}`" class="details__block">{{ practitioner.phone }}</a>
 					</div>
-					<NcButton v-else variant="tertiary" @click="startEditing('practitioner')">
+					<NcButton v-else-if="inline" variant="tertiary" @click="startEditing('practitioner')">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
 						{{ t('vitalog', 'Choose a practitioner') }}
 					</NcButton>
+					<span v-else class="details__muted">—</span>
 					<span v-if="practitioner" class="details__tools">
 						<NcButton
 							v-if="practitioner.contactUrl"
@@ -163,6 +165,7 @@
 							</template>
 						</NcButton>
 						<NcButton
+							v-if="inline"
 							variant="tertiary"
 							:title="t('vitalog', 'Change the practitioner')"
 							:aria-label="t('vitalog', 'Change the practitioner')"
@@ -204,13 +207,14 @@
 							{{ place.notes }}
 						</div>
 					</div>
-					<NcButton v-else variant="tertiary" @click="startEditing('place')">
+					<NcButton v-else-if="inline" variant="tertiary" @click="startEditing('place')">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
 						{{ t('vitalog', 'Choose a place') }}
 					</NcButton>
-					<span v-if="place" class="details__tools">
+					<span v-else class="details__muted">—</span>
+					<span v-if="place && inline" class="details__tools">
 						<NcButton
 							variant="tertiary"
 							:title="t('vitalog', 'Change the place')"
@@ -246,13 +250,14 @@
 				<div v-if="appointment.notes" class="details__notes">
 					{{ appointment.notes }}
 				</div>
-				<NcButton v-else variant="tertiary" @click="startEditing('notes')">
+				<NcButton v-else-if="inline" variant="tertiary" @click="startEditing('notes')">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ t('vitalog', 'Add notes') }}
 				</NcButton>
-				<span v-if="appointment.notes" class="details__tools">
+				<span v-else class="details__muted">—</span>
+				<span v-if="appointment.notes && inline" class="details__tools">
 					<NcButton
 						variant="tertiary"
 						:title="t('vitalog', 'Edit the notes')"
@@ -291,13 +296,14 @@
 				<div v-if="appointment.price !== null && appointment.price !== undefined">
 					{{ formatPrice(appointment.price) }}
 				</div>
-				<NcButton v-else variant="tertiary" @click="startEditing('price')">
+				<NcButton v-else-if="inline" variant="tertiary" @click="startEditing('price')">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ t('vitalog', 'Add a price') }}
 				</NcButton>
-				<span v-if="appointment.price !== null && appointment.price !== undefined" class="details__tools">
+				<span v-else class="details__muted">—</span>
+				<span v-if="inline && appointment.price !== null && appointment.price !== undefined" class="details__tools">
 					<NcButton
 						variant="tertiary"
 						:title="t('vitalog', 'Edit the price')"
@@ -371,6 +377,7 @@
 import { getFilePickerBuilder } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { useIsMobile } from '@nextcloud/vue/composables/useIsMobile'
 import { computed, nextTick, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -405,6 +412,10 @@ const notesDraft = ref('')
 const priceDraft = ref('')
 const reasonDraft = ref('')
 const saving = ref(false)
+// sur mobile, l'édition en place (champs, listes déroulantes et clavier dans la fiche) est inutilisable : seul le formulaire
+// complet du bouton « Modifier » reste proposé
+const isMobile = useIsMobile()
+const inline = computed(() => !isMobile.value)
 
 // l'app Calendrier ouvre un événement d'après le chemin DAV de son objet (encodé en base64), sur le jour du rendez-vous
 const calendarUrl = computed(() => store.settings.calendarAppEnabled && store.settings.calendarPath
@@ -442,7 +453,7 @@ const durationLabel = computed(() => {
 })
 
 // l'édition en place ne concerne que la fiche affichée : on la quitte quand on passe à un autre rendez-vous
-watch(() => props.appointment.id, () => {
+watch([() => props.appointment.id, isMobile], () => {
 	editing.value = null
 })
 
@@ -701,6 +712,10 @@ async function pickFiles() {
 		color: var(--color-text-maxcontrast);
 	}
 
+	&__nowrap {
+		white-space: nowrap;
+	}
+
 	&__attachments-header {
 		display: flex;
 		align-items: center;
@@ -725,13 +740,47 @@ async function pickFiles() {
 	}
 }
 
+// téléphone : pleine largeur, chaque information sous sa petite étiquette, séparées par un filet
 @media (max-width: 600px) {
-	.details__facts {
-		grid-template-columns: 1fr;
-		gap: 2px;
+	.details {
+		gap: 16px;
+		padding: 8px 16px 24px;
 
-		dd {
-			margin-bottom: 10px;
+		&__header {
+			align-items: flex-start;
+			gap: 12px;
+		}
+
+		&__heading h2 {
+			font-size: 1.4em;
+			line-height: 1.25;
+		}
+
+		&__actions {
+			margin-top: 0;
+		}
+
+		&__facts {
+			grid-template-columns: 1fr;
+			gap: 0;
+			border-top: 1px solid var(--color-border);
+
+			// Nextcloud aligne les dt à droite avec un padding de 12 px, prévu pour une grille à deux colonnes
+			dt {
+				padding: 12px 0 2px;
+				font-size: var(--font-size-small, 13px);
+				text-align: start;
+			}
+
+			dd {
+				min-height: 0;
+				padding: 0 0 12px;
+				border-bottom: 1px solid var(--color-border);
+			}
+		}
+
+		&__attachments-header h3 {
+			font-size: 1.15em;
 		}
 	}
 }
