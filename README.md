@@ -139,7 +139,7 @@ against Nextcloud 34 and 35.
 
 ## Known limitations (dependencies)
 
-Observed with `@nextcloud/vue` 9.14.0; not fixed in this repository:
+Observed with `@nextcloud/vue` 9.14.1; not fixed in this repository:
 
 - the `splitpanes` separator of `NcAppContent` is focusable with `role="separator"` but has no `aria-valuenow` (axe: `aria-required-attr`);
   the accessibility tests exclude it;
