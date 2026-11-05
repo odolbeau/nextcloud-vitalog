@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.2.1 - 2026-11-05
 
 ### Changed
 - Appointment details on a phone: no more in-place editing (pencil and "Add…" buttons), which was unusable on a small screen; the "Edit" button opens the full form, and empty fields show a dash. The details also use the full width, with each piece of information under a small heading.
