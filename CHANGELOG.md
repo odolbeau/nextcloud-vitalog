@@ -7,6 +7,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Appointment details on a phone: no more in-place editing (pencil and "Add…" buttons), which was unusable on a small screen; the "Edit" button opens the full form, and empty fields show a dash. The details also use the full width, with each piece of information under a small heading.
+- Notifications ("Appointment deleted", import result…) use Nextcloud's new accessible toasts, shown at the bottom of the page.
 
 ## 0.2.0 - 2026-11-03
 

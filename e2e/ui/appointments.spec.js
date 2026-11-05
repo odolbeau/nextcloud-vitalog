@@ -489,8 +489,7 @@ test('the events of a calendar can be imported from the settings', async ({ page
 
 		await expect(items(page)).toHaveCount(1)
 		await expect(items(page).first()).toContainText('Déjà au calendrier')
-		// le toast contient aussi son bouton de fermeture (✖) : pas de correspondance exacte sur tout son texte
-		await expect(page.locator('.toastify', { hasText: /^Appointments imported: 1\b/ })).toBeVisible()
+		await expect(page.getByRole('status').filter({ hasText: 'Appointments imported: 1' })).toBeVisible()
 	} finally {
 		await admin.context.delete(`/remote.php/dav/calendars/admin/${calendar}/`)
 	}
