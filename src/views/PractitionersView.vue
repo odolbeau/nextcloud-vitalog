@@ -36,6 +36,9 @@
 							:name="practitioner.name"
 							:data-test="`practitioner-${practitioner.id}`"
 							@click.prevent="editing = practitioner">
+							<template #icon>
+								<PractitionerIcon :icon="iconOf(practitioner)" :size="20" />
+							</template>
 							<template #subname>
 								{{ [practitioner.phone, store.placeById(practitioner.placeId)?.name].filter(Boolean).join(' · ') }}
 							</template>
@@ -102,6 +105,8 @@ import Delete from 'vue-material-design-icons/Delete.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
 import PractitionerForm from '../components/PractitionerForm.vue'
+import PractitionerIcon from '../components/PractitionerIcon.vue'
+import { iconOf } from '../practitionerIcons.js'
 import { useDataStore } from '../stores/data.js'
 
 const emit = defineEmits(['filter'])

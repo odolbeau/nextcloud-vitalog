@@ -82,6 +82,19 @@ class ReferenceServicesTest extends TestCase {
 		$service->create('alice', 'Dr Martin', null, null, null, 5);
 	}
 
+	public function testIconIsOneOfTheCatalogueOrAutomatic(): void {
+		$mapper = $this->createMock(PractitionerMapper::class);
+		$mapper->method('insert')->willReturnArgument(0);
+		$service = new PractitionerService($mapper, $this->appointments, $this->createMock(ContactGateway::class), $this->createMock(PlaceMapper::class));
+
+		self::assertSame('tooth', $service->create('alice', 'Dr Martin', null, null, null, null, 'tooth')->getIcon());
+		// vide ou absente : déduite de la spécialité par l'interface
+		self::assertNull($service->create('alice', 'Dr Martin', null, null, null, null, '')->getIcon());
+		self::assertNull($service->create('alice', 'Dr Martin', null, null)->getIcon());
+		$this->expectException(InvalidArgumentException::class);
+		$service->create('alice', 'Dr Martin', null, null, null, null, 'unicorn');
+	}
+
 	public function testFindUnknownPractitionerThrowsNotFound(): void {
 		$mapper = $this->createMock(PractitionerMapper::class);
 		$mapper->method('find')->willThrowException(new DoesNotExistException(''));

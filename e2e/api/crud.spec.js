@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { ICONS } from '../../src/practitionerIcons.js'
 import { BOB, client, ensureBob, inDays } from '../helpers.js'
 
 let admin
@@ -45,6 +46,18 @@ test.describe('practitioners', () => {
 
 		await admin.delete(`places/${place.id}`)
 		expect((await admin.data(await admin.get(`practitioners/${practitioner.id}`))).placeId).toBeNull()
+	})
+
+	test('an icon of the catalogue can be chosen, or left automatic', async () => {
+		const practitioner = await admin.create('practitioners', { name: 'Dr Martin', specialty: 'Dentiste' })
+		expect(practitioner.icon).toBeNull()
+
+		// toutes les icônes de l'interface sont acceptées par l'API
+		for (const { key } of ICONS) {
+			expect((await admin.data(await admin.put(`practitioners/${practitioner.id}`, { name: 'Dr Martin', icon: key }))).icon).toBe(key)
+		}
+		expect((await admin.put(`practitioners/${practitioner.id}`, { name: 'Dr Martin', icon: 'unicorn' })).status()).toBe(400)
+		expect((await admin.data(await admin.put(`practitioners/${practitioner.id}`, { name: 'Dr Martin' }))).icon).toBeNull()
 	})
 
 	test('name is required', async () => {

@@ -33,6 +33,7 @@
 					</NcButton>
 				</form>
 				<div v-else class="details__title">
+					<PractitionerIcon :icon="icon" :size="20" :label="iconName(icon)" />
 					<h2>{{ title }}</h2>
 					<NcButton
 						v-if="inline"
@@ -396,7 +397,10 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import DateBadge from './DateBadge.vue'
 import LabelChip from './LabelChip.vue'
+import PractitionerIcon from './PractitionerIcon.vue'
 import { formatDateTime, formatPrice, isoDay, parsePrice, priceToInput } from '../format.js'
+import { appointmentIcon } from '../practitionerIcons.js'
+import { iconName } from '../practitionerIconViews.js'
 import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -427,6 +431,7 @@ const calendarUrl = computed(() => store.settings.calendarAppEnabled && store.se
 const labels = computed(() => store.labelsOf(props.appointment))
 const practitioner = computed(() => store.practitionerById(props.appointment.practitionerId))
 const place = computed(() => store.placeById(props.appointment.placeId))
+const icon = computed(() => appointmentIcon(props.appointment, practitioner.value, place.value))
 const labelOptions = computed(() => store.labels.map((l) => ({ id: l.id, label: l.name })))
 // chaque ajout ou retrait est enregistré aussitôt ; la sélection se déduit du rendez-vous
 const labelSelection = computed({
@@ -598,6 +603,10 @@ async function pickFiles() {
 		display: flex;
 		align-items: center;
 		gap: 4px;
+	}
+
+	&__title {
+		gap: 8px;
 	}
 
 	&__heading {

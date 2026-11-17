@@ -43,7 +43,13 @@
 										:name="`vitalog-filter-${group.key}`"
 										:value="option.id"
 										@update:modelValue="setFilter(group.key, option.id)">
-										{{ option.label }}
+										<span v-if="option.icon" class="list__choice">
+											<PractitionerIcon :icon="option.icon" :size="12" />
+											{{ option.label }}
+										</span>
+										<template v-else>
+											{{ option.label }}
+										</template>
 									</NcCheckboxRadioSwitch>
 								</div>
 							</section>
@@ -91,6 +97,12 @@
 								@click.prevent="selectedId = item.id">
 								<template #icon>
 									<DateBadge :startsAt="item.startsAt" :muted="store.isPast(item)" />
+								</template>
+								<template #name>
+									<span class="list__name">
+										<PractitionerIcon :icon="appointmentIcon(item, store.practitionerById(item.practitionerId), store.placeById(item.placeId))" :size="14" />
+										<span class="list__name-text">{{ item.reason || t('vitalog', 'Medical appointment') }}</span>
+									</span>
 								</template>
 								<template #subname>
 									{{ subname(item) }}
@@ -158,8 +170,10 @@ import Stethoscope from 'vue-material-design-icons/Stethoscope.vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
 import AppointmentDetails from '../components/AppointmentDetails.vue'
 import DateBadge from '../components/DateBadge.vue'
+import PractitionerIcon from '../components/PractitionerIcon.vue'
 import { formatDate, formatTime, yearOf } from '../format.js'
 import { go, nav } from '../navigation.js'
+import { appointmentIcon, iconOf } from '../practitionerIcons.js'
 import { contains } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -191,7 +205,7 @@ const groups = computed(() => [
 	{
 		key: 'practitioner',
 		title: t('vitalog', 'Practitioner'),
-		options: store.practitioners.length > 0 ? [{ id: 0, label: t('vitalog', 'All practitioners') }, ...store.practitioners.map((p) => ({ id: p.id, label: p.name }))] : [],
+		options: store.practitioners.length > 0 ? [{ id: 0, label: t('vitalog', 'All practitioners') }, ...store.practitioners.map((p) => ({ id: p.id, label: p.name, icon: iconOf(p) }))] : [],
 		current: props.practitionerId ?? 0,
 	},
 ].filter((group) => group.options.length > 0))
@@ -300,6 +314,24 @@ function subname(item) {
 
 	&__year {
 		list-style: none;
+	}
+
+	&__choice {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	&__name {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	&__name-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	// l'année reste visible en haut de la liste pendant le défilement, à droite du bouton du menu (comme la recherche)

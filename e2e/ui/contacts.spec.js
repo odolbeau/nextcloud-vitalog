@@ -47,7 +47,7 @@ test('a practitioner picked from the contacts shows only the contact, and become
 	// lié : les champs de la fiche disparaissent, il ne reste que le contact choisi
 	await expect(contact).toBeVisible()
 	await expect(nameField(page)).toHaveCount(0)
-	await expect(dialog(page).getByLabel('Specialty')).toHaveCount(0)
+	await expect(dialog(page).getByLabel('Specialty', { exact: true })).toHaveCount(0)
 	await expect(dialog(page).getByLabel('Phone')).toHaveCount(0)
 	await expect(dialog(page).getByLabel('Notes')).toHaveCount(0)
 

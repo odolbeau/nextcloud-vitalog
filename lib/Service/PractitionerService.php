@@ -37,11 +37,12 @@ class PractitionerService {
 		return $this->resolve($this->get($id, $userId));
 	}
 
-	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null): Practitioner {
+	public function create(string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null, ?string $icon = null): Practitioner {
 		$practitioner = new Practitioner();
 		$practitioner->setUserId($userId);
 		$this->fill($practitioner, $name, $specialty, $phone);
 		$this->setPlace($practitioner, $userId, $placeId);
+		$this->setIcon($practitioner, $icon);
 		if ($contactUid !== null && $contactUid !== '') {
 			$this->link($practitioner, $this->contact($contactUid));
 		}
@@ -52,11 +53,12 @@ class PractitionerService {
 	/**
 	 * Remplace le praticien. `$contactUid` null le délie ; un autre UID le relie ; le même UID le garde lié
 	 * (nom, spécialité et téléphone proviennent alors de la fiche et les valeurs reçues sont ignorées). Le lieu habituel
-	 * reste modifiable dans tous les cas.
+	 * et l'icône restent modifiables dans tous les cas.
 	 */
-	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null): Practitioner {
+	public function update(int $id, string $userId, string $name, ?string $specialty, ?string $phone, ?string $contactUid = null, ?int $placeId = null, ?string $icon = null): Practitioner {
 		$practitioner = $this->get($id, $userId);
 		$this->setPlace($practitioner, $userId, $placeId);
+		$this->setIcon($practitioner, $icon);
 		$contactUid = $contactUid === '' ? null : $contactUid;
 
 		if ($contactUid === null) {
@@ -117,6 +119,14 @@ class PractitionerService {
 			}
 		}
 		$practitioner->setPlaceId($placeId);
+	}
+
+	private function setIcon(Practitioner $practitioner, ?string $icon): void {
+		$icon = $icon === '' ? null : $icon;
+		if ($icon !== null && !in_array($icon, Practitioner::ICONS, true)) {
+			throw new InvalidArgumentException('Unknown icon');
+		}
+		$practitioner->setIcon($icon);
 	}
 
 	private function get(int $id, string $userId): Practitioner {

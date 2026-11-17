@@ -94,6 +94,35 @@ test.describe('practitioners', () => {
 		await expect(specialty(page, 'No specialty')).toContainText('Dr Vidal')
 	})
 
+	test('the icon follows the specialty, or the one picked in the form', async ({ page }) => {
+		const practitioner = await admin.create('practitioners', { name: 'Dr Martin', specialty: 'Dentiste' })
+		await admin.create('appointments', { startsAt: inDays(3), reason: 'Détartrage', practitionerId: practitioner.id })
+		// sans praticien : reconnue dans le motif
+		await admin.create('appointments', { startsAt: inDays(5), reason: 'Prise de sang' })
+		await openApp(page)
+
+		await items(page).filter({ hasText: 'Détartrage' }).click()
+		await expect(page.getByRole('article').getByRole('img', { name: 'Teeth' })).toBeVisible()
+		await items(page).filter({ hasText: 'Prise de sang' }).click()
+		await expect(page.getByRole('article').getByRole('img', { name: 'Laboratory' })).toBeVisible()
+
+		await nav(page, 'practitioners').click()
+		await page.locator(`[data-test="practitioner-${practitioner.id}"]`).click()
+		const form = dialog(page)
+		await expect(form.getByRole('radio', { name: 'Automatic, from the specialty: Teeth' })).toBeChecked()
+		// le bouton radio est masqué visuellement : on clique sur sa vignette
+		const heart = page.getByRole('radio', { name: 'Heart', exact: true })
+		await form.locator('label', { has: heart }).click()
+		await expect(heart).toBeChecked()
+		await form.getByRole('button', { name: 'Save' }).click()
+		await expect(dialog(page)).toHaveCount(0)
+		expect((await admin.list('practitioners'))[0].icon).toBe('heart')
+
+		await nav(page, 'all').click()
+		await items(page).filter({ hasText: 'Détartrage' }).click()
+		await expect(page.getByRole('article').getByRole('img', { name: 'Heart' })).toBeVisible()
+	})
+
 	test('the usual place is picked in the practitioner form and shown in the list', async ({ page }) => {
 		const place = await admin.create('places', { name: 'Cabinet du Port' })
 		const practitioner = await admin.create('practitioners', { name: 'Dr Martin', phone: '0102030405' })

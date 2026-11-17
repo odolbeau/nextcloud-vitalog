@@ -8,6 +8,9 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
   and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
   A practitioner can have a usual place: picking them for an appointment fills an empty place with it, and it can still be changed
   case by case.
+- **Icons**: each appointment shows an icon (tooth, heart, eye…) in the list and in its details. It comes from the practitioner's
+  specialty ("Dentiste", "Cardiologist"…, recognised in French and English), or from the reason or the place for an appointment
+  without a recognised specialty ("Prise de sang", "Laboratoire…"). Another icon can be picked in the practitioner form.
 - **Labels**: tags (with an optional colour) that bring appointments together across practitioners and places ("ankle", "blood
   donation"…). An appointment can carry several of them. The list can be filtered by label and by practitioner, and both filters
   combine (filter button next to the search field, or the "Labels" page). Labels show up as the categories of the calendar events.

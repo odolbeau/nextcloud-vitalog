@@ -57,6 +57,28 @@
 				:inputLabel="t('vitalog', 'Usual place')"
 				:options="placeOptions"
 				:placeholder="t('vitalog', 'Offered for new appointments')" />
+			<!-- propre à Vitalog aussi ; « Auto » suit la spécialité -->
+			<fieldset class="form__icons">
+				<legend>{{ t('vitalog', 'Icon') }}</legend>
+				<div class="form__icon-grid">
+					<label
+						v-for="option in iconOptions"
+						:key="option.value ?? 'auto'"
+						class="form__icon"
+						:class="{ 'form__icon--selected': form.icon === option.value, 'form__icon--auto': option.value === null }"
+						:title="option.name">
+						<input
+							v-model="form.icon"
+							class="hidden-visually"
+							type="radio"
+							name="vitalog-practitioner-icon"
+							:value="option.value"
+							:aria-label="option.name">
+						<PractitionerIcon :icon="option.icon" :size="20" />
+						<span v-if="option.value === null" aria-hidden="true">{{ t('vitalog', 'Auto') }}</span>
+					</label>
+				</div>
+			</fieldset>
 		</div>
 		<template #actions>
 			<NcButton
@@ -86,8 +108,11 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import PractitionerIcon from './PractitionerIcon.vue'
 import * as api from '../api.js'
 import { useDialogHistory } from '../navigation.js'
+import { iconFromSpecialty, ICONS } from '../practitionerIcons.js'
+import { iconName } from '../practitionerIconViews.js'
 import { filterByText } from '../search.js'
 import { useDataStore } from '../stores/data.js'
 
@@ -103,6 +128,16 @@ const form = reactive({
 	name: props.practitioner?.name ?? '',
 	specialty: props.practitioner?.specialty ?? '',
 	phone: props.practitioner?.phone ?? '',
+	icon: props.practitioner?.icon ?? null,
+})
+
+// « Auto » montre l'icône que donnerait la spécialité saisie
+const iconOptions = computed(() => {
+	const auto = iconFromSpecialty(form.specialty)
+	return [
+		{ value: null, icon: auto, name: t('vitalog', 'Automatic, from the specialty: {name}', { name: iconName(auto) }) },
+		...ICONS.map(({ key }) => ({ value: key, icon: key, name: iconName(key) })),
+	]
 })
 
 // spécialités déjà saisies (sans doublon de casse), proposées à la saisie ; une nouvelle valeur tapée est acceptée telle quelle
@@ -191,6 +226,7 @@ async function submit() {
 		phone: form.phone.trim() || null,
 		contactUid: contact.value?.uid ?? null,
 		placeId: place.value?.id ?? null,
+		icon: form.icon,
 	}, props.practitioner?.id)
 	saving.value = false
 	if (saved) {
@@ -209,6 +245,47 @@ async function submit() {
 
 	&__hint {
 		color: var(--color-text-maxcontrast);
+	}
+
+	&__icons {
+		margin-top: 4px;
+
+		legend {
+			margin-bottom: 4px;
+		}
+	}
+
+	&__icon-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	&__icon {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 3px;
+		border: 2px solid transparent;
+		border-radius: var(--border-radius-large);
+		cursor: pointer;
+
+		&:hover {
+			background: var(--color-background-hover);
+		}
+
+		&:has(input:focus-visible) {
+			outline: 2px solid var(--color-main-text);
+			outline-offset: 1px;
+		}
+
+		&--auto {
+			padding-inline-end: 10px;
+		}
+
+		&--selected {
+			border-color: var(--color-primary-element);
+		}
 	}
 }
 </style>
