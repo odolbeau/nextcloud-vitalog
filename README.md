@@ -3,6 +3,8 @@
 A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointments.
 
 - **Appointments**: date, duration, reason, notes, practitioner and place. There is no status: "upcoming" and "past" only depend on the date.
+  The list shows every appointment, most recent first: upcoming ones at the top, then a "Today" divider, then past ones; the next
+  appointment, just above the divider, is highlighted. The filter button can narrow the list to one period.
 - **Practitioners and places**: created once (or on the fly from an appointment) and reused everywhere.
   A practitioner can optionally be linked to a card of the **Contacts** app: the card is the source of truth for the name, specialty
   and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
@@ -15,7 +17,7 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
   donation"…). An appointment can carry several of them. The list can be filtered by label and by practitioner, and both filters
   combine (filter button next to the search field, or the "Labels" page). Labels show up as the categories of the calendar events.
 - **Navigation**: the view, the selected appointment and the filters live in the URL
-  (`?view=…&appointment=…&label=…&practitioner=…`); back / forward, reload and shared links work, and "back" closes an open dialog.
+  (`?view=…&appointment=…&when=…&label=…&practitioner=…`); back / forward, reload and shared links work, and "back" closes an open dialog.
 - **Documents**: prescriptions, reports, results… attached from your Nextcloud files.
 - **Calendar**: your appointments appear in a read-only "Vitalog" calendar, in the Calendar app and in any CalDAV client, with a
   reminder the day before. It is generated from your appointments: there is nothing to link or synchronise, and changing an

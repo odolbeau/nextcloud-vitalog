@@ -1,11 +1,13 @@
 import { onBeforeUnmount, onMounted, reactive } from 'vue'
 
 /**
- * Navigation de l'application dans l'URL (?view=…&appointment=…&label=…&practitioner=…), pour que les boutons
+ * Navigation de l'application dans l'URL (?view=…&appointment=…&when=…&label=…&practitioner=…), pour que les boutons
  * précédent / suivant du navigateur, le rechargement et les liens partagés fonctionnent. Les valeurs par défaut
  * sont omises de l'URL. Pas de routes côté serveur : tout passe par la chaîne de requête de la page d'accueil.
  */
-const VIEWS = ['upcoming', 'past', 'all', 'practitioners', 'places', 'labels']
+const VIEWS = ['appointments', 'practitioners', 'places', 'labels']
+/** Période de la liste des rendez-vous ; null : tous. */
+const PERIODS = ['upcoming', 'past']
 
 function id(value) {
 	const number = Number(value)
@@ -14,21 +16,27 @@ function id(value) {
 
 function parse(search) {
 	const params = new URLSearchParams(search)
-	const label = id(params.get('label'))
-	const practitioner = id(params.get('practitioner'))
 	const requested = params.get('view')
-	// un lien vers un filtre (ex. menu des contacts) sans vue précise affiche tous les rendez-vous
-	const view = VIEWS.includes(requested) ? requested : (label || practitioner ? 'all' : 'upcoming')
+	// anciens liens : les vues « à venir », « passés » et « tous » sont devenues un filtre de la liste des rendez-vous
+	const legacy = PERIODS.includes(requested) || requested === 'all'
+	const view = VIEWS.includes(requested) ? requested : 'appointments'
+	const when = params.get('when') ?? (legacy && requested !== 'all' ? requested : null)
 
-	return { view, appointment: id(params.get('appointment')), label, practitioner }
+	return {
+		view,
+		appointment: id(params.get('appointment')),
+		when: PERIODS.includes(when) ? when : null,
+		label: id(params.get('label')),
+		practitioner: id(params.get('practitioner')),
+	}
 }
 
 function toUrl(state) {
 	const params = new URLSearchParams()
-	if (state.view !== 'upcoming') {
+	if (state.view !== 'appointments') {
 		params.set('view', state.view)
 	}
-	for (const key of ['appointment', 'label', 'practitioner']) {
+	for (const key of ['appointment', 'when', 'label', 'practitioner']) {
 		if (state[key] !== null) {
 			params.set(key, String(state[key]))
 		}
@@ -39,6 +47,10 @@ function toUrl(state) {
 }
 
 export const nav = reactive(parse(window.location.search))
+// un ancien lien (?view=upcoming|past|all) est réécrit tout de suite dans sa forme actuelle
+if (['upcoming', 'past', 'all'].includes(new URLSearchParams(window.location.search).get('view'))) {
+	window.history.replaceState(window.history.state, '', toUrl(nav))
+}
 
 /**
  * Change l'état de navigation et l'inscrit dans l'historique (ou remplace l'entrée courante).

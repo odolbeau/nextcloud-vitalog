@@ -86,12 +86,12 @@ test('filtering by label brings together appointments of different practitioners
 	await admin.create('appointments', { startsAt: inDays(9), reason: 'Prélèvement', labelIds: [blood.id] })
 
 	await openApp(page)
-	await expect(items(page)).toHaveCount(2)
+	await expect(items(page)).toHaveCount(3)
 
 	// un clic sur la pastille du détail montre tous les rendez-vous du libellé (passés compris)
 	await items(page).filter({ hasText: 'Séance 1' }).click()
 	await page.getByRole('article').getByRole('button', { name: /Cheville/ }).click()
-	await expect(page.getByRole('list', { name: 'All appointments' })).toBeVisible()
+	await expect(page.getByRole('list', { name: 'Active filters' })).toContainText('Cheville')
 	await expect(items(page)).toHaveCount(2)
 	await expect(items(page).filter({ hasText: 'Prélèvement' })).toHaveCount(0)
 
@@ -187,7 +187,7 @@ test('labels can be renamed, coloured and deleted from their page', async ({ pag
 	expect(await admin.list('appointments')).toHaveLength(1)
 
 	// plus de filtre fantôme après la suppression
-	await nav(page, 'all').click()
+	await nav(page, 'appointments').click()
 	await expect(items(page)).toHaveCount(1)
 })
 

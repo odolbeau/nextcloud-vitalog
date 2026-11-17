@@ -1,5 +1,5 @@
 <template>
-	<div class="date-badge" :class="{ 'date-badge--muted': muted }" aria-hidden="true">
+	<div class="date-badge" :class="{ 'date-badge--muted': muted, 'date-badge--highlighted': highlighted }" aria-hidden="true">
 		<span class="date-badge__month">{{ month }}</span>
 		<span class="date-badge__day">{{ day }}</span>
 		<span v-if="otherYear" class="date-badge__year">{{ year }}</span>
@@ -13,6 +13,8 @@ import { dayOf, monthOf, yearOf } from '../format.js'
 const props = defineProps({
 	startsAt: { type: Number, required: true },
 	muted: { type: Boolean, default: false },
+	// le prochain rendez-vous
+	highlighted: { type: Boolean, default: false },
 })
 
 const day = computed(() => dayOf(props.startsAt))
@@ -33,6 +35,11 @@ const otherYear = computed(() => year.value !== new Date().getFullYear())
 	background: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	line-height: 1.1;
+
+	&--highlighted {
+		background: var(--color-primary-element);
+		color: var(--color-primary-element-text);
+	}
 
 	&--muted {
 		background: var(--color-background-dark);

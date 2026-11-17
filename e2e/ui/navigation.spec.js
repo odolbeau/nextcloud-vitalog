@@ -33,7 +33,7 @@ test('previous and next walk through views, selection and filters', async ({ pag
 
 	await nav(page, 'places').click()
 	expect(search(page)).toBe('?view=places')
-	await nav(page, 'all').click()
+	await nav(page, 'appointments').click()
 	await expect(items(page)).toHaveCount(2)
 
 	// un filtre est une étape de navigation
@@ -41,7 +41,7 @@ test('previous and next walk through views, selection and filters', async ({ pag
 	await page.getByRole('radiogroup', { name: 'Practitioner' }).getByText('Dr Martin').click()
 	await page.keyboard.press('Escape')
 	await expect(items(page)).toHaveCount(1)
-	expect(search(page)).toBe(`?view=all&practitioner=${practitioner.id}`)
+	expect(search(page)).toBe(`?practitioner=${practitioner.id}`)
 
 	await page.goBack()
 	await expect(items(page)).toHaveCount(2)
@@ -66,11 +66,12 @@ test('the URL can be reloaded or shared', async ({ page }) => {
 	await expect(items(page)).toHaveCount(1)
 	await expect(page.getByRole('article')).toContainText('Passé')
 
-	// des identifiants périmés sont ignorés
+	// des identifiants périmés sont ignorés ; un ancien lien vers « Passés » devient le filtre de période
 	await page.goto('/index.php/apps/vitalog/?view=past&label=9999&appointment=9999')
 	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Passé')
 	await expect(page.getByText('Select an appointment')).toBeVisible()
-	await expect.poll(() => search(page)).toBe('?view=past')
+	await expect.poll(() => search(page)).toBe('?when=past')
 })
 
 test('previous closes a dialog and next does not reopen it', async ({ page }) => {

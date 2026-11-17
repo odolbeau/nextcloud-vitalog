@@ -8,6 +8,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Icons: each appointment shows an icon (tooth, heart, eye, lungs…) in the list and in its details, and each practitioner in the Practitioners page and in the practitioner filter. It comes from the practitioner's specialty, recognised in French and English ("Chirurgien-dentiste", "Kinésithérapeute", "Cardiologist"…), or else from the reason or the place ("Prise de sang", "Laboratoire…"). The practitioner form offers 23 icons to pick another one.
 
+### Changed
+- A single "Appointments" list replaces the "Upcoming", "Past" and "All" views, in one order, most recent first: upcoming appointments at the top, a "Today" divider, then past ones; the next appointment, just above the divider, is highlighted. Upcoming and past are now a "Period" filter, next to the label and practitioner filters; old links to the former views still work.
+
 ## 0.2.1 - 2026-11-05
 
 ### Changed

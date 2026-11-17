@@ -26,6 +26,12 @@ export async function openApp(page) {
 
 export const nav = (page, name) => page.locator(`[data-test="nav-${name}"]`)
 export const items = (page) => page.locator('[data-test^="appointment-"]')
+/** Filtre la liste des rendez-vous sur une période (« All appointments », « Upcoming », « Past »). */
+export async function period(page, name) {
+	await page.locator('[data-test="filter-button"]').click()
+	await page.getByRole('radiogroup', { name: 'Period' }).getByText(name, { exact: true }).click()
+	await page.keyboard.press('Escape')
+}
 export const dialog = (page) => page.getByRole('dialog')
 
 /** Choisit une option d'un NcSelect identifié par son libellé. */

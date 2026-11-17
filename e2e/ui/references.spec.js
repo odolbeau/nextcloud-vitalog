@@ -118,7 +118,7 @@ test.describe('practitioners', () => {
 		await expect(dialog(page)).toHaveCount(0)
 		expect((await admin.list('practitioners'))[0].icon).toBe('heart')
 
-		await nav(page, 'all').click()
+		await nav(page, 'appointments').click()
 		await items(page).filter({ hasText: 'Détartrage' }).click()
 		await expect(page.getByRole('article').getByRole('img', { name: 'Heart' })).toBeVisible()
 	})
@@ -159,7 +159,7 @@ test.describe('practitioners', () => {
 		await dialog(page).getByRole('button', { name: 'Delete', exact: true }).click()
 		await expect(page.getByText('No practitioners yet')).toBeVisible()
 
-		await nav(page, 'upcoming').click()
+		await nav(page, 'appointments').click()
 		await items(page).first().click()
 		await expect(items(page).first()).toContainText('Contrôle')
 		await expect(page.getByRole('article')).not.toContainText('Dr Martin')
@@ -227,6 +227,6 @@ test('practitioner and place edits are reflected in appointments without reloadi
 	await fill(dialog(page).getByLabel('Name'), 'Dr Durand')
 	await dialog(page).getByRole('button', { name: 'Save' }).click()
 
-	await nav(page, 'upcoming').click()
+	await nav(page, 'appointments').click()
 	await expect(items(page).first()).toContainText('Dr Durand')
 })

@@ -20,7 +20,7 @@ test('the interface is available in French', async ({ page }) => {
 	await page.goto('/index.php/apps/vitalog/')
 
 	await expect(page.getByRole('button', { name: 'Nouveau rendez-vous' }).first()).toBeVisible()
-	await expect(nav(page, 'upcoming')).toContainText('À venir')
+	await expect(nav(page, 'appointments')).toContainText('Rendez-vous')
 	await expect(nav(page, 'practitioners')).toContainText('Praticiens')
 	await expect(nav(page, 'places')).toContainText('Lieux')
 	await expect(nav(page, 'labels')).toContainText('Libellés')

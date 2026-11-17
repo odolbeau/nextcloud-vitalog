@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { client, inDays, VITALOG_CALENDAR } from '../helpers.js'
-import { choose, dialog, fill, items, nav, openApp, selected, setLanguage, typeSpecialty } from './pages.js'
+import { choose, dialog, fill, items, nav, openApp, period, selected, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
 
@@ -18,7 +18,7 @@ test.beforeEach(async () => {
 
 test('first visit shows the empty state, then a full appointment can be created', async ({ page }) => {
 	await openApp(page)
-	await expect(page.getByText('Nothing planned')).toBeVisible()
+	await expect(page.getByText('No appointments yet')).toBeVisible()
 	await expect(page.getByText('Select an appointment')).toBeVisible()
 
 	await page.getByRole('button', { name: 'New appointment' }).first().click()
@@ -293,22 +293,29 @@ test('the price can be added, edited and cleared from the details', async ({ pag
 	await expect.poll(async () => (await admin.list('appointments'))[0].price).toBeNull()
 })
 
-test('Upcoming and Past depend only on the date', async ({ page }) => {
+test('Upcoming and Past depend only on the date, and can be filtered', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(3), reason: 'Bilan' })
 	await admin.create('appointments', { startsAt: inDays(-3), reason: 'Radio' })
 	await openApp(page)
-	await expect(nav(page, 'upcoming')).toContainText('1')
-	await expect(items(page)).toHaveCount(1)
-	await expect(items(page).first()).toContainText('Bilan')
+	await expect(nav(page, 'appointments')).toContainText('1')
+	await expect(items(page)).toHaveCount(2)
+	await expect(items(page).nth(0)).toContainText('Bilan')
+	await expect(items(page).nth(1)).toContainText('Radio')
 
-	await nav(page, 'past').click()
+	await period(page, 'Past')
 	await expect(items(page)).toHaveCount(1)
+	expect(new URL(page.url()).search).toBe('?when=past')
+	await expect(page.getByRole('list', { name: 'Active filters' })).toContainText('Past')
 	await items(page).first().click()
 	// plus de statut : ni pastille, ni action « effectué » / « annulé »
 	await expect(page.getByRole('article').getByRole('heading', { name: 'Radio' })).toBeVisible()
 	await expect(page.getByRole('button', { name: /Mark as|Cancel appointment/ })).toHaveCount(0)
 
-	await nav(page, 'all').click()
+	await period(page, 'Upcoming')
+	await expect(items(page)).toHaveCount(1)
+	await expect(items(page).first()).toContainText('Bilan')
+
+	await page.getByRole('button', { name: 'Remove the filter Upcoming' }).click()
 	await expect(items(page)).toHaveCount(2)
 })
 
@@ -326,7 +333,7 @@ test('deleting asks for confirmation', async ({ page }) => {
 	await page.getByRole('button', { name: 'Delete', exact: true }).click()
 	await dialog(page).getByRole('button', { name: 'Delete', exact: true }).click()
 	await expect(items(page)).toHaveCount(0)
-	await expect(page.getByText('Nothing planned')).toBeVisible()
+	await expect(page.getByText('No appointments yet')).toBeVisible()
 	expect(await admin.list('appointments')).toEqual([])
 })
 
@@ -378,30 +385,35 @@ test('search ignores accents and case, in the list and in the selects', async ({
 	await expect(page.getByText('No match')).toBeVisible()
 	await page.getByRole('button', { name: 'Clear search' }).click()
 
-	await items(page).last().click()
+	await items(page).filter({ hasText: 'Prise de sang' }).click()
 	await page.getByRole('button', { name: 'Choose a practitioner' }).click()
 	await page.keyboard.type('helene')
 	await expect(page.locator('[role="option"]')).toHaveCount(1)
 	await expect(page.locator('[role="option"]').first()).toContainText('Hélène Müller')
 })
 
-test('upcoming is sorted soonest first, past most recent first', async ({ page }) => {
+test('one order, most recent first: upcoming above a Today divider, the next one highlighted, then past', async ({ page }) => {
 	await admin.create('appointments', { startsAt: inDays(9), reason: 'Plus tard' })
 	await admin.create('appointments', { startsAt: inDays(1), reason: 'Bientôt' })
 	await admin.create('appointments', { startsAt: inDays(-20), reason: 'Ancien' })
 	await admin.create('appointments', { startsAt: inDays(-2), reason: 'Récent' })
 	await openApp(page)
 
-	await expect(items(page)).toHaveCount(2)
-	await expect(items(page).nth(0)).toContainText('Bientôt')
-	await expect(items(page).nth(1)).toContainText('Plus tard')
-
-	await nav(page, 'past').click()
-	await expect(items(page).nth(0)).toContainText('Récent')
-	await expect(items(page).nth(1)).toContainText('Ancien')
-
-	await nav(page, 'all').click()
 	await expect(items(page)).toHaveCount(4)
+	for (const [i, reason] of ['Plus tard', 'Bientôt', 'Récent', 'Ancien'].entries()) {
+		await expect(items(page).nth(i)).toContainText(reason)
+	}
+	await expect(items(page).filter({ hasText: 'Next' })).toHaveCount(1)
+	await expect(items(page).nth(1)).toContainText('Next')
+	// le séparateur est entre le prochain rendez-vous et le plus récent des passés
+	const today = (await page.locator('[data-test="today"]').boundingBox()).y
+	expect((await items(page).nth(1).boundingBox()).y).toBeLessThan(today)
+	expect((await items(page).nth(2).boundingBox()).y).toBeGreaterThan(today)
+
+	// pas de séparateur sans rendez-vous d'un côté
+	await period(page, 'Past')
+	await expect(items(page)).toHaveCount(2)
+	await expect(page.locator('[data-test="today"]')).toHaveCount(0)
 })
 
 test('the list shows a heading at each change of year, kept in view while scrolling', async ({ page }) => {
@@ -413,9 +425,8 @@ test('the list shows a heading at each change of year, kept in view while scroll
 	await admin.create('appointments', { startsAt: at(year - 3, 5), reason: 'Très ancien' })
 	await admin.create('appointments', { startsAt: inDays(-1), reason: 'Hier' })
 	await openApp(page)
-	await nav(page, 'past').click()
 
-	const headings = page.getByRole('list', { name: 'Past appointments' }).getByRole('heading')
+	const headings = page.getByRole('list', { name: 'Appointments' }).getByRole('heading')
 	const yesterday = new Date(Date.now() - 86400 * 1000).getFullYear()
 	await expect(headings).toHaveText([...new Set([yesterday, year - 1, year - 3])].map(String))
 	await expect(page.getByRole('list', { name: String(year - 3) }).getByRole('listitem')).toHaveCount(1)
@@ -518,7 +529,9 @@ test('the name and color of the Vitalog calendar are set in the settings', async
 })
 
 test('an appointment created at a past date shows up in Past', async ({ page }) => {
+	await admin.create('appointments', { startsAt: inDays(2), reason: 'Bilan' })
 	await openApp(page)
+	await period(page, 'Upcoming')
 	await page.getByRole('button', { name: 'New appointment' }).first().click()
 	const form = dialog(page)
 	await fill(form.getByLabel('Date and time'), '2020-03-15T09:30')
@@ -526,9 +539,8 @@ test('an appointment created at a past date shows up in Past', async ({ page }) 
 	await form.getByRole('button', { name: 'Save' }).click()
 	await expect(dialog(page)).toHaveCount(0)
 
-	// l'app bascule sur la liste qui contient le rendez-vous : « Passés »
-	await expect(items(page)).toHaveCount(1)
-	await expect(items(page).first()).toContainText('Vaccin')
-	await nav(page, 'upcoming').click()
-	await expect(page.getByText('Nothing planned')).toBeVisible()
+	// le filtre « À venir » cacherait le rendez-vous enregistré : il est retiré, et le rendez-vous est sélectionné
+	await expect(items(page).nth(1)).toContainText('Vaccin')
+	await expect(page.getByRole('article')).toContainText('Vaccin')
+	expect(new URL(page.url()).search).not.toContain('when=')
 })

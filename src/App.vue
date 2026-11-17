@@ -12,17 +12,15 @@
 
 			<template #list>
 				<NcAppNavigationItem
-					v-for="item in appointmentViews"
-					:key="item.id"
-					:name="item.name"
-					:active="nav.view === item.id"
-					:data-test="`nav-${item.id}`"
-					@click.prevent="go({ view: item.id })">
+					:name="t('vitalog', 'Appointments')"
+					:active="nav.view === 'appointments'"
+					data-test="nav-appointments"
+					@click.prevent="go({ view: 'appointments' })">
 					<template #icon>
-						<component :is="item.icon" :size="20" />
+						<CalendarHeart :size="20" />
 					</template>
-					<template v-if="item.count" #counter>
-						<NcCounterBubble :count="item.count" />
+					<template v-if="store.upcoming.length > 0" #counter>
+						<NcCounterBubble :count="store.upcoming.length" :title="t('vitalog', 'Upcoming appointments')" />
 					</template>
 				</NcAppNavigationItem>
 				<NcAppNavigationSpacer />
@@ -88,9 +86,10 @@
 		<LabelsView v-else-if="nav.view === 'labels'" @filter="showLabel" />
 		<AppointmentsView
 			v-else
-			:filter="nav.view"
+			:when="nav.when"
 			:labelId="nav.label"
 			:practitionerId="nav.practitioner"
+			@update:when="(when) => go({ when })"
 			@update:labelId="(id) => go({ label: id })"
 			@update:practitionerId="(id) => go({ practitioner: id })"
 			@showLabel="showLabel"
@@ -108,7 +107,7 @@
 
 <script setup>
 import { t } from '@nextcloud/l10n'
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
@@ -119,8 +118,7 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcCounterBubble from '@nextcloud/vue/components/NcCounterBubble'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import CalendarArrowRight from 'vue-material-design-icons/CalendarArrowRight.vue'
-import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
+import CalendarHeart from 'vue-material-design-icons/CalendarHeart.vue'
 import CalendarMonth from 'vue-material-design-icons/CalendarMonth.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -156,12 +154,6 @@ watch(() => [store.loaded, nav.label, nav.practitioner, nav.appointment, store.l
 	}
 })
 
-const appointmentViews = computed(() => [
-	{ id: 'upcoming', name: t('vitalog', 'Upcoming'), icon: CalendarArrowRight, count: store.upcoming.length },
-	{ id: 'past', name: t('vitalog', 'Past'), icon: CalendarCheck, count: 0 },
-	{ id: 'all', name: t('vitalog', 'All'), icon: CalendarMonth, count: 0 },
-])
-
 function openForm(appointment = null) {
 	editing.value = appointment
 	formOpen.value = true
@@ -169,18 +161,18 @@ function openForm(appointment = null) {
 
 /** Tous les rendez-vous portant ce libellé, passés et à venir. */
 function showLabel(id) {
-	go({ label: id, view: 'all' })
+	go({ label: id, view: 'appointments', when: null })
 }
 
 /** Tous les rendez-vous avec ce praticien, passés et à venir. */
 function showPractitioner(id) {
-	go({ practitioner: id, view: 'all' })
+	go({ practitioner: id, view: 'appointments', when: null })
 }
 
 function onSaved(appointment) {
-	// l'enregistrement peut faire passer le rendez-vous d'une liste à l'autre : on bascule sur celle qui le contient
-	const appointmentView = store.upcoming.some((a) => a.id === appointment.id) ? 'upcoming' : 'past'
-	go({ view: ['practitioners', 'places', 'labels'].includes(nav.view) ? 'upcoming' : appointmentView, appointment: appointment.id })
+	// l'enregistrement peut faire sortir le rendez-vous de la période filtrée : on retire alors ce filtre pour l'afficher
+	const when = nav.when === null || nav.when === (store.isPast(appointment) ? 'past' : 'upcoming') ? nav.when : null
+	go({ view: 'appointments', when, appointment: appointment.id })
 }
 
 onMounted(() => store.load())
