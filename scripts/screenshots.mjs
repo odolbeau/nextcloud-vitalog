@@ -53,7 +53,7 @@ const page = await context.newPage()
 const shot = (name) => page.screenshot({ path: `docs/screenshots/${name}.png` })
 
 await page.goto(`${BASE}/index.php/apps/vitalog/`)
-await page.locator('[data-test^="appointment-"]').first().click()
+await page.locator('[data-test^="appointment-"]').filter({ hasText: 'Scaling' }).click()
 await page.waitForTimeout(600)
 await shot('appointments')
 
