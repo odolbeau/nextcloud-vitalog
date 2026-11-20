@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace OCA\Vitalog\Tests\Unit;
 
+use InvalidArgumentException;
 use OCA\Vitalog\Calendar\CalendarGateway;
 use OCA\Vitalog\Calendar\EventParser;
 use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Db\AppointmentMapper;
 use OCA\Vitalog\Db\Place;
 use OCA\Vitalog\Db\PlaceMapper;
+use OCA\Vitalog\Db\Practitioner;
+use OCA\Vitalog\Db\PractitionerMapper;
 use OCA\Vitalog\Service\CalendarImportService;
+use OCA\Vitalog\Service\EventMatcher;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -21,6 +25,7 @@ class CalendarImportServiceTest extends TestCase {
 
 	private AppointmentMapper&MockObject $appointments;
 	private PlaceMapper&MockObject $places;
+	private PractitionerMapper&MockObject $practitioners;
 	private LoggerInterface&MockObject $logger;
 	/** @var list<Appointment> */
 	private array $created = [];
@@ -31,6 +36,8 @@ class CalendarImportServiceTest extends TestCase {
 		$this->appointments->method('insert')->willReturnCallback(fn (Appointment $a): Appointment => $this->created[] = $a);
 		$this->places = $this->createMock(PlaceMapper::class);
 		$this->places->method('findAll')->willReturn([]);
+		$this->practitioners = $this->createMock(PractitionerMapper::class);
+		$this->practitioners->method('findAll')->willReturn([]);
 		$this->logger = $this->createMock(LoggerInterface::class);
 	}
 
@@ -39,7 +46,10 @@ class CalendarImportServiceTest extends TestCase {
 		$gateway = $this->createMock(CalendarGateway::class);
 		$gateway->method('listEvents')->with('alice', 'personal')->willReturn($events);
 
-		return new CalendarImportService($gateway, new EventParser(), $appointments ?? $this->appointments, $places ?? $this->places, $this->logger);
+		$appointments ??= $this->appointments;
+		$matcher = new EventMatcher($this->practitioners, $places ?? $this->places, $appointments);
+
+		return new CalendarImportService($gateway, new EventParser(), $appointments, $matcher, $this->logger);
 	}
 
 	private function ics(int $startsAt, string ...$extra): string {
@@ -96,5 +106,59 @@ class CalendarImportServiceTest extends TestCase {
 		$this->logger->expects(self::once())->method('error');
 
 		self::assertSame(0, $this->service([$this->ics(self::NOW), str_replace('evt-1', 'evt-2', $this->ics(self::NOW))], $appointments)->importExisting('alice', 'personal'));
+	}
+
+	public function testRecognisesThePractitionerAndKeepsTheirLastReasonWhenTheSummaryOnlyNamesThem(): void {
+		$practitioner = new Practitioner();
+		$practitioner->setId(28);
+		$practitioner->setName('Léa Fontaine-Morel');
+		$practitioner->setPlaceId(4);
+		$this->practitioners = $this->createMock(PractitionerMapper::class);
+		$this->practitioners->method('findAll')->willReturn([$practitioner]);
+		$previous = new Appointment();
+		$previous->setStartsAt(self::NOW - 86400);
+		$previous->setReason('Suivi');
+		$this->appointments->method('findByPractitioner')->with(28, 'alice')->willReturn([$previous]);
+
+		$this->service([
+			$this->ics(self::NOW, 'SUMMARY:Rendez-vous chez Mme Léa Fontaine'),
+			str_replace('evt-1', 'evt-2', $this->ics(self::NOW, 'SUMMARY:Bilan avec Léa Fontaine')),
+		])->importExisting('alice', 'personal');
+
+		self::assertSame([28, 28], array_map(static fn (Appointment $a): ?int => $a->getPractitionerId(), $this->created));
+		// sans lieu reconnu, le lieu habituel du praticien
+		self::assertSame([4, 4], array_map(static fn (Appointment $a): ?int => $a->getPlaceId(), $this->created));
+		self::assertSame(['Suivi', 'Bilan avec Léa Fontaine'], array_map(static fn (Appointment $a): ?string => $a->getReason(), $this->created));
+	}
+
+	public function testDraftsAnAppointmentFromAFileWithoutSavingIt(): void {
+		$this->appointments->expects(self::never())->method('insert');
+		$ics = $this->ics(self::NOW, 'SUMMARY:Contrôle', 'LOCATION:12 Rue des Lilas\\, 75011 Paris', 'DESCRIPTION:Code : 1234A');
+
+		self::assertSame([
+			'calendarUid' => 'evt-1',
+			'startsAt' => self::NOW,
+			'duration' => 60,
+			'reason' => 'Contrôle',
+			'notes' => 'Code : 1234A',
+			'practitionerId' => null,
+			'placeId' => null,
+			'location' => '12 Rue des Lilas, 75011 Paris',
+			'existingId' => null,
+		], $this->service([])->draftFromIcs('alice', $ics));
+	}
+
+	public function testADraftPointsToTheAppointmentAlreadyImportedFromTheSameEvent(): void {
+		$existing = new Appointment();
+		$existing->setId(12);
+		$appointments = $this->createMock(AppointmentMapper::class);
+		$appointments->method('findByCalendarUid')->with('evt-1', 'alice')->willReturn($existing);
+
+		self::assertSame(12, $this->service([], $appointments)->draftFromIcs('alice', $this->ics(self::NOW))['existingId']);
+	}
+
+	public function testRefusesAFileWithoutAnAppointment(): void {
+		$this->expectException(InvalidArgumentException::class);
+		$this->service([])->draftFromIcs('alice', 'not an ics');
 	}
 }

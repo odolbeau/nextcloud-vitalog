@@ -10,6 +10,12 @@ A [Nextcloud](https://nextcloud.com) app to keep track of your medical appointme
   and phone number, the local copy stays usable if the card disappears, and the contacts menu offers a "Vitalog appointments" action.
   A practitioner can have a usual place: picking them for an appointment fills an empty place with it, and it can still be changed
   case by case.
+- **From an .ics file**: the attachment of a booking platform (Doctolib…) fills the new appointment form: date, duration, notes,
+  and the practitioner recognised in the title, word by word, without accents, case or title ("Rendez-vous chez Mme Léa Fontaine"
+  finds "Léa Fontaine-Morel"). When the title only names the practitioner, the reason is the one of the last appointment with them;
+  the place is found by name or address, else the practitioner's usual place, else the address can become a new place in one
+  click. Nothing is saved before "Save", and the same event cannot be imported twice. The calendar import recognises practitioners
+  the same way.
 - **Icons**: each appointment shows an icon (tooth, heart, eye…) in the list and in its details. It comes from the practitioner's
   specialty ("Dentiste", "Cardiologist"…, recognised in French and English), or from the reason or the place for an appointment
   without a recognised specialty ("Prise de sang", "Laboratoire…"). Another icon can be picked in the practitioner form.

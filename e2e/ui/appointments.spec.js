@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { client, inDays, VITALOG_CALENDAR } from '../helpers.js'
+import { client, inDays, nowSeconds, VITALOG_CALENDAR } from '../helpers.js'
 import { choose, dialog, fill, items, nav, openApp, period, selected, setLanguage, typeSpecialty } from './pages.js'
 
 let admin
@@ -317,6 +317,43 @@ test('Upcoming and Past depend only on the date, and can be filtered', async ({ 
 
 	await page.getByRole('button', { name: 'Remove the filter Upcoming' }).click()
 	await expect(items(page)).toHaveCount(2)
+})
+
+test('an appointment can be filled from an .ics file, with its practitioner recognised', async ({ page }) => {
+	const practitioner = await admin.create('practitioners', { name: 'Dr Claire Moreau-Durand' })
+	await admin.create('appointments', { startsAt: inDays(-30), reason: 'Fond d’œil', practitionerId: practitioner.id })
+	const file = new URL('../fixtures/doctolib.ics', import.meta.url).pathname
+	await openApp(page)
+
+	await page.getByRole('button', { name: 'New appointment' }).first().click()
+	await page.locator('[data-test="ics-input"]').setInputFiles(file)
+	const form = dialog(page)
+	await expect(form.getByText('Filled from doctolib.ics')).toBeVisible()
+	await expect(selected(page, 'Practitioner')).toContainText('Dr Claire Moreau-Durand')
+	// le titre Doctolib ne fait que nommer la praticienne : le motif est celui du dernier rendez-vous avec elle
+	await expect(form.getByLabel('Reason')).toHaveValue('Fond d’œil')
+	await expect(form.getByLabel('Notes')).toHaveValue(/Fond de cour/)
+
+	// l'adresse du fichier, sans lieu connu, peut devenir un lieu
+	await expect(form.getByText('Address in the file: 12 Rue des Lilas, 75011 Paris')).toBeVisible()
+	await form.getByRole('button', { name: 'Create this place' }).click()
+	await expect(selected(page, 'Place')).toContainText('12 Rue des Lilas')
+	await form.getByRole('button', { name: 'Save' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+
+	const saved = (await admin.list('appointments')).find((a) => a.reason === 'Fond d’œil' && a.startsAt > nowSeconds())
+	const [place] = await admin.list('places')
+	expect(saved).toMatchObject({ startsAt: Date.UTC(2030, 11, 9, 12, 45) / 1000, duration: 60, practitionerId: practitioner.id, placeId: place.id })
+	expect(place).toMatchObject({ name: '12 Rue des Lilas', address: '12 Rue des Lilas, 75011 Paris' })
+
+	// le même fichier une seconde fois : le rendez-vous existe déjà
+	await page.getByRole('button', { name: 'New appointment' }).first().click()
+	await page.locator('[data-test="ics-input"]').setInputFiles(file)
+	await expect(dialog(page).getByText('This event is already in Vitalog.')).toBeVisible()
+	await dialog(page).getByRole('button', { name: 'Open the appointment' }).click()
+	await expect(dialog(page)).toHaveCount(0)
+	await expect(page.getByRole('article').getByRole('heading', { name: 'Fond d’œil' })).toBeVisible()
+	expect(await admin.list('appointments')).toHaveLength(2)
 })
 
 test('deleting asks for confirmation', async ({ page }) => {

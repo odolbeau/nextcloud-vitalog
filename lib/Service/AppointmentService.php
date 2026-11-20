@@ -38,10 +38,18 @@ class AppointmentService {
 		}
 	}
 
-	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = [], ?int $price = null): Appointment {
+	/**
+	 * @param ?string $calendarUid UID de l'événement d'origine (fichier .ics importé) : un même événement n'est importé qu'une fois
+	 */
+	public function create(string $userId, int $startsAt, int $duration, ?int $practitionerId, ?int $placeId, ?string $reason, ?string $notes, array $labelIds = [], ?int $price = null, ?string $calendarUid = null): Appointment {
 		$appointment = new Appointment();
 		$appointment->setUserId($userId);
 		$this->fill($appointment, $userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $price);
+		$calendarUid = Validator::optionalText($calendarUid, Validator::NAME_MAX, 'calendarUid');
+		if ($calendarUid !== null && $this->mapper->findByCalendarUid($calendarUid, $userId) !== null) {
+			throw new InvalidArgumentException('Already imported');
+		}
+		$appointment->setCalendarUid($calendarUid);
 		$labelIds = $this->validLabelIds($userId, $labelIds);
 		$appointment = $this->mapper->insert($appointment);
 		$this->labelLinks->replace($appointment->getId(), $labelIds);

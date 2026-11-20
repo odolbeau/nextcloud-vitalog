@@ -6,6 +6,31 @@
 		@submit="submit"
 		@closing="emit('close')">
 		<div class="form">
+			<template v-if="!appointment">
+				<input
+					ref="icsInput"
+					type="file"
+					accept=".ics,text/calendar"
+					hidden
+					data-test="ics-input"
+					@change="readIcs">
+				<NcButton :disabled="reading" @click="icsInput.click()">
+					<template #icon>
+						<CalendarImport :size="20" />
+					</template>
+					{{ t('vitalog', 'Fill from an .ics file') }}
+				</NcButton>
+				<NcNoteCard v-if="existing" type="warning">
+					<p>{{ t('vitalog', 'This event is already in Vitalog.') }}</p>
+					<NcButton variant="secondary" @click="openExisting">
+						{{ t('vitalog', 'Open the appointment') }}
+					</NcButton>
+				</NcNoteCard>
+				<NcNoteCard v-else-if="filledFrom" type="info">
+					{{ t('vitalog', 'Filled from {file}: check the details before saving.', { file: filledFrom }) }}
+				</NcNoteCard>
+			</template>
+
 			<NcDateTimePickerNative
 				id="vitalog-starts-at"
 				v-model="startsAt"
@@ -60,6 +85,13 @@
 					<template #icon>
 						<Plus :size="20" />
 					</template>
+				</NcButton>
+			</div>
+
+			<div v-if="location && place === null" class="form__hint">
+				<span>{{ t('vitalog', 'Address in the file: {address}', { address: location }) }}</span>
+				<NcButton variant="tertiary" @click="createPlaceFromLocation">
+					{{ t('vitalog', 'Create this place') }}
 				</NcButton>
 			</div>
 
@@ -118,9 +150,11 @@ import { computed, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import CalendarImport from 'vue-material-design-icons/CalendarImport.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import PlaceForm from './PlaceForm.vue'
 import PractitionerForm from './PractitionerForm.vue'
@@ -176,6 +210,57 @@ watch(practitioner, (option) => {
 })
 const saving = ref(false)
 
+// Remplissage depuis un fichier .ics (pièce jointe d'une plateforme de rendez-vous) : le serveur reconnaît le praticien
+// et le lieu, rien n'est enregistré avant « Enregistrer ». L'UID de l'événement suit, pour ne pas l'importer deux fois.
+const icsInput = ref(null)
+const reading = ref(false)
+const calendarUid = ref(null)
+const filledFrom = ref(null)
+const existing = ref(null)
+const location = ref(null)
+
+async function readIcs(event) {
+	const file = event.target.files?.[0]
+	event.target.value = ''
+	if (!file) {
+		return
+	}
+	reading.value = true
+	const draft = await store.draftFromIcs(await file.text())
+	reading.value = false
+	if (draft === null) {
+		return
+	}
+	existing.value = draft.existingId ? store.appointments.find((a) => a.id === draft.existingId) ?? null : null
+	if (existing.value) {
+		return
+	}
+	startsAt.value = toDate(draft.startsAt)
+	duration.value = durations.find((d) => d.id === draft.duration) ?? toOption(draft.duration, t('vitalog', '{minutes} min', { minutes: draft.duration }))
+	practitioner.value = practitionerOptions.value.find((o) => o.id === draft.practitionerId) ?? null
+	place.value = placeOptions.value.find((o) => o.id === draft.placeId) ?? null
+	// le lieu habituel du praticien reste remplaçable si l'on change de praticien
+	placeFromPractitioner.value = place.value !== null && store.practitionerById(draft.practitionerId)?.placeId === draft.placeId
+	reason.value = draft.reason ?? ''
+	notes.value = draft.notes ?? ''
+	location.value = draft.location
+	calendarUid.value = draft.calendarUid
+	filledFrom.value = file.name
+}
+
+function openExisting() {
+	emit('saved', existing.value)
+	emit('close')
+}
+
+/** Crée le lieu indiqué par le fichier : la première partie de l'adresse sert de nom. */
+async function createPlaceFromLocation() {
+	const saved = await store.savePlace({ name: location.value.split(',')[0].trim(), address: location.value, notes: null })
+	if (saved) {
+		pickPlace(toOption(saved.id, saved.name))
+	}
+}
+
 const priceInvalid = computed(() => Number.isNaN(parsePrice(price.value)))
 const valid = computed(() => startsAt.value instanceof Date && !Number.isNaN(startsAt.value.getTime()) && !priceInvalid.value)
 
@@ -195,6 +280,7 @@ async function submit() {
 		notes: notes.value.trim() || null,
 		price: parsePrice(price.value),
 		labelIds,
+		...(props.appointment ? {} : { calendarUid: calendarUid.value }),
 	}, props.appointment?.id)
 	saving.value = false
 	if (saved) {
@@ -215,6 +301,15 @@ async function submit() {
 		display: flex;
 		align-items: flex-end;
 		gap: 8px;
+	}
+
+	&__hint {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 8px;
+		margin-top: -8px;
+		color: var(--color-text-maxcontrast);
 	}
 
 	&__grow {

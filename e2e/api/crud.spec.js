@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { ICONS } from '../../src/practitionerIcons.js'
 import { BOB, client, ensureBob, inDays } from '../helpers.js'
 
@@ -153,6 +154,42 @@ test.describe('appointments', () => {
 
 	test('startsAt is required', async () => {
 		expect((await admin.post('appointments', { reason: 'x' })).status()).toBe(400)
+	})
+
+	test('an .ics file gives a draft with the practitioner recognised, and its event is imported only once', async () => {
+		const practitioner = await admin.create('practitioners', { name: 'Dr Claire Moreau-Durand' })
+		await admin.create('appointments', { startsAt: inDays(-30), reason: 'Fond d’œil', practitionerId: practitioner.id })
+		const ics = readFileSync(new URL('../fixtures/doctolib.ics', import.meta.url), 'utf8')
+
+		const response = await admin.post('appointments/from-ics', { ics })
+		expect(response.status()).toBe(200)
+		const draft = await admin.data(response)
+		expect(draft).toMatchObject({
+			calendarUid: '0b6f3a52-6c1e-4d4e-9a57-3f0f2f1e7c11',
+			// 9 décembre 2030 à 13 h 45, heure de Paris
+			startsAt: Date.UTC(2030, 11, 9, 12, 45) / 1000,
+			duration: 60,
+			reason: 'Fond d’œil',
+			practitionerId: practitioner.id,
+			placeId: null,
+			location: '12 Rue des Lilas, 75011 Paris',
+			existingId: null,
+		})
+		expect(draft.notes).toContain('Fond de cour.')
+		// rien n'est enregistré
+		expect(await admin.list('appointments')).toHaveLength(1)
+
+		const { calendarUid, startsAt, duration } = draft
+		const created = await admin.create('appointments', { startsAt, duration, calendarUid })
+		expect(await admin.data(await admin.post('appointments/from-ics', { ics }))).toMatchObject({ existingId: created.id })
+		expect((await admin.post('appointments', { startsAt, calendarUid })).status()).toBe(400)
+		// l'événement est propre à chaque utilisateur
+		expect(await bob.data(await bob.post('appointments/from-ics', { ics }))).toMatchObject({ existingId: null, practitionerId: null })
+	})
+
+	test('a file without an appointment is refused', async () => {
+		expect((await admin.post('appointments/from-ics', { ics: 'not an ics' })).status()).toBe(400)
+		expect((await admin.post('appointments/from-ics', { ics: 'x'.repeat(1_000_001) })).status()).toBe(400)
 	})
 
 	test('deleting a practitioner or a place detaches their appointments', async () => {

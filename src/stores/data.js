@@ -222,6 +222,22 @@ export const useDataStore = defineStore('data', () => {
 		}
 	}
 
+	/**
+	 * Rendez-vous à relire tiré d'un fichier .ics ; null si le fichier n'en contient pas.
+	 *
+	 * @param {string} ics contenu du fichier
+	 */
+	async function draftFromIcs(ics) {
+		try {
+			return await api.draftFromIcs(ics)
+		} catch (error) {
+			// le message du serveur n'est pas traduit : un seul cas d'échec utile à l'utilisateur
+			logger.error('Vitalog could not read an .ics file', { error })
+			showError(t('vitalog', 'This file does not contain an appointment.'))
+			return null
+		}
+	}
+
 	async function importCalendar(calendarUri) {
 		const result = await guard(() => api.importCalendar(calendarUri), t('vitalog', 'The events could not be imported.'))
 		if (!result) {
@@ -261,6 +277,7 @@ export const useDataStore = defineStore('data', () => {
 		createContactFor,
 		deletePractitioner,
 		savePlace,
+		draftFromIcs,
 		deletePlace,
 		saveLabel,
 		deleteLabel,

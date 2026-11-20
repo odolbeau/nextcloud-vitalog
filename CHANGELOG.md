@@ -6,6 +6,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ## Unreleased
 
 ### Added
+- New appointment from an .ics file (the attachment of a booking platform such as Doctolib): the form is filled with the date, the duration, the notes and the practitioner recognised in the title, word by word, without accents, case or title ("Rendez-vous chez Mme Léa Fontaine" finds "Léa Fontaine-Morel"). A title that only names the practitioner gives the reason of the last appointment with them. The place is found by name or address, else it is the practitioner's usual place, else the address of the file can become a new place in one click. The same event is never imported twice.
+- The calendar import also recognises the practitioner (and their reason and usual place) the same way.
 - Icons: each appointment shows an icon (tooth, heart, eye, lungs…) in the list and in its details, and each practitioner in the Practitioners page and in the practitioner filter. It comes from the practitioner's specialty, recognised in French and English ("Chirurgien-dentiste", "Kinésithérapeute", "Cardiologist"…), or else from the reason or the place ("Prise de sang", "Laboratoire…"). The practitioner form offers 23 icons to pick another one.
 
 ### Changed

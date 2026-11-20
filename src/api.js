@@ -18,6 +18,9 @@ export const removeAttachment = (id) => axios.delete(url(`attachments/${id}`), c
 export const searchContacts = (search) => axios.get(url('contacts'), { ...config, params: { search } }).then(unwrap)
 export const createContact = (practitionerId) => axios.post(url(`practitioners/${practitionerId}/contact`), {}, config).then(unwrap)
 
+/** Rendez-vous décrit par le contenu d'un fichier .ics, praticien et lieu reconnus, sans rien enregistrer. */
+export const draftFromIcs = (ics) => axios.post(url('appointments/from-ics'), { ics }, config).then(unwrap)
+
 export const getSettings = () => axios.get(url('settings'), config).then(unwrap)
 /** Nom et/ou couleur du calendrier « Vitalog » : `{ calendarName, calendarColor }`. */
 export const updateCalendar = (changes) => axios.put(url('settings/calendar'), changes, config).then(unwrap)

@@ -72,7 +72,9 @@ test('the form can be used with the keyboard only', async ({ page }) => {
 	await page.getByRole('button', { name: 'New appointment' }).first().click()
 	const form = dialog(page)
 
-	// le premier champ reçoit le focus
+	// le premier élément reçoit le focus (remplir depuis un fichier .ics), puis la date
+	await expect(form.getByRole('button', { name: 'Fill from an .ics file' })).toBeFocused()
+	await page.keyboard.press('Tab')
 	await expect(form.getByLabel('Date and time')).toBeFocused()
 
 	// Échap ferme le dialogue sans rien enregistrer quand le focus est sur un bouton.

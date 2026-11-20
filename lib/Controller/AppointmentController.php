@@ -9,18 +9,24 @@ use OCA\Vitalog\AppInfo\Application;
 use OCA\Vitalog\Db\Appointment;
 use OCA\Vitalog\Service\AppointmentService;
 use OCA\Vitalog\Service\AttachmentService;
+use OCA\Vitalog\Service\CalendarImportService;
 use OCA\Vitalog\Service\NotFoundException;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 
 class AppointmentController extends OCSController {
+	/** Taille maximale d'un fichier .ics lu (un événement de rendez-vous fait quelques kilo-octets). */
+	private const ICS_MAX = 1_000_000;
+
 	public function __construct(
 		IRequest $request,
 		private AppointmentService $service,
 		private AttachmentService $attachments,
+		private CalendarImportService $import,
 		private ?string $userId,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -37,11 +43,28 @@ class AppointmentController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = [], ?int $price = null): DataResponse {
+	public function create(int $startsAt, int $duration = 30, ?int $practitionerId = null, ?int $placeId = null, ?string $reason = null, ?string $notes = null, array $labelIds = [], ?int $price = null, ?string $calendarUid = null): DataResponse {
 		return $this->handle(
-			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds, $price),
+			fn () => $this->service->create($this->userId, $startsAt, $duration, $practitionerId, $placeId, $reason, $notes, $labelIds, $price, $calendarUid),
 			Http::STATUS_CREATED,
 		);
+	}
+
+	/**
+	 * Lit un fichier .ics (son contenu) et renvoie le rendez-vous qu'il décrit, praticien et lieu reconnus, sans rien
+	 * enregistrer : le formulaire le fait relire avant de le créer.
+	 */
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/appointments/from-ics')]
+	public function fromIcs(string $ics): DataResponse {
+		if (strlen($ics) > self::ICS_MAX) {
+			return new DataResponse(['message' => 'File too large'], Http::STATUS_BAD_REQUEST);
+		}
+		try {
+			return new DataResponse($this->import->draftFromIcs($this->userId, $ics));
+		} catch (InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
 	}
 
 	#[NoAdminRequired]
